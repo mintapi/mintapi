@@ -18,6 +18,7 @@ from Python
 from anywhere
 ---
 From the command-line, the output is JSON:
+
     >>> python mint.py email password
     [
       {
