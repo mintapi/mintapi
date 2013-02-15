@@ -63,8 +63,12 @@ def get_accounts(email, password):
 
 if __name__ == "__main__":
     import getpass, sys
-    email = raw_input("Mint email: ")
-    password = getpass.getpass("Password: ")
+
+    if len(sys.argv) >= 3:
+        email, password = sys.argv[1:]
+    else:
+        email = raw_input("Mint email: ")
+        password = getpass.getpass("Password: ")
 
     accounts = get_accounts(email, password)
     print json.dumps(accounts, indent=2)
