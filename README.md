@@ -20,6 +20,7 @@ From python, simply call `get_accounts`. We recommend using a keyring library fo
 from anywhere
 ---
 From the command-line, the output is JSON:
+
     >>> python mint/api.py email password
     [
       {
