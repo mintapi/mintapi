@@ -14,14 +14,13 @@ from Python
 ---
 From python, simply call `get_accounts`. We recommend using a keyring library for persisting user credentials.
 
-    import mint
-    accounts = mint.get_accounts(email, password)
+    from mint import api
+    accounts = api.get_accounts(email, password)
 
 from anywhere
 ---
 From the command-line, the output is JSON:
-
-    >>> python mint.py email password
+    >>> python mint/api.py email password
     [
       {
         "accountName": "Chase Checking", 
