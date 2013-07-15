@@ -1,7 +1,7 @@
 mintapi
 =======
 
-a screen-scraping API for Mint.com
+a screen-scraping API for Mint.com.
 
 Requirements
 ===
@@ -14,14 +14,15 @@ Usage
 
 from Python
 ---
-From python, simply call `get_accounts`. We recommend using a keyring library for persisting user credentials.
+From python, simply call `get_accounts`. We recommend using the
+`keyring` library for persisting user credentials.
 
     from mint import api
     accounts = api.get_accounts(email, password)
 
 from anywhere
 ---
-From the command-line, the output is JSON:
+Run it as a sub-process from your favorite language. From the command-line, the output is JSON:
 
     >>> python mint/api.py email password
     [
