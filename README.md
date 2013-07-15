@@ -15,7 +15,7 @@ Usage
 from Python
 ---
 From python, simply call `get_accounts`. We recommend using the
-`keyring` library for persisting user credentials.
+`keyring` library for persisting credentials.
 
     from mint import api
     accounts = api.get_accounts(email, password)
