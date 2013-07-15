@@ -42,12 +42,16 @@ def get_accounts(email, password):
 if __name__ == "__main__":
     import getpass, sys
 
+    # Handle Python 3's raw_input change.
+    try: input = raw_input
+    except NameError: pass
+
     if len(sys.argv) >= 3:
         email, password = sys.argv[1:]
     else:
-        email = raw_input("Mint email: ")
+        email = input("Mint email: ")
         password = getpass.getpass("Password: ")
 
     accounts = get_accounts(email, password)
-    print json.dumps(accounts, indent=2)
+    print(json.dumps(accounts, indent=2))
 
