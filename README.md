@@ -5,7 +5,7 @@ a screen-scraping API for Mint.com
 
 Requirements
 ===
-Ensure you have Python 2 or 3 and pip (`easy_install pip`):
+Ensure you have Python 2 or 3 and pip (`easy_install pip`) and then:
 
     pip install requests pyquery
 
