@@ -5,7 +5,7 @@ a screen-scraping API for Mint.com
 
 Requirements
 ===
-pip install pyquery
+pip install requests pyquery
 
 Usage
 ===
