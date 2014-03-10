@@ -1,18 +1,22 @@
 import json
-from pyquery import PyQuery as pq
 import requests
 
 def get_accounts(email, password):
     # 1: Login.
     session = requests.Session()
     data = {"username": email, "password": password, "task": "L", "nextPage": ""}
-    response = session.post("https://wwws.mint.com/loginUserSubmit.xevent", data=data).text
-    if "javascript-token" not in response.lower():
-        raise Exception("Mint.com login failed")
+    headers = {'accept': 'application/json'}
+    response = session.post("https://wwws.mint.com/loginUserSubmit.xevent", data=data, headers=headers).text
+
+    if "token" not in response:
+        raise Exception("Mint.com login failed[1]")
+
+    response = json.loads(response)
+    if not response["sUser"]["token"]:
+        raise Exception("Mint.com login failed[2]")
 
     # 2: Grab token.
-    d = pq(response.encode("utf-8"))
-    token = d("input#javascript-token")[0].value
+    token = response["sUser"]["token"]
 
     # 3. Issue service request.
     request_id = "115485" # magic number? random number?
@@ -34,9 +38,11 @@ def get_accounts(email, password):
         "service": "MintAccountService", 
         "task": "getAccountsSorted"}
     ])}
-    response = session.post("https://wwws.mint.com/bundledServiceController.xevent?token="+token, data=data)
-    response = json.loads(response.text)["response"]
-    accounts = response[request_id]["response"]
+    response = session.post("https://wwws.mint.com/bundledServiceController.xevent?token="+token, data=data, headers=headers).text
+    if request_id not in response:
+        raise Exception("Could not parse account data: " + response)
+    response = json.loads(response)
+    accounts = response["response"][request_id]["response"]
     return accounts
 
 if __name__ == "__main__":
@@ -54,4 +60,3 @@ if __name__ == "__main__":
 
     accounts = get_accounts(email, password)
     print(json.dumps(accounts, indent=2))
-
