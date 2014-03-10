@@ -5,7 +5,7 @@ def get_accounts(email, password):
     # 1: Login.
     session = requests.Session()
     data = {"username": email, "password": password, "task": "L", "nextPage": ""}
-    headers = {'accept': 'application/json'}
+    headers = {"accept": "application/json"}
     response = session.post("https://wwws.mint.com/loginUserSubmit.xevent", data=data, headers=headers).text
 
     if "token" not in response:
