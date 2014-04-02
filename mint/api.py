@@ -36,9 +36,9 @@ def get_accounts(email, password):
         }, 
         "id": request_id, 
         "service": "MintAccountService", 
-        "task": "getAccountsSorted"}
+        "task": "getAccountsSortedByBalanceDescending"}
     ])}
-    response = session.post("https://wwws.mint.com/bundledServiceController.xevent?token="+token, data=data, headers=headers).text
+    response = session.post("https://wwws.mint.com/bundledServiceController.xevent?legacy=false&token="+token, data=data, headers=headers).text
     if request_id not in response:
         raise Exception("Could not parse account data: " + response)
     response = json.loads(response)
