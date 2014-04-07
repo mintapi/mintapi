@@ -2,8 +2,13 @@ import json
 import requests
 
 def get_accounts(email, password):
-    # 1: Login.
+    # 0: Navigate to login page
     session = requests.Session()
+    start = session.get("https://wwws.mint.com/login.event?task=L")
+    if start.status_code != requests.codes.ok:
+        raise Exception("Failed to load Mint.com login page.")
+
+    # 1: Login.
     data = {"username": email, "password": password, "task": "L", "nextPage": ""}
     headers = {"accept": "application/json"}
     response = session.post("https://wwws.mint.com/loginUserSubmit.xevent", data=data, headers=headers).text
