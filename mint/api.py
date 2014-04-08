@@ -4,10 +4,13 @@ import requests
 def get_accounts(email, password):
     # 1: Login.
     session = requests.Session()
-    data = {"username": email, "password": password, "task": "L", "nextPage": ""}
+
+    if session.get("https://wwws.mint.com/login.event?task=L").status_code != requests.codes.ok:
+        raise Exception("Failed to load Mint main page '{}'".format(Mint.START_URL))
+    
+    data = {"username": email, "password": password, "task": "L", "browser": "firefox", "browserVersion": "27", "os": "linux"}
     headers = {"accept": "application/json"}
     response = session.post("https://wwws.mint.com/loginUserSubmit.xevent", data=data, headers=headers).text
-
     if "token" not in response:
         raise Exception("Mint.com login failed[1]")
 
@@ -19,7 +22,7 @@ def get_accounts(email, password):
     token = response["sUser"]["token"]
 
     # 3. Issue service request.
-    request_id = "115485" # magic number? random number?
+    request_id = "42" # magic number? random number?
     data = {"input": json.dumps([
         {"args": {
             "types": [
@@ -36,7 +39,9 @@ def get_accounts(email, password):
         }, 
         "id": request_id, 
         "service": "MintAccountService", 
-        "task": "getAccountsSortedByBalanceDescending"}
+        #"task": "getAccountsSorted"
+        "task": "getAccountsSortedByBalanceDescending"
+        }
     ])}
     response = session.post("https://wwws.mint.com/bundledServiceController.xevent?legacy=false&token="+token, data=data, headers=headers).text
     if request_id not in response:
