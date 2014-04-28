@@ -8,12 +8,13 @@ class Mint:
 	token = None
 
 	@classmethod
-	def create(_, email, password):
+	def create(_, email, password): # {{{
 		mint = Mint()
 		mint.login_and_get_token(email, password)
 		return mint
+	# }}}
 
-	def login_and_get_token(self, email, password):
+	def login_and_get_token(self, email, password): # {{{
 		# 0: Check to see if we're already logged in.
 		if(self.token != None):
 			return
@@ -34,8 +35,9 @@ class Mint:
 
 		# 2: Grab token.
 		self.token = response["sUser"]["token"]
+	# }}}
 
-	def get_accounts(self, email = None, password = None):
+	def get_accounts(self, email = None, password = None): # {{{
 		# 1: Login
 		if(email != None and password != None):
 			self.login_and_get_token(email, password)
@@ -68,6 +70,7 @@ class Mint:
 		response = json.loads(response)
 		accounts = response["response"][request_id]["response"]
 		return accounts
+	# }}}
 
 if __name__ == "__main__":
     import getpass, sys
