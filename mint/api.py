@@ -7,6 +7,12 @@ class Mint:
 	session = None
 	token = None
 
+	@classmethod
+	def create(_, email, password):
+		mint = Mint()
+		mint.login_and_get_token(email, password)
+		return mint
+
 	def login_and_get_token(self, email, password):
 		# 0: Check to see if we're already logged in.
 		if(self.token != None):
@@ -29,9 +35,10 @@ class Mint:
 		# 2: Grab token.
 		self.token = response["sUser"]["token"]
 
-	def get_accounts(self, email, password):
+	def get_accounts(self, email = None, password = None):
 		# 1: Login
-		self.login_and_get_token(email, password)
+		if(email != None and password != None):
+			self.login_and_get_token(email, password)
 
 		# 2: Issue servie request.
 		request_id = "42" # magic number? random number?
@@ -75,7 +82,7 @@ if __name__ == "__main__":
         email = input("Mint email: ")
         password = getpass.getpass("Password: ")
 
-    mint = Mint()
+    mint = Mint.create(email, password)
 
-    accounts = mint.get_accounts(email, password)
+    accounts = mint.get_accounts()
     print(json.dumps(accounts, indent=2))
