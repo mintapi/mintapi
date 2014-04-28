@@ -22,7 +22,7 @@ From python, simply call `get_accounts`. We recommend using the
 
 from anywhere
 ---
-Run it as a sub-process from your favorite language. From the command-line, the output is JSON:
+Run it as a sub-process from your favorite language; `pip install mintapi` creates a binary in your $PATH. From the command-line, the output is JSON:
 
     >>> mintapi email password
     [
