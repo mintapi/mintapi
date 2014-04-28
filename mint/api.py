@@ -39,8 +39,8 @@ def get_accounts(email, password):
         }, 
         "id": request_id, 
         "service": "MintAccountService", 
-        #"task": "getAccountsSorted"
-        "task": "getAccountsSortedByBalanceDescending"
+        "task": "getAccountsSorted"
+        #"task": "getAccountsSortedByBalanceDescending"
         }
     ])}
     response = session.post("https://wwws.mint.com/bundledServiceController.xevent?legacy=false&token="+token, data=data, headers=headers).text
