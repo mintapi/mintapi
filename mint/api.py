@@ -126,10 +126,14 @@ class Mint:
 			if(table_type == 'account-table-bank'):
 				account['availableMoney'] = Mint.parse_float(xml[1]['#text'])
 				account['totalFees'] = Mint.parse_float(xml[3]['a']['#text'])
+				if(account['interestRate'] == None):
+					account['interestRate'] = Mint.parse_float(xml[2]['#text']) / 100.0
 			elif(table_type == 'account-table-credit'):
 				account['availableMoney'] = Mint.parse_float(xml[1]['#text'])
 				account['totalCredit'] = Mint.parse_float(xml[2]['#text'])
 				account['totalFees'] = Mint.parse_float(xml[4]['a']['#text'])
+				if(account['interestRate'] == None):
+					account['interestRate'] = Mint.parse_float(xml[3]['#text']) / 100.0
 			elif(table_type == 'account-table-loan'):
 				account['nextPaymentAmount'] = Mint.parse_float(xml[1]['#text'])
 				account['nextPaymentDate'] = xml[2]['#text']
