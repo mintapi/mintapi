@@ -17,13 +17,8 @@ else:
 
 mint = mintapi.Mint.create(email, password)
 
-accounts = mint.get_accounts(get_detail = True)
-print('Accounts')
-print(json.dumps(accounts))
-print('\n')
-print('\n')
-
-budgets = mint.get_budgets()
-print('Budgets')
-print(json.dumps(budgets))
+print(json.dumps({
+	'accounts' : mint.get_accounts(get_detail = True),
+	'budgets' : mint.get_budgets()
+}))
 
