@@ -212,7 +212,6 @@ class Mint:
 			'token' : self.token
 		}
 		response = self.session.post('https://wwws.mint.com/refreshFILogins.xevent', data = data, headers = self.headers).text
-		print(response)
 	# }}}
 
 if __name__ == "__main__":
