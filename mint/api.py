@@ -57,12 +57,8 @@ class Mint:
 		self.token = response["sUser"]["token"]
 	# }}}
 
-	def get_accounts(self, email = None, password = None, get_detail = False): # {{{
-		# 1: Login
-		if(email != None and password != None):
-			self.login_and_get_token(email, password)
-
-		# 2: Issue service request.
+	def get_accounts(self, get_detail = False): # {{{
+		# Issue service request.
 		req_id = str(self.request_id)
 		data = {"input": json.dumps([
 			{"args": {
@@ -88,6 +84,8 @@ class Mint:
 		self.request_id = self.request_id + 1
 		if req_id not in response:
 			raise Exception("Could not parse account data: " + response)
+
+		# Parse the request
 		response = json.loads(response)
 		accounts = response["response"][req_id]["response"]
 		if(get_detail):
@@ -143,12 +141,8 @@ class Mint:
 		return accounts
 	# }}}
 
-	def get_categories(self, email = None, password = None): # {{{
-		# 1: Login
-		if(email != None and password != None):
-			self.login_and_get_token(email, password)
-
-		# 2: Get category metadata.
+	def get_categories(self): # {{{
+		# Get category metadata.
 		req_id = str(self.request_id)
 		data = {
 			'input': json.dumps([{
@@ -169,7 +163,7 @@ class Mint:
 		response = json.loads(response)
 		response = response['response'][req_id]['response']
 
-		# 3. Build category tree
+		# Build category list 
 		categories = {}
 		for category in response['allCategories']:
 			if(category['parentId'] == 0):
@@ -179,11 +173,8 @@ class Mint:
 		return categories
 	# }}}
 
-	def get_budgets(self, email = None, password = None): # {{{
-		# 1. Login and get category tree
-		categories = self.get_categories(email, password)
-
-		# 2. Issue request for budget utilization
+	def get_budgets(self): # {{{
+		# Issue request for budget utilization
 		today = datetime.date.today()
 		this_month = datetime.date(today.year, today.month, 1)
 		last_year = this_month - datetime.timedelta(days = 330)
@@ -194,11 +185,13 @@ class Mint:
 			headers = self.headers
 		).text)
 
+		# Make the skeleton return structure
 		budgets = {
 			'income' : response['data']['income'][str(max(map(int, response['data']['income'].keys())))]['bu'],
 			'spend' : response['data']['spending'][str(max(map(int, response['data']['income'].keys())))]['bu']
 		}
 
+		# Fill in the return structure
 		for direction in budgets.keys():
 			for budget in budgets[direction]:
 				budget['cat'] = categories[budget['cat']]
@@ -206,17 +199,25 @@ class Mint:
 		return budgets
 	# }}}
 
-	def initiate_account_refresh(self, email = None, password = None): # {{{
-		# 1: Login
-		if(email != None and password != None):
-			self.login_and_get_token(email, password)
-
-		# 2: Submit refresh request.
+	def initiate_account_refresh(self): # {{{
+		# Submit refresh request.
 		data = {
 			'token' : self.token
 		}
-		response = self.session.post('https://wwws.mint.com/refreshFILogins.xevent', data = data, headers = self.headers).text
+		response = self.session.post('https://wwws.mint.com/refreshFILogins.xevent', data = data, headers = self.headers)
 	# }}}
+
+def get_accounts(email, password, get_detail = False):
+	mint = Mint.create(email, password)
+	return mint.get_accounts(get_detail = get_detail)
+
+def get_budgets(email, password):
+	mint = Mint.create(email, password)
+	return mint.get_budgets()
+
+def initiate_account_request(email, password):
+	mint = Mint.create(email, password)
+	return mint.initiate_account_refresh()
 
 if __name__ == "__main__":
     import getpass, sys
