@@ -196,7 +196,7 @@ class Mint:
 
 		budgets = {
 			'income' : response['data']['income'][str(max(map(int, response['data']['income'].keys())))]['bu'],
-			'expense' : response['data']['spending'][str(max(map(int, response['data']['income'].keys())))]['bu']
+			'spend' : response['data']['spending'][str(max(map(int, response['data']['income'].keys())))]['bu']
 		}
 
 		for direction in budgets.keys():
