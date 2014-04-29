@@ -7,7 +7,7 @@ Requirements
 ===
 Ensure you have Python 2 or 3 and pip (`easy_install pip`) and then:
 
-    pip install requests
+    pip install mintapi
 
 Usage
 ===
@@ -17,14 +17,14 @@ from Python
 From python, simply call `get_accounts`. We recommend using the
 `keyring` library for persisting credentials.
 
-    from mint import api
-    accounts = api.get_accounts(email, password)
+    import mintapi
+    accounts = mintapi.get_accounts(email, password)
 
 from anywhere
 ---
-Run it as a sub-process from your favorite language. From the command-line, the output is JSON:
+Run it as a sub-process from your favorite language; `pip install mintapi` creates a binary in your $PATH. From the command-line, the output is JSON:
 
-    >>> python mint/api.py email password
+    >>> mintapi email password
     [
       {
         "accountName": "Chase Checking", 

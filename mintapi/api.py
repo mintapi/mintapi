@@ -219,28 +219,3 @@ def initiate_account_request(email, password):
 	mint = Mint.create(email, password)
 	return mint.initiate_account_refresh()
 
-if __name__ == "__main__":
-    import getpass, sys
-
-    # Handle Python 3's raw_input change.
-    try: input = raw_input
-    except NameError: pass
-
-    if len(sys.argv) >= 3:
-        email, password = sys.argv[1:]
-    else:
-        email = input("Mint email: ")
-        password = getpass.getpass("Password: ")
-
-    mint = Mint.create(email, password)
-
-    accounts = mint.get_accounts(get_detail = True)
-    print('Accounts')
-    print(json.dumps(accounts))
-    print('\n')
-    print('\n')
-
-    budgets = mint.get_budgets()
-    print('Budgets')
-    print(json.dumps(budgets))
-
