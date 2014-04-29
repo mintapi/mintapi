@@ -174,6 +174,9 @@ class Mint:
 	# }}}
 
 	def get_budgets(self): # {{{
+		# Get categories
+		categories = self.get_categories()
+
 		# Issue request for budget utilization
 		today = datetime.date.today()
 		this_month = datetime.date(today.year, today.month, 1)
@@ -215,7 +218,7 @@ def get_budgets(email, password):
 	mint = Mint.create(email, password)
 	return mint.get_budgets()
 
-def initiate_account_request(email, password):
+def initiate_account_refresh(email, password):
 	mint = Mint.create(email, password)
 	return mint.initiate_account_refresh()
 
