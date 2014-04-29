@@ -139,6 +139,69 @@ class Mint:
 		return accounts
 	# }}}
 
+	def get_categories(self, email = None, password = None): # {{{
+		# 1: Login
+		if(email != None and password != None):
+			self.login_and_get_token(email, password)
+
+		# 2: Get category metadata.
+		req_id = str(self.request_id)
+		data = {
+			'input': json.dumps([{
+				'args': {
+					'excludedCategories' : [],
+					'sortByPrecedence' : False,
+					'categoryTypeFilter' : 'FREE'
+				},
+				'id': req_id,
+				'service': 'MintCategoryService',
+				'task': 'getCategoryTreeDto2'
+			}])
+		}
+		response = self.session.post('https://wwws.mint.com/bundledServiceController.xevent?legacy=false&token=' + self.token, data = data, headers = self.headers).text
+		self.request_id = self.request_id + 1
+		if(req_id not in response):
+			raise Exception('Could not parse category data: "' + response + '"')
+		response = json.loads(response)
+		response = response['response'][req_id]['response']
+
+		# 3. Build category tree
+		categories = {}
+		for category in response['allCategories']:
+			if(category['parentId'] == 0):
+				continue
+			categories[category['id']] = category
+
+		return categories
+	# }}}
+
+	def get_budgets(self, email = None, password = None): # {{{
+		# 1. Login and get category tree
+		categories = self.get_categories(email, password)
+
+		# 2. Issue request for budget utilization
+		today = datetime.date.today()
+		this_month = datetime.date(today.year, today.month, 1)
+		last_year = this_month - datetime.timedelta(days = 330)
+		this_month = str(this_month.month).zfill(2) + '/01/' + str(this_month.year)
+		last_year = str(last_year.month).zfill(2) + '/01/' + str(last_year.year)
+		response = json.loads(self.session.get(
+			'https://wwws.mint.com/getBudget.xevent?startDate=' + last_year + '&endDate=' + this_month + '&rnd=' + Mint.get_rnd(),
+			headers = self.headers
+		).text)
+
+		budgets = {
+			'income' : response['data']['income'][str(max(map(int, response['data']['income'].keys())))]['bu'],
+			'expense' : response['data']['spending'][str(max(map(int, response['data']['income'].keys())))]['bu']
+		}
+
+		for direction in budgets.keys():
+			for budget in budgets[direction]:
+				budget['cat'] = categories[budget['cat']]
+
+		return budgets
+	# }}}
+
 if __name__ == "__main__":
     import getpass, sys
 
@@ -155,5 +218,12 @@ if __name__ == "__main__":
     mint = Mint.create(email, password)
 
     accounts = mint.get_accounts(get_detail = True)
+    print('Accounts')
     print(json.dumps(accounts))
+    print('\n')
+    print('\n')
+
+    budgets = mint.get_budgets()
+    print('Budgets')
+    print(json.dumps(budgets))
 
