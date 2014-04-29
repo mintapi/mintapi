@@ -202,6 +202,19 @@ class Mint:
 		return budgets
 	# }}}
 
+	def initiate_account_refresh(self, email = None, password = None): # {{{
+		# 1: Login
+		if(email != None and password != None):
+			self.login_and_get_token(email, password)
+
+		# 2: Submit refresh request.
+		data = {
+			'token' : self.token
+		}
+		response = self.session.post('https://wwws.mint.com/refreshFILogins.xevent', data = data, headers = self.headers).text
+		print(response)
+	# }}}
+
 if __name__ == "__main__":
     import getpass, sys
 
