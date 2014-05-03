@@ -1,9 +1,18 @@
 import json
 import requests
+import ssl
+
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.poolmanager import PoolManager
+
+class MintHTTPSAdapter(HTTPAdapter):
+    def init_poolmanager(self, connections, maxsize, **kwargs):
+        self.poolmanager = PoolManager(num_pools=connections, maxsize=maxsize, ssl_version=ssl.PROTOCOL_SSLv3, **kwargs)
 
 def get_accounts(email, password):
     # 1: Login.
     session = requests.Session()
+    session.mount('https://', MintHTTPSAdapter())
 
     if session.get("https://wwws.mint.com/login.event?task=L").status_code != requests.codes.ok:
         raise Exception("Failed to load Mint main page '{}'".format(Mint.START_URL))
