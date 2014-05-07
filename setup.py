@@ -12,7 +12,7 @@ setup(
     name='mintapi',
     description='a screen-scraping API for Mint.com',
     long_description=read_md('README.md'),
-    version='1.2',
+    version='1.3',
     packages=['mintapi'],
     scripts=['bin/mintapi'],
     license='The MIT License',
