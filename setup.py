@@ -1,4 +1,5 @@
 # new version to pypi => python setup.py sdist upload
+import os
 from setuptools import setup
 
 try:
@@ -11,8 +12,8 @@ except ImportError:
 setup(
     name='mintapi',
     description='a screen-scraping API for Mint.com',
-    long_description=read_md('README.md'),
-    version='1.3',
+    long_description=read_md(os.path.join(os.path.dirname(__file__), 'README.md')),
+    version='1.3.1',
     packages=['mintapi'],
     scripts=['bin/mintapi'],
     license='The MIT License',

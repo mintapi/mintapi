@@ -1,3 +1,7 @@
+1.3.1
+---
+- fix setup.py for pip installations
+
 1.3
 ---
 - specify SSLv3 to fix making HTTPS requests to Mint on certain Linux systems
