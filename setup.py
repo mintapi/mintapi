@@ -9,11 +9,12 @@ except ImportError:
     print("warning: pypandoc module not found, could not convert Markdown to RST")
     read_md = lambda f: open(f, 'r').read()
 
+readme = os.path.join(os.path.dirname(__file__), 'README.md')
 setup(
     name='mintapi',
     description='a screen-scraping API for Mint.com',
-    long_description=read_md(os.path.join(os.path.dirname(__file__), 'README.md')),
-    version='1.3.1',
+    long_description=read_md(readme) if os.path.exists(readme) else '',
+    version='1.3.2',
     packages=['mintapi'],
     scripts=['bin/mintapi'],
     license='The MIT License',
