@@ -2,8 +2,17 @@ import json
 import requests
 import ssl
 
+from datetime import datetime
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.poolmanager import PoolManager
+
+DATE_FIELDS = [
+    'addAccountDate',
+    'closeDate',
+    'fiLastUpdated',
+    'lastUpdated',
+]
+
 
 class MintHTTPSAdapter(HTTPAdapter):
     def init_poolmanager(self, connections, maxsize, **kwargs):
@@ -57,6 +66,16 @@ def get_accounts(email, password):
         raise Exception("Could not parse account data: " + response)
     response = json.loads(response)
     accounts = response["response"][request_id]["response"]
+
+    # Return datetime objects for dates
+    for account in accounts:
+        for df in DATE_FIELDS:
+            if df in account:
+                # Convert from javascript timestamp to unix timestamp
+                # http://stackoverflow.com/a/9744811/5026
+                ts = account[df] / 1e3
+                account[df + 'InDate'] = datetime.fromtimestamp(ts)
+
     return accounts
 
 def main():
