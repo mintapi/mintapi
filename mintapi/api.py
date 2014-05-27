@@ -73,7 +73,11 @@ def get_accounts(email, password):
             if df in account:
                 # Convert from javascript timestamp to unix timestamp
                 # http://stackoverflow.com/a/9744811/5026
-                ts = account[df] / 1e3
+                try:
+                    ts = account[df] / 1e3
+                except TypeError:
+                    # returned data is not a number, don't parse
+                    continue
                 account[df + 'InDate'] = datetime.fromtimestamp(ts)
 
     return accounts
