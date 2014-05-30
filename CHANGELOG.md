@@ -1,3 +1,10 @@
+1.4
+---
+- fix Python 3 compat
+- add an 'InDate' for each timestamp field that is the date as a
+  python-native datetime object
+- add unit test / travis integration for the above
+
 1.3.2
 ---
 - fix setup.py for pip installations
