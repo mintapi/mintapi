@@ -1,3 +1,5 @@
+import copy
+import datetime
 import json
 import unittest
 import requests
@@ -7,6 +9,7 @@ import mintapi
 accounts_example = [
   {
     "accountName": "Chase Checking", 
+    "lastUpdated": 1401201492000,
     "lastUpdatedInString": "25 minutes", 
     "accountType": "bank", 
     "currentBalance": 100.12,
@@ -43,4 +46,11 @@ class MintApiTests(unittest.TestCase):
 
     def testAccounts(self):
         accounts = mintapi.get_accounts('foo', 'bar')
-        self.assertEqual(accounts, accounts_example)
+
+        self.assertFalse('lastUpdatedInDate' in accounts)
+        self.assertNotEqual(accounts, accounts_example)
+
+        accounts_annotated = copy.deepcopy(accounts_example)
+        accounts_annotated[0]['lastUpdatedInDate'] = datetime.datetime(2014, 5, 27, 9, 38, 12)
+        self.assertItemsEqual(accounts, accounts_annotated)
+
