@@ -15,7 +15,7 @@ def get_accounts(email, password):
     session.mount('https://', MintHTTPSAdapter())
 
     if session.get("https://wwws.mint.com/login.event?task=L").status_code != requests.codes.ok:
-        raise Exception("Failed to load Mint main page '{}'".format(Mint.START_URL))
+        raise Exception("Failed to load Mint login page")
     
     data = {"username": email, "password": password, "task": "L", "browser": "firefox", "browserVersion": "27", "os": "linux"}
     headers = {"accept": "application/json"}
