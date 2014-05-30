@@ -51,6 +51,7 @@ class MintApiTests(unittest.TestCase):
         self.assertNotEqual(accounts, accounts_example)
 
         accounts_annotated = copy.deepcopy(accounts_example)
-        accounts_annotated[0]['lastUpdatedInDate'] = datetime.datetime(2014, 5, 27, 9, 38, 12)
+        for account in accounts_annotated:
+            account['lastUpdatedInDate'] = datetime.datetime.fromtimestamp(account['lastUpdated']/1000)
         self.assertItemsEqual(accounts, accounts_annotated)
 

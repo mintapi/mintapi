@@ -1,8 +1,8 @@
+import datetime
 import json
 import requests
 import ssl
 
-from datetime import datetime
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.poolmanager import PoolManager
 
@@ -78,7 +78,7 @@ def get_accounts(email, password):
                 except TypeError:
                     # returned data is not a number, don't parse
                     continue
-                account[df + 'InDate'] = datetime.fromtimestamp(ts)
+                account[df + 'InDate'] = datetime.datetime.fromtimestamp(ts)
 
     return accounts
 
