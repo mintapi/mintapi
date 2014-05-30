@@ -82,6 +82,13 @@ def get_accounts(email, password):
 
     return accounts
 
+def print_accounts(accounts):
+    for account in accounts:
+        for k, v in account.items():
+            if isinstance(v, datetime.datetime):
+                account[k] = repr(v)
+    print(json.dumps(accounts, indent=2))
+
 def main():
     import getpass
     import sys
@@ -97,7 +104,7 @@ def main():
         password = getpass.getpass("Password: ")
 
     accounts = get_accounts(email, password)
-    print(json.dumps(accounts, indent=2))
-    
+    print_accounts(accounts)
+
 if __name__ == "__main__":
     main()
