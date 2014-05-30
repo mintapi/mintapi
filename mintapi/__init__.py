@@ -1,1 +1,1 @@
-from api import get_accounts, main
+from .api import get_accounts, main
