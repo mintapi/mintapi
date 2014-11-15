@@ -14,11 +14,34 @@ Usage
 
 from Python
 ---
-From python, simply call `get_accounts`. We recommend using the
+From python, instantiate the Mint class (from the mintapi package) and you can
+make calls to retrieve account/budget information.  We recommend using the
 `keyring` library for persisting credentials.
 
     import mintapi
-    accounts = mintapi.get_accounts(email, password)
+    mint = mintapi.Mint(email, password)
+    
+    # Get basic account information
+    mint.get_accounts()
+    
+    # Get extended account detail at the expense of speed - requires an
+    # additional API call for each account
+    mint.get_accounts(True)
+    
+    # Get budget information
+    mint.get_budgets()
+    
+    # Initiate an account refresh
+    mint.initiate_account_refresh()
+
+There are, additionally, deprecated wrappers for backward compatibility with
+old versions of the API.
+
+    import mintapi
+    mintapi.get_accounts(email, password)
+    mintapi.get_accounts(email, password, True)
+    mintapi.get_budgets(email, password)
+    mintapi.initiate_account_refresh(email, password)
 
 from anywhere
 ---
