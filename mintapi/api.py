@@ -18,7 +18,7 @@ DATE_FIELDS = [
 
 class MintHTTPSAdapter(HTTPAdapter):
 	def init_poolmanager(self, connections, maxsize, **kwargs):
-		self.poolmanager = PoolManager(num_pools=connections, maxsize, **kwargs):
+		self.poolmanager = PoolManager(num_pools=connections, maxsize, **kwargs)
 
 class Mint:
 	headers = {"accept": "application/json"}
