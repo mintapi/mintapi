@@ -1,7 +1,7 @@
 mintapi
 =======
 
-a screen-scraping API for Mint.com.
+a screen-scraping API for Mint.com. [![Build Status](https://travis-ci.org/mrooney/mintapi.svg?branch=master)](https://travis-ci.org/mrooney/mintapi)
 
 Requirements
 ===
@@ -35,3 +35,6 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       },
       ...
     ]
+
+If you need to avoid using pip or setup.py, you can also clone/download
+this repository and run: `python mintapi/api.py email password`

@@ -2,8 +2,23 @@ import datetime
 import json
 import random
 import requests
+import ssl
 import time
 import xmltodict
+
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.poolmanager import PoolManager
+
+DATE_FIELDS = [
+	'addAccountDate',
+	'closeDate',
+	'fiLastUpdated',
+	'lastUpdated',
+]
+
+class MintHTTPSAdapter(HTTPAdapter):
+	def init_poolmanager(self, connections, maxsize, **kwargs):
+		self.poolmanager = PoolManager(num_pools=connections, maxsize=maxsize, ssl_version=ssl.PROTOCOL_SSLv3, **kwargs)
 
 class Mint:
 	headers = {"accept": "application/json"}
@@ -41,8 +56,9 @@ class Mint:
 
 		# 1: Login.
 		self.session = requests.Session()
+		self.session.mount('https://', MintHTTPSAdapter())
 		if self.session.get("https://wwws.mint.com/login.event?task=L").status_code != requests.codes.ok:
-			raise Exception("Failed to load Mint main page '{}'".format(Mint.START_URL))
+			raise Exception("Failed to load Mint login page")
 
 		data = {"username": email, "password": password, "task": "L", "browser": "firefox", "browserVersion": "27", "os": "linux"}
 		response = self.session.post("https://wwws.mint.com/loginUserSubmit.xevent", data=data, headers=self.headers).text
@@ -88,6 +104,19 @@ class Mint:
 		# Parse the request
 		response = json.loads(response)
 		accounts = response["response"][req_id]["response"]
+
+		# Return datetime objects for dates
+		for account in accounts:
+			for df in DATE_FIELDS:
+				if df in account:
+					# Convert from javascript timestamp to unix timestamp
+					# http://stackoverflow.com/a/9744811/5026
+					try:
+						ts = account[df] / 1e3
+					except TypeError:
+						# returned data is not a number, don't parse
+						continue
+					account[df + 'InDate'] = datetime.datetime.fromtimestamp(ts)
 		if(get_detail):
 			accounts = self.populate_extended_account_detail(accounts)
 		return accounts
@@ -214,6 +243,13 @@ def get_accounts(email, password, get_detail = False):
 	mint = Mint.create(email, password)
 	return mint.get_accounts(get_detail = get_detail)
 
+def print_accounts(self, accounts):
+	for account in accounts:
+		for k, v in account.items():
+			if isinstance(v, datetime.datetime):
+				account[k] = repr(v)
+	print(json.dumps(accounts, indent = 2))
+
 def get_budgets(email, password):
 	mint = Mint.create(email, password)
 	return mint.get_budgets()
@@ -222,3 +258,24 @@ def initiate_account_refresh(email, password):
 	mint = Mint.create(email, password)
 	return mint.initiate_account_refresh()
 
+def main():
+	import getpass
+	import sys
+
+	# Handle Python 3's raw_input change.
+	try:
+		input = raw_input
+	except NameError:
+		pass
+
+	if len(sys.argv) >= 3:
+		email, password = sys.argv[1:]
+	else:
+		email = input("Mint email: ")
+		password = getpass.getpass("Password: ")
+
+	accounts = get_accounts(email, password)
+	print_accounts(accounts)
+
+if __name__ == "__main__":
+	main()

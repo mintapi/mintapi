@@ -1,4 +1,5 @@
 # new version to pypi => python setup.py sdist upload
+import os
 from setuptools import setup
 
 try:
@@ -8,11 +9,12 @@ except ImportError:
     print("warning: pypandoc module not found, could not convert Markdown to RST")
     read_md = lambda f: open(f, 'r').read()
 
+readme = os.path.join(os.path.dirname(__file__), 'README.md')
 setup(
     name='mintapi',
     description='a screen-scraping API for Mint.com',
-    long_description=read_md('README.md'),
-    version='1.2',
+    long_description=read_md(readme) if os.path.exists(readme) else '',
+    version='1.4',
     packages=['mintapi'],
     scripts=['bin/mintapi'],
     license='The MIT License',
