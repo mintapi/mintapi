@@ -21,5 +21,5 @@ setup(
     author='Michael Rooney',
     author_email='mrooney.mintapi@rowk.com',
     url='https://github.com/mrooney/mintapi',
-    install_requires=['requests'],
+    install_requires=['requests', 'xmltodict'],
 )
