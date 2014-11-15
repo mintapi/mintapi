@@ -60,6 +60,9 @@ class Mint:
 		if self.session.get("https://wwws.mint.com/login.event?task=L").status_code != requests.codes.ok:
 			raise Exception("Failed to load Mint login page")
 
+		data = {'username' : email}
+		response = self.session.post('https://wwws.mint.com/getUserPod.xevent', data = data, headers = self.headers).text
+
 		data = {"username": email, "password": password, "task": "L", "browser": "firefox", "browserVersion": "27", "os": "linux"}
 		response = self.session.post("https://wwws.mint.com/loginUserSubmit.xevent", data=data, headers=self.headers).text
 		if "token" not in response:
