@@ -31,6 +31,8 @@ class MockSession:
     def post(self, path, data=None, headers=None):
         if 'loginUserSubmit' in path:
             text = {'sUser': {'token': 'foo'}}
+	elif 'getUserPod' in path:
+		text = {'userPN' : 6}
         elif 'bundledServiceController' in path:
             data = json.loads(data['input'])[0]
             text = {'response': {data['id']: {'response': accounts_example}}}
