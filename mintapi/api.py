@@ -243,7 +243,7 @@ def get_accounts(email, password, get_detail = False):
 	mint = Mint.create(email, password)
 	return mint.get_accounts(get_detail = get_detail)
 
-def print_accounts(self, accounts):
+def print_accounts(accounts):
 	for account in accounts:
 		for k, v in account.items():
 			if isinstance(v, datetime.datetime):
