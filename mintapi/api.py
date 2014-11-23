@@ -294,13 +294,27 @@ def main():
 	
 	data = None
 	if(options.accounts and options.budgets):
-		accounts = make_accounts_presentable(mint.get_accounts(get_detail = options.accounts_ext))
-		budgets = mint.get_budgets()
+		try:
+			accounts = make_accounts_presentable(mint.get_accounts(get_detail = options.accounts_ext))
+		except:
+			accounts = None
+
+		try:
+			budgets = mint.get_budgets()
+		except:
+			budgets = None
+
 		data = {'accounts' : accounts, 'budgets' : budgets}
 	elif(options.budgets):
-		data = mint.get_budgets()
+		try:
+			data = mint.get_budgets()
+		except:
+			data = None
 	elif(options.accounts):
-		data = make_accounts_presentable(mint.get_accounts(get_detail = options.accounts_ext))
+		try:
+			data = make_accounts_presentable(mint.get_accounts(get_detail = options.accounts_ext))
+		except:
+			data = None
 	
 	print(json.dumps(data, indent = 2))
 
