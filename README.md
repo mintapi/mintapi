@@ -47,6 +47,14 @@ from anywhere
 ---
 Run it as a sub-process from your favorite language; `pip install mintapi` creates a binary in your $PATH. From the command-line, the output is JSON:
 
+    Usage: api.py [options] email password
+
+    Options:
+      -h, --help           show this help message and exit
+      --accounts           Retrieve account information (default if nothing else is specified)
+      --budgets            Retrieve budget information
+      --extended-accounts  Retrieve extended account information (slower, implies --accounts)
+      
     >>> mintapi email password
     [
       {
@@ -58,6 +66,8 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       },
       ...
     ]
+
+
 
 If you need to avoid using pip or setup.py, you can also clone/download
 this repository and run: `python mintapi/api.py email password`
