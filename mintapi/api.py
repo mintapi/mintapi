@@ -26,6 +26,10 @@ class Mint:
     session = None
     token = None
 
+    def __init__(self, email=None, password=None):
+        if email and password:
+            self.login_and_get_token(email, password)
+            
     @classmethod
     def create(_, email, password): # {{{
         mint = Mint()
