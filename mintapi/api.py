@@ -2,7 +2,6 @@ import datetime
 import json
 import random
 import requests
-import ssl
 import time
 import xmltodict
 
@@ -21,7 +20,6 @@ class MintHTTPSAdapter(HTTPAdapter):
         self.poolmanager = PoolManager(num_pools=connections, maxsize=maxsize, **kwargs)
 
 class Mint(requests.Session):
-    json_headers = {"accept": "application/json"}
     request_id = 42 # magic number? random number?
     token = None
 
@@ -31,15 +29,25 @@ class Mint(requests.Session):
         if email and password:
             self.login_and_get_token(email, password)
 
+    def request_json(self, method, url, **kwargs):
+        headers = {"accept": "application/json"}
+        headers.update(kwargs.get('headers', {}))
+        kwargs['headers']= headers
+        return self.request(method, url, **kwargs)
+
+    def get_json(self, url, **kwargs):
+        return self.request_json('GET', url **kwargs)
+
+    def post_json(self, url, **kwargs):
+        return self.request_json('POST', url **kwargs)
+
     @classmethod
-    def create(_, email, password): # {{{
-        mint = Mint()
-        mint.login_and_get_token(email, password)
-        return mint
+    def create(cls, email, password): # {{{
+        return Mint(email, password)
     # }}}
 
     @classmethod
-    def get_rnd(_): # {{{
+    def get_rnd(cls): # {{{
         return str(int(time.mktime(datetime.datetime.now().timetuple()))) + str(random.randrange(999)).zfill(3)
     # }}}
 
@@ -64,10 +72,10 @@ class Mint(requests.Session):
             raise Exception("Failed to load Mint login page")
 
         data = {'username' : email}
-        response = self.post('https://wwws.mint.com/getUserPod.xevent', data = data, headers = self.json_headers).text
+        self.post_json('https://wwws.mint.com/getUserPod.xevent', data=data)
 
         data = {"username": email, "password": password, "task": "L", "browser": "firefox", "browserVersion": "27", "os": "linux"}
-        response = self.post("https://wwws.mint.com/loginUserSubmit.xevent", data=data, headers=self.json_headers).text
+        response = self.post_json("https://wwws.mint.com/loginUserSubmit.xevent", data=data).text
 
         if "token" not in response:
             raise Exception("Mint.com login failed[1]")
@@ -103,7 +111,7 @@ class Mint(requests.Session):
             #"task": "getAccountsSortedByBalanceDescending"
             }
         ])}
-        response = self.post("https://wwws.mint.com/bundledServiceController.xevent?legacy=false&token="+self.token, data=data, headers=self.json_headers).text
+        response = self.post_json("https://wwws.mint.com/bundledServiceController.xevent?legacy=false&token="+self.token, data=data).text
         self.request_id = self.request_id + 1
         if req_id not in response:
             raise Exception("Could not parse account data: " + response)
@@ -134,13 +142,11 @@ class Mint(requests.Session):
         # doing this stupid one-call-per-account to listTransactions.xevent
         # and parsing the HTML snippet :(
         for account in accounts:
-            headers = self.json_headers
-            headers['Referer'] = 'https://wwws.mint.com/transaction.event?accountId=' + str(account['id'])
-            response = json.loads(self.get(
-                'https://wwws.mint.com/listTransaction.xevent?accountId=' + str(account['id']) + '&queryNew=&offset=0&comparableType=8&acctChanged=T&rnd=' + Mint.get_rnd(),
-                headers = headers
-            ).text)
-            xml = '<div>' + response['accountHeader'] + '</div>'
+            headers = {'Referer': 'https://wwws.mint.com/transaction.event?accountId=' + str(account['id'])}
+            url = 'https://wwws.mint.com/listTransaction.xevent?accountId=' + str(account['id']) + '&queryNew=&offset=0&comparableType=8&acctChanged=T&rnd=' + Mint.get_rnd()
+            data = self.get_json(url, headers=headers).json
+
+            xml = '<div>' + data['accountHeader'] + '</div>'
             xml = xml.replace('&#8211;', '-')
             xml = xmltodict.parse(xml)
 
@@ -192,7 +198,7 @@ class Mint(requests.Session):
                 'task': 'getCategoryTreeDto2'
             }])
         }
-        response = self.post('https://wwws.mint.com/bundledServiceController.xevent?legacy=false&token=' + self.token, data = data, headers = self.json_headers).text
+        response = self.post_json('https://wwws.mint.com/bundledServiceController.xevent?legacy=false&token=' + self.token, data=data).text
         self.request_id = self.request_id + 1
         if(req_id not in response):
             raise Exception('Could not parse category data: "' + response + '"')
@@ -219,15 +225,12 @@ class Mint(requests.Session):
         last_year = this_month - datetime.timedelta(days = 330)
         this_month = str(this_month.month).zfill(2) + '/01/' + str(this_month.year)
         last_year = str(last_year.month).zfill(2) + '/01/' + str(last_year.year)
-        response = json.loads(self.get(
-            'https://wwws.mint.com/getBudget.xevent?startDate=' + last_year + '&endDate=' + this_month + '&rnd=' + Mint.get_rnd(),
-            headers = self.json_headers
-        ).text)
+        json_data = self.get_json('https://wwws.mint.com/getBudget.xevent?startDate=' + last_year + '&endDate=' + this_month + '&rnd=' + Mint.get_rnd()).json()
 
         # Make the skeleton return structure
         budgets = {
-            'income' : response['data']['income'][str(max(map(int, response['data']['income'].keys())))]['bu'],
-            'spend' : response['data']['spending'][str(max(map(int, response['data']['income'].keys())))]['bu']
+            'income' : json_data['data']['income'][str(max(map(int, json_data['data']['income'].keys())))]['bu'],
+            'spend' : json_data['data']['spending'][str(max(map(int, json_data['data']['income'].keys())))]['bu']
         }
 
         # Fill in the return structure
@@ -243,7 +246,7 @@ class Mint(requests.Session):
         data = {
             'token' : self.token
         }
-        response = self.post('https://wwws.mint.com/refreshFILogins.xevent', data = data, headers = self.json_headers)
+        self.post_json('https://wwws.mint.com/refreshFILogins.xevent', data=data)
     # }}}
 
 def get_accounts(email, password, get_detail = False):
@@ -271,7 +274,6 @@ def initiate_account_refresh(email, password):
 def main():
     import getpass
     import optparse
-    import sys
 
     # Parse command-line arguments {{{
     cmdline = optparse.OptionParser(usage = 'usage: %prog [options] email password')
