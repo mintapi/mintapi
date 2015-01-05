@@ -23,8 +23,8 @@ class Mint(requests.Session):
 
         self.token = None
         self.request_id = 42  # magic number? random number?
-        if email and password:
-            self.login_and_get_token(email, password)
+
+        self.login_and_get_token(email, password)
 
     def request_json(self, method, url, **kwargs):
         """HTTP request with accepts json headers"""
@@ -40,10 +40,10 @@ class Mint(requests.Session):
         return self.request_json('POST', url, **kwargs)
 
     @classmethod
-    def create(cls, email, password):  # {{{
+    def create(cls, email, password):  
         return Mint(email, password)
 
-    def login_and_get_token(self, email, password):  # {{{
+    def login_and_get_token(self, email, password):  
         # 0: Check to see if we're already logged in.
         if self.token:
             return
@@ -56,13 +56,12 @@ class Mint(requests.Session):
         self.post_json('https://wwws.mint.com/getUserPod.xevent', data=data)
 
         data = {"username": email, "password": password, "task": "L", "browser": "firefox", "browserVersion": "27", "os": "linux"}
-        response = self.post_json("https://wwws.mint.com/loginUserSubmit.xevent", data=data).text
+        response = self.post_json("https://wwws.mint.com/loginUserSubmit.xevent", data=data)
 
-        if "token" not in response:
+        if "token" not in response.text:
             raise Exception("Mint.com login failed[1]")
 
-        response = json.loads(response)
-        if not response["sUser"]["token"]:
+        if not response.json()["sUser"]["token"]:
             raise Exception("Mint.com login failed[2]")
 
         # 2: Grab token.
@@ -94,14 +93,13 @@ class Mint(requests.Session):
                  }]
             )
         }
-        response = self.post_json("https://wwws.mint.com/bundledServiceController.xevent?legacy=false&token=" + self.token, data=data).text
+        response = self.post_json("https://wwws.mint.com/bundledServiceController.xevent?legacy=false&token=" + self.token, data=data)
         self.request_id += 1
-        if req_id not in response:
-            raise Exception("Could not parse account data: " + response)
+        if req_id not in response.text:
+            raise Exception("Could not parse account data: " + response.text)
 
         # Parse the request
-        response = json.loads(response)
-        accounts = response["response"][req_id]["response"]
+        accounts = response.json()["response"][req_id]["response"]
 
         # Return datetime objects for dates
         for account in accounts:
@@ -130,7 +128,7 @@ class Mint(requests.Session):
         for account in accounts:
             headers = {'Referer': 'https://wwws.mint.com/transaction.event?accountId=' + str(account['id'])}
             url = 'https://wwws.mint.com/listTransaction.xevent?accountId=' + str(account['id']) + '&queryNew=&offset=0&comparableType=8&acctChanged=T&rnd=' + get_rnd()
-            data = self.get_json(url, headers=headers).json
+            data = self.get_json(url, headers=headers).json()
 
             xml = '<div>' + data['accountHeader'] + '</div>'
             xml = xml.replace('&#8211;', '-')
@@ -168,7 +166,7 @@ class Mint(requests.Session):
 
         return accounts
 
-    def get_categories(self):  # {{{
+    def get_categories(self):  
         # Get category metadata.
         req_id = str(self.request_id)
         data = {
@@ -228,8 +226,7 @@ class Mint(requests.Session):
 
     def initiate_account_refresh(self):
         """ Submit refresh request. """
-        data = {'token': self.token}
-        self.post_json('https://wwws.mint.com/refreshFILogins.xevent', data=data)
+        self.post_json('https://wwws.mint.com/refreshFILogins.xevent', data={'token': self.token})
 
 
 def get_accounts(email, password, get_detail=False):
