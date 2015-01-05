@@ -24,11 +24,15 @@ class MockResponse:
         self.text = text
         self.status_code = status_code
 
+    def json(self):
+        return json.loads(self.text)
+
 class MockSession(mintapi.api.Mint):
     def mount(self, *args, **kwargs):
         pass
 
     def request(self, method, url, data=None, headers=None, **kwargs):
+        self.request_id += 1
         if 'loginUserSubmit' in url:
             text = {'sUser': {'token': 'foo'}}
         elif 'getUserPod' in url:
@@ -50,7 +54,8 @@ class MintApiTests(unittest.TestCase):
         mintapi.api.Mint = self._Mint
 
     def testAccounts(self):
-        accounts = mintapi.get_accounts('foo', 'bar')
+        mint = mintapi.api.Mint('foo', 'bar')
+        accounts = mint.get_accounts()
 
         self.assertFalse('lastUpdatedInDate' in accounts)
         self.assertNotEqual(accounts, accounts_example)

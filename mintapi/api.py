@@ -31,6 +31,7 @@ class Mint(requests.Session):
         headers = {"accept": "application/json"}
         headers.update(kwargs.get('headers', {}))
         kwargs['headers'] = headers
+        self.request_id += 1
         return self.request(method, url, **kwargs)
 
     def get_json(self, url, **kwargs):
@@ -38,10 +39,6 @@ class Mint(requests.Session):
 
     def post_json(self, url, **kwargs):
         return self.request_json('POST', url, **kwargs)
-
-    @classmethod
-    def create(cls, email, password):  
-        return Mint(email, password)
 
     def login_and_get_token(self, email, password):  
         # 0: Check to see if we're already logged in.
@@ -61,11 +58,11 @@ class Mint(requests.Session):
         if "token" not in response.text:
             raise Exception("Mint.com login failed[1]")
 
-        if not response.json()["sUser"]["token"]:
-            raise Exception("Mint.com login failed[2]")
-
         # 2: Grab token.
-        self.token = response["sUser"]["token"]
+        try:
+            self.token = response.json()["sUser"]["token"]
+        except LookupError:
+            raise Exception("Mint.com login failed[2]")
 
     def get_accounts(self, get_detail=False):
         """Issue service request."""
@@ -94,7 +91,6 @@ class Mint(requests.Session):
             )
         }
         response = self.post_json("https://wwws.mint.com/bundledServiceController.xevent?legacy=false&token=" + self.token, data=data)
-        self.request_id += 1
         if req_id not in response.text:
             raise Exception("Could not parse account data: " + response.text)
 
@@ -183,12 +179,10 @@ class Mint(requests.Session):
                  }]
             )
         }
-        response = self.post_json('https://wwws.mint.com/bundledServiceController.xevent?legacy=false&token=' + self.token, data=data).text
-        self.request_id += 1
-        if req_id not in response:
-            raise Exception('Could not parse category data: "' + response + '"')
-        response = json.loads(response)
-        response = response['response'][req_id]['response']
+        response = self.post_json('https://wwws.mint.com/bundledServiceController.xevent?legacy=false&token=' + self.token, data=data)
+        if req_id not in response.text:
+            raise Exception('Could not parse category data: "' + response.text + '"')
+        response = response.json()['response'][req_id]['response']
 
         # Build category list 
         categories = {}
@@ -200,7 +194,6 @@ class Mint(requests.Session):
         return categories
 
     def get_budgets(self):
-        # Get categories
         categories = self.get_categories()
 
         # Issue request for budget utilization
@@ -229,10 +222,6 @@ class Mint(requests.Session):
         self.post_json('https://wwws.mint.com/refreshFILogins.xevent', data={'token': self.token})
 
 
-def get_accounts(email, password, get_detail=False):
-    return Mint(email, password).get_accounts(get_detail=get_detail)
-
-
 def make_accounts_presentable(accounts):
     for account in accounts:
         for k, v in account.items():
@@ -243,15 +232,6 @@ def make_accounts_presentable(accounts):
 
 def print_accounts(accounts):
     print(json.dumps(make_accounts_presentable(accounts), indent=2))
-
-
-def get_budgets(email, password):
-    return Mint(email, password).get_budgets()
-
-
-def initiate_account_refresh(email, password):
-    Mint(email, password).initiate_account_refresh()
-
 
 def main():
     import getpass
