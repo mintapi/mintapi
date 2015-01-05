@@ -25,17 +25,16 @@ class MockSession(mintapi.api.Mint):
     def mount(self, *args, **kwargs):
         pass
 
-    def get(self, path, data=None, headers=None):
-        return MockResponse('')
-
-    def post(self, path, data=None, headers=None):
-        if 'loginUserSubmit' in path:
+    def request(self, method, url, data=None, headers=None, **kwargs):
+        if 'loginUserSubmit' in url:
             text = {'sUser': {'token': 'foo'}}
-        elif 'getUserPod' in path:
+        elif 'getUserPod' in url:
             text = {'userPN' : 6}
-        elif 'bundledServiceController' in path:
+        elif 'bundledServiceController' in url:
             data = json.loads(data['input'])[0]
             text = {'response': {data['id']: {'response': accounts_example}}}
+        else:
+            text = '{}'
         return MockResponse(json.dumps(text))
 
 class MintApiTests(unittest.TestCase):

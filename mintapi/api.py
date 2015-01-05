@@ -1,12 +1,13 @@
+# coding=utf-8
 import datetime
 import json
-import random
 import requests
-import time
 import xmltodict
 
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.poolmanager import PoolManager
+
+from utils import get_rnd, parse_float
 
 DATE_FIELDS = [
     'addAccountDate',
@@ -23,7 +24,7 @@ class Mint(requests.Session):
     request_id = 42 # magic number? random number?
     token = None
 
-    def __init__(self, email=None, password=None):
+    def __init__(self, email, password):
         requests.Session.__init__(self)
         self.mount('https://', MintHTTPSAdapter())
         if email and password:
@@ -36,30 +37,14 @@ class Mint(requests.Session):
         return self.request(method, url, **kwargs)
 
     def get_json(self, url, **kwargs):
-        return self.request_json('GET', url **kwargs)
+        return self.request_json('GET', url, **kwargs)
 
     def post_json(self, url, **kwargs):
-        return self.request_json('POST', url **kwargs)
+        return self.request_json('POST', url, **kwargs)
 
     @classmethod
     def create(cls, email, password): # {{{
         return Mint(email, password)
-    # }}}
-
-    @classmethod
-    def get_rnd(cls): # {{{
-        return str(int(time.mktime(datetime.datetime.now().timetuple()))) + str(random.randrange(999)).zfill(3)
-    # }}}
-
-    @classmethod
-    def parse_float(_, string): # {{{
-        for bad_char in ['$', ',', '%']:
-            string = string.replace(bad_char, '')
-
-        try:
-            return float(string)
-        except ValueError:
-            return None
     # }}}
 
     def login_and_get_token(self, email, password): # {{{
@@ -143,7 +128,7 @@ class Mint(requests.Session):
         # and parsing the HTML snippet :(
         for account in accounts:
             headers = {'Referer': 'https://wwws.mint.com/transaction.event?accountId=' + str(account['id'])}
-            url = 'https://wwws.mint.com/listTransaction.xevent?accountId=' + str(account['id']) + '&queryNew=&offset=0&comparableType=8&acctChanged=T&rnd=' + Mint.get_rnd()
+            url = 'https://wwws.mint.com/listTransaction.xevent?accountId=' + str(account['id']) + '&queryNew=&offset=0&comparableType=8&acctChanged=T&rnd=' + get_rnd()
             data = self.get_json(url, headers=headers).json
 
             xml = '<div>' + data['accountHeader'] + '</div>'
@@ -164,21 +149,21 @@ class Mint(requests.Session):
             xml = xml['tr'][1]['td']
 
             if(table_type == 'account-table-bank'):
-                account['availableMoney'] = Mint.parse_float(xml[1]['#text'])
-                account['totalFees'] = Mint.parse_float(xml[3]['a']['#text'])
+                account['availableMoney'] = parse_float(xml[1]['#text'])
+                account['totalFees'] = parse_float(xml[3]['a']['#text'])
                 if(account['interestRate'] == None):
-                    account['interestRate'] = Mint.parse_float(xml[2]['#text']) / 100.0
+                    account['interestRate'] = parse_float(xml[2]['#text']) / 100.0
             elif(table_type == 'account-table-credit'):
-                account['availableMoney'] = Mint.parse_float(xml[1]['#text'])
-                account['totalCredit'] = Mint.parse_float(xml[2]['#text'])
-                account['totalFees'] = Mint.parse_float(xml[4]['a']['#text'])
+                account['availableMoney'] = parse_float(xml[1]['#text'])
+                account['totalCredit'] = parse_float(xml[2]['#text'])
+                account['totalFees'] = parse_float(xml[4]['a']['#text'])
                 if(account['interestRate'] == None):
-                    account['interestRate'] = Mint.parse_float(xml[3]['#text']) / 100.0
+                    account['interestRate'] = parse_float(xml[3]['#text']) / 100.0
             elif(table_type == 'account-table-loan'):
-                account['nextPaymentAmount'] = Mint.parse_float(xml[1]['#text'])
+                account['nextPaymentAmount'] = parse_float(xml[1]['#text'])
                 account['nextPaymentDate'] = xml[2].get('#text', None)
             elif(table_type == 'account-type-investment'):
-                account['totalFees'] = Mint.parse_float(xml[2]['a']['#text'])
+                account['totalFees'] = parse_float(xml[2]['a']['#text'])
 
         return accounts
     # }}}
@@ -225,7 +210,7 @@ class Mint(requests.Session):
         last_year = this_month - datetime.timedelta(days = 330)
         this_month = str(this_month.month).zfill(2) + '/01/' + str(this_month.year)
         last_year = str(last_year.month).zfill(2) + '/01/' + str(last_year.year)
-        json_data = self.get_json('https://wwws.mint.com/getBudget.xevent?startDate=' + last_year + '&endDate=' + this_month + '&rnd=' + Mint.get_rnd()).json()
+        json_data = self.get_json('https://wwws.mint.com/getBudget.xevent?startDate=' + last_year + '&endDate=' + this_month + '&rnd=' + get_rnd()).json()
 
         # Make the skeleton return structure
         budgets = {
@@ -250,7 +235,7 @@ class Mint(requests.Session):
     # }}}
 
 def get_accounts(email, password, get_detail = False):
-    mint = Mint.create(email, password)
+    mint = Mint(email, password)
     return mint.get_accounts(get_detail = get_detail)
 
 def make_accounts_presentable(accounts):
@@ -264,11 +249,11 @@ def print_accounts(accounts):
     print(json.dumps(make_accounts_presentable(accounts), indent = 2))
 
 def get_budgets(email, password):
-    mint = Mint.create(email, password)
+    mint = Mint(email, password)
     return mint.get_budgets()
 
 def initiate_account_refresh(email, password):
-    mint = Mint.create(email, password)
+    mint = Mint(email, password)
     return mint.initiate_account_refresh()
 
 def main():
