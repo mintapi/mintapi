@@ -5,8 +5,6 @@ import json
 
 import requests
 import xmltodict
-from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.poolmanager import PoolManager
 
 from utils import get_rnd, parse_float
 
@@ -19,15 +17,10 @@ DATE_FIELDS = [
 ]
 
 
-class MintHTTPSAdapter(HTTPAdapter):
-    def init_poolmanager(self, connections, maxsize, **kwargs):
-        self.poolmanager = PoolManager(num_pools=connections, maxsize=maxsize, **kwargs)
-
-
 class Mint(requests.Session):
     def __init__(self, email, password):
         requests.Session.__init__(self)
-        self.mount('https://', MintHTTPSAdapter())
+
         self.token = None
         self.request_id = 42  # magic number? random number?
         if email and password:
