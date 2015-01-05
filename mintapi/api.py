@@ -6,7 +6,7 @@ import json
 import requests
 import xmltodict
 
-from utils import get_rnd, parse_float
+from .utils import get_rnd, parse_float
 
 
 DATE_FIELDS = [
