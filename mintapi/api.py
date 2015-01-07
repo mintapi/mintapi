@@ -220,3 +220,21 @@ class Mint(requests.Session):
     def initiate_account_refresh(self):
         """ Submit refresh request. """
         self.post_json('https://wwws.mint.com/refreshFILogins.xevent', data={'token': self.token})
+
+    def get_transaction_count(self):
+        """Get number of available transactions"""
+        transactions_count_url = 'https://wwws.mint.com/listTransaction.xevent?queryNew=&offset=0&filterType=cash&comparableType=8'
+        count_json = self.get_json(transactions_count_url).json()
+        return count_json['count']
+
+    def get_transactions(self, limit=None):
+        """Get transaction records"""
+        limit = limit or self.get_transaction_count()
+        url = "https://wwws.mint.com/app/getJsonData.xevent?accountId=0&queryNew=&offset={offset}&acctChanged=T&task=transactions,merchants,txnfilters"
+
+        transactions = []
+        for offset in xrange(0, limit, 50):
+            json_data = self.get_json(url.format(offset=offset)).json()
+            transactions += json_data['set'][0]['data']
+
+        return transactions
