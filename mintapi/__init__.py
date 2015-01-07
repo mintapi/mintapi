@@ -1,4 +1,4 @@
 from .api import Mint
-from .api import main
-from .api import print_accounts
+from .main import main
+from .main import print_accounts
 
