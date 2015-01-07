@@ -6,15 +6,10 @@ import json
 import requests
 import xmltodict
 
-from .utils import get_rnd, parse_float
+from .utils import get_rnd, parse_float, convert_mint_transaction_dates_to_python_dates, convert_account_timestamps_to_python_dates
 
 
-DATE_FIELDS = [
-    'addAccountDate',
-    'closeDate',
-    'fiLastUpdated',
-    'lastUpdated',
-]
+
 
 
 class Mint(requests.Session):
@@ -99,16 +94,8 @@ class Mint(requests.Session):
 
         # Return datetime objects for dates
         for account in accounts:
-            for df in DATE_FIELDS:
-                if df in account:
-                    # Convert from javascript timestamp to unix timestamp
-                    # http://stackoverflow.com/a/9744811/5026
-                    try:
-                        ts = account[df] / 1e3
-                    except TypeError:
-                        # returned data is not a number, don't parse
-                        continue
-                    account[df + 'InDate'] = datetime.datetime.fromtimestamp(ts)
+            convert_account_timestamps_to_python_dates(account)
+
         if get_detail:
             accounts = self.populate_extended_account_detail(accounts)
         return accounts
@@ -236,5 +223,8 @@ class Mint(requests.Session):
         for offset in xrange(0, limit, 50):
             json_data = self.get_json(url.format(offset=offset)).json()
             transactions += json_data['set'][0]['data']
+
+        for transaction in transactions:
+            convert_mint_transaction_dates_to_python_dates(transaction)
 
         return transactions
