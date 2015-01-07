@@ -226,5 +226,6 @@ class Mint(requests.Session):
 
         for transaction in transactions:
             convert_mint_transaction_dates_to_python_dates(transaction)
+            transaction['amount'] = parse_float(transaction['amount'])
 
         return transactions
