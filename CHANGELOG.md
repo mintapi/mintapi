@@ -1,3 +1,10 @@
+1.5
+---
+- Support getting transactions
+- No longer use insecure SSLv3
+-
+
+
 1.4
 ---
 - fix Python 3 compat

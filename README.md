@@ -34,14 +34,9 @@ make calls to retrieve account/budget information.  We recommend using the
     # Initiate an account refresh
     mint.initiate_account_refresh()
 
-There are, additionally, deprecated wrappers for backward compatibility with
-old versions of the API.
+    # Get all transactions (could take a while)
+    mint.get_transactions()
 
-    import mintapi
-    mintapi.get_accounts(email, password)
-    mintapi.get_accounts(email, password, True)
-    mintapi.get_budgets(email, password)
-    mintapi.initiate_account_refresh(email, password)
 
 from anywhere
 ---
@@ -70,4 +65,4 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
 
 
 If you need to avoid using pip or setup.py, you can also clone/download
-this repository and run: `python mintapi/api.py email password`
+this repository and run: `python mintapi/main.py email password`
