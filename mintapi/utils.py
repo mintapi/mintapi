@@ -40,7 +40,7 @@ def convert_account_timestamps_to_python_dates(account):
             # value does not exist
             continue
         account[date_key + '_ts'] = account[date_key]
-        account[date_key] = datetime.datetime.fromtimestamp(ts)
+        account[date_key] = datetime.fromtimestamp(ts)
 
 
 def convert_mint_transaction_dates_to_python_dates(transaction):
