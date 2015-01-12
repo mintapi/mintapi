@@ -36,12 +36,10 @@ class Mint(requests.Session):
         mint = Mint()
         mint.login_and_get_token(email, password)
         return mint
-    # }}}
 
     @classmethod
     def get_rnd(_): # {{{
         return str(int(time.mktime(datetime.datetime.now().timetuple()))) + str(random.randrange(999)).zfill(3)
-    # }}}
 
     @classmethod
     def parse_float(_, string): # {{{
@@ -52,7 +50,6 @@ class Mint(requests.Session):
             return float(string)
         except ValueError:
             return None
-    # }}}
 
     def login_and_get_token(self, email, password): # {{{
         # 0: Check to see if we're already logged in.
@@ -78,7 +75,6 @@ class Mint(requests.Session):
 
         # 2: Grab token.
         self.token = response["sUser"]["token"]
-    # }}}
 
     def get_accounts(self, get_detail = False): # {{{
         # Issue service request.
@@ -127,7 +123,26 @@ class Mint(requests.Session):
         if(get_detail):
             accounts = self.populate_extended_account_detail(accounts)
         return accounts
-    # }}}
+
+    def get_transactions(self,):
+        import pandas as pd
+        from StringIO import StringIO
+        result = self.session.get(
+            'https://wwws.mint.com/transactionDownload.event',
+            headers=self.headers
+            )
+        if result.status_code != 200:
+            raise ValueError(result.status_code)
+        if not result.headers['content-type'].startswith('text/csv'):
+            raise ValueError('non csv content returned')
+
+        s = StringIO()
+        s.write(result.content)
+        s.seek(0)
+        df = pd.read_csv(s, parse_dates=['Date'])
+        df.columns = [c.lower().replace(' ', '_') for c in df.columns]
+        df.category = df.category.str.lower().replace('uncategorized', pd.np.nan)
+        return df
 
     def populate_extended_account_detail(self, accounts): # {{{
         # I can't find any way to retrieve this information other than by
@@ -175,7 +190,6 @@ class Mint(requests.Session):
                 account['totalFees'] = Mint.parse_float(xml[2]['a']['#text'])
 
         return accounts
-    # }}}
 
     def get_categories(self): # {{{
         # Get category metadata.
@@ -207,7 +221,6 @@ class Mint(requests.Session):
             categories[category['id']] = category
 
         return categories
-    # }}}
 
     def get_budgets(self): # {{{
         # Get categories
@@ -236,7 +249,6 @@ class Mint(requests.Session):
                 budget['cat'] = categories[budget['cat']]
 
         return budgets
-    # }}}
 
     def initiate_account_refresh(self): # {{{
         # Submit refresh request.
@@ -298,7 +310,6 @@ def main():
 
     if(not (options.accounts or options.budgets)):
         options.accounts = True
-    # }}}
 
     mint = Mint.create(email, password)
     
