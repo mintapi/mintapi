@@ -20,16 +20,17 @@ class MintHTTPSAdapter(HTTPAdapter):
     def init_poolmanager(self, connections, maxsize, **kwargs):
         self.poolmanager = PoolManager(num_pools=connections, maxsize=maxsize, **kwargs)
 
-class Mint:
-    headers = {"accept": "application/json"}
+class Mint(requests.Session):
+    json_headers = {"accept": "application/json"}
     request_id = 42 # magic number? random number?
-    session = None
     token = None
 
     def __init__(self, email=None, password=None):
+        requests.Session.__init__(self)
+        self.mount('https://', MintHTTPSAdapter())
         if email and password:
             self.login_and_get_token(email, password)
-            
+
     @classmethod
     def create(_, email, password): # {{{
         mint = Mint()
@@ -59,16 +60,15 @@ class Mint:
             return
 
         # 1: Login.
-        self.session = requests.Session()
-        self.session.mount('https://', MintHTTPSAdapter())
-        if self.session.get("https://wwws.mint.com/login.event?task=L").status_code != requests.codes.ok:
+        if self.get("https://wwws.mint.com/login.event?task=L").status_code != requests.codes.ok:
             raise Exception("Failed to load Mint login page")
 
         data = {'username' : email}
-        response = self.session.post('https://wwws.mint.com/getUserPod.xevent', data = data, headers = self.headers).text
+        response = self.post('https://wwws.mint.com/getUserPod.xevent', data = data, headers = self.json_headers).text
 
         data = {"username": email, "password": password, "task": "L", "browser": "firefox", "browserVersion": "27", "os": "linux"}
-        response = self.session.post("https://wwws.mint.com/loginUserSubmit.xevent", data=data, headers=self.headers).text
+        response = self.post("https://wwws.mint.com/loginUserSubmit.xevent", data=data, headers=self.json_headers).text
+
         if "token" not in response:
             raise Exception("Mint.com login failed[1]")
 
@@ -103,7 +103,7 @@ class Mint:
             #"task": "getAccountsSortedByBalanceDescending"
             }
         ])}
-        response = self.session.post("https://wwws.mint.com/bundledServiceController.xevent?legacy=false&token="+self.token, data=data, headers=self.headers).text
+        response = self.post("https://wwws.mint.com/bundledServiceController.xevent?legacy=false&token="+self.token, data=data, headers=self.json_headers).text
         self.request_id = self.request_id + 1
         if req_id not in response:
             raise Exception("Could not parse account data: " + response)
@@ -134,9 +134,9 @@ class Mint:
         # doing this stupid one-call-per-account to listTransactions.xevent
         # and parsing the HTML snippet :(
         for account in accounts:
-            headers = self.headers
+            headers = self.json_headers
             headers['Referer'] = 'https://wwws.mint.com/transaction.event?accountId=' + str(account['id'])
-            response = json.loads(self.session.get(
+            response = json.loads(self.get(
                 'https://wwws.mint.com/listTransaction.xevent?accountId=' + str(account['id']) + '&queryNew=&offset=0&comparableType=8&acctChanged=T&rnd=' + Mint.get_rnd(),
                 headers = headers
             ).text)
@@ -170,7 +170,7 @@ class Mint:
                     account['interestRate'] = Mint.parse_float(xml[3]['#text']) / 100.0
             elif(table_type == 'account-table-loan'):
                 account['nextPaymentAmount'] = Mint.parse_float(xml[1]['#text'])
-                account['nextPaymentDate'] = xml[2]['#text']
+                account['nextPaymentDate'] = xml[2].get('#text', None)
             elif(table_type == 'account-type-investment'):
                 account['totalFees'] = Mint.parse_float(xml[2]['a']['#text'])
 
@@ -192,7 +192,7 @@ class Mint:
                 'task': 'getCategoryTreeDto2'
             }])
         }
-        response = self.session.post('https://wwws.mint.com/bundledServiceController.xevent?legacy=false&token=' + self.token, data = data, headers = self.headers).text
+        response = self.post('https://wwws.mint.com/bundledServiceController.xevent?legacy=false&token=' + self.token, data = data, headers = self.json_headers).text
         self.request_id = self.request_id + 1
         if(req_id not in response):
             raise Exception('Could not parse category data: "' + response + '"')
@@ -219,9 +219,9 @@ class Mint:
         last_year = this_month - datetime.timedelta(days = 330)
         this_month = str(this_month.month).zfill(2) + '/01/' + str(this_month.year)
         last_year = str(last_year.month).zfill(2) + '/01/' + str(last_year.year)
-        response = json.loads(self.session.get(
+        response = json.loads(self.get(
             'https://wwws.mint.com/getBudget.xevent?startDate=' + last_year + '&endDate=' + this_month + '&rnd=' + Mint.get_rnd(),
-            headers = self.headers
+            headers = self.json_headers
         ).text)
 
         # Make the skeleton return structure
@@ -243,7 +243,7 @@ class Mint:
         data = {
             'token' : self.token
         }
-        response = self.session.post('https://wwws.mint.com/refreshFILogins.xevent', data = data, headers = self.headers)
+        response = self.post('https://wwws.mint.com/refreshFILogins.xevent', data = data, headers = self.json_headers)
     # }}}
 
 def get_accounts(email, password, get_detail = False):

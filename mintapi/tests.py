@@ -2,9 +2,9 @@ import copy
 import datetime
 import json
 import unittest
-import requests
 
 import mintapi
+import mintapi.api
 
 accounts_example = [
   {
@@ -21,7 +21,7 @@ class MockResponse:
         self.text = text
         self.status_code = status_code
 
-class MockSession:
+class MockSession(mintapi.api.Mint):
     def mount(self, *args, **kwargs):
         pass
 
@@ -40,11 +40,11 @@ class MockSession:
 
 class MintApiTests(unittest.TestCase):
     def setUp(self):
-        self._Session = requests.Session
-        requests.Session = MockSession
+        self._Mint = mintapi.api.Mint
+        mintapi.api.Mint = MockSession
 
     def tearDown(self):
-        requests.Session = self._Session
+        mintapi.api.Mint = self._Mint
 
     def testAccounts(self):
         accounts = mintapi.get_accounts('foo', 'bar')
