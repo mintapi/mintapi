@@ -9,6 +9,12 @@ import xmltodict
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.poolmanager import PoolManager
 
+try:
+    import pandas as pd
+    _imported_pandas = True
+except ImportError:
+    _imported_pandas = False
+
 DATE_FIELDS = [
     'addAccountDate',
     'closeDate',
@@ -82,19 +88,19 @@ class Mint(requests.Session):
         data = {"input": json.dumps([
             {"args": {
                 "types": [
-                    "BANK", 
-                    "CREDIT", 
-                    "INVESTMENT", 
-                    "LOAN", 
-                    "MORTGAGE", 
-                    "OTHER_PROPERTY", 
-                    "REAL_ESTATE", 
-                    "VEHICLE", 
+                    "BANK",
+                    "CREDIT",
+                    "INVESTMENT",
+                    "LOAN",
+                    "MORTGAGE",
+                    "OTHER_PROPERTY",
+                    "REAL_ESTATE",
+                    "VEHICLE",
                     "UNCLASSIFIED"
                 ]
-            }, 
-            "id": req_id, 
-            "service": "MintAccountService", 
+            },
+            "id": req_id,
+            "service": "MintAccountService",
             "task": "getAccountsSorted"
             #"task": "getAccountsSortedByBalanceDescending"
             }
@@ -124,8 +130,9 @@ class Mint(requests.Session):
             accounts = self.populate_extended_account_detail(accounts)
         return accounts
 
-    def get_transactions(self,):
-        import pandas as pd
+    def get_transactions(self):
+        if not _imported_pandas:
+            raise ImportError('transactions data requires pandas')
         from StringIO import StringIO
         result = self.session.get(
             'https://wwws.mint.com/transactionDownload.event',
@@ -213,7 +220,7 @@ class Mint(requests.Session):
         response = json.loads(response)
         response = response['response'][req_id]['response']
 
-        # Build category list 
+        # Build category list
         categories = {}
         for category in response['allCategories']:
             if(category['parentId'] == 0):
@@ -290,9 +297,11 @@ def main():
     cmdline.add_option('--accounts', action = 'store_true', dest = 'accounts', default = False, help = 'Retrieve account information (default if nothing else is specified)')
     cmdline.add_option('--budgets', action = 'store_true', dest = 'budgets', default = False, help = 'Retrieve budget information')
     cmdline.add_option('--extended-accounts', action = 'store_true', dest = 'accounts_ext', default = False, help = 'Retrieve extended account information (slower, implies --accounts)')
+    cmdline.add_option('--transactions', '-t', action='store_true', default=False, help='Retrieve transactions')
+    cmdline.add_option('--filename', '-f', help='write results to file. can be {csv,json} format. default is to write to stdout.')
 
     (options, args) = cmdline.parse_args()
-    
+
     # Handle Python 3's raw_input change.
     try:
         input = raw_input
@@ -308,11 +317,11 @@ def main():
     if(options.accounts_ext):
         options.accounts = True
 
-    if(not (options.accounts or options.budgets)):
+    if(not (options.accounts or options.budgets or options.transactions)):
         options.accounts = True
 
     mint = Mint.create(email, password)
-    
+
     data = None
     if(options.accounts and options.budgets):
         try:
@@ -336,8 +345,25 @@ def main():
             data = make_accounts_presentable(mint.get_accounts(get_detail = options.accounts_ext))
         except:
             data = None
-    
-    print(json.dumps(data, indent = 2))
+    elif options.transactions:
+        data = mint.get_transactions()
+
+    # output the data
+    if options.transactions:
+        if options.filename is None:
+            print(data.to_json(orient='records'))
+        if options.filename.endswith('.csv'):
+            data.to_csv(options.filename, index=False)
+        elif options.filename.endswith('.json'):
+            data.to_json(options.filename, orient='records')
+    else:
+        if options.filename is None:
+            print(json.dumps(data, indent=2))
+        elif options.filename.endswith('.json'):
+            with open(options.filename, 'w+') as f:
+                json.dumps(data, f, indent=2)
+        else:
+            raise ValueError('file type must be json for non-transaction data')
 
 if __name__ == "__main__":
     main()
