@@ -22,4 +22,9 @@ setup(
     author_email='mrooney.mintapi@rowk.com',
     url='https://github.com/mrooney/mintapi',
     install_requires=['requests', 'xmltodict'],
+    entry_points=dict(
+        console_scripts=[
+            'mintapi = mintapi.api:main',
+        ],
+    ),
 )
