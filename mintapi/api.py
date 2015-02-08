@@ -9,6 +9,12 @@ import xmltodict
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.poolmanager import PoolManager
 
+try:
+    import pandas as pd
+    _imported_pandas = True
+except ImportError:
+    _imported_pandas = False
+
 DATE_FIELDS = [
     'addAccountDate',
     'closeDate',
@@ -36,12 +42,10 @@ class Mint(requests.Session):
         mint = Mint()
         mint.login_and_get_token(email, password)
         return mint
-    # }}}
 
     @classmethod
     def get_rnd(_): # {{{
         return str(int(time.mktime(datetime.datetime.now().timetuple()))) + str(random.randrange(999)).zfill(3)
-    # }}}
 
     @classmethod
     def parse_float(_, string): # {{{
@@ -52,7 +56,6 @@ class Mint(requests.Session):
             return float(string)
         except ValueError:
             return None
-    # }}}
 
     def login_and_get_token(self, email, password): # {{{
         # 0: Check to see if we're already logged in.
@@ -78,7 +81,6 @@ class Mint(requests.Session):
 
         # 2: Grab token.
         self.token = response["sUser"]["token"]
-    # }}}
 
     def get_accounts(self, get_detail = False): # {{{
         # Issue service request.
@@ -86,19 +88,19 @@ class Mint(requests.Session):
         data = {"input": json.dumps([
             {"args": {
                 "types": [
-                    "BANK", 
-                    "CREDIT", 
-                    "INVESTMENT", 
-                    "LOAN", 
-                    "MORTGAGE", 
-                    "OTHER_PROPERTY", 
-                    "REAL_ESTATE", 
-                    "VEHICLE", 
+                    "BANK",
+                    "CREDIT",
+                    "INVESTMENT",
+                    "LOAN",
+                    "MORTGAGE",
+                    "OTHER_PROPERTY",
+                    "REAL_ESTATE",
+                    "VEHICLE",
                     "UNCLASSIFIED"
                 ]
-            }, 
-            "id": req_id, 
-            "service": "MintAccountService", 
+            },
+            "id": req_id,
+            "service": "MintAccountService",
             "task": "getAccountsSorted"
             #"task": "getAccountsSortedByBalanceDescending"
             }
@@ -127,7 +129,27 @@ class Mint(requests.Session):
         if(get_detail):
             accounts = self.populate_extended_account_detail(accounts)
         return accounts
-    # }}}
+
+    def get_transactions(self):
+        if not _imported_pandas:
+            raise ImportError('transactions data requires pandas')
+        from StringIO import StringIO
+        result = self.session.get(
+            'https://wwws.mint.com/transactionDownload.event',
+            headers=self.headers
+            )
+        if result.status_code != 200:
+            raise ValueError(result.status_code)
+        if not result.headers['content-type'].startswith('text/csv'):
+            raise ValueError('non csv content returned')
+
+        s = StringIO()
+        s.write(result.content)
+        s.seek(0)
+        df = pd.read_csv(s, parse_dates=['Date'])
+        df.columns = [c.lower().replace(' ', '_') for c in df.columns]
+        df.category = df.category.str.lower().replace('uncategorized', pd.np.nan)
+        return df
 
     def populate_extended_account_detail(self, accounts): # {{{
         # I can't find any way to retrieve this information other than by
@@ -175,7 +197,6 @@ class Mint(requests.Session):
                 account['totalFees'] = Mint.parse_float(xml[2]['a']['#text'])
 
         return accounts
-    # }}}
 
     def get_categories(self): # {{{
         # Get category metadata.
@@ -199,7 +220,7 @@ class Mint(requests.Session):
         response = json.loads(response)
         response = response['response'][req_id]['response']
 
-        # Build category list 
+        # Build category list
         categories = {}
         for category in response['allCategories']:
             if(category['parentId'] == 0):
@@ -207,7 +228,6 @@ class Mint(requests.Session):
             categories[category['id']] = category
 
         return categories
-    # }}}
 
     def get_budgets(self): # {{{
         # Get categories
@@ -236,7 +256,6 @@ class Mint(requests.Session):
                 budget['cat'] = categories[budget['cat']]
 
         return budgets
-    # }}}
 
     def initiate_account_refresh(self): # {{{
         # Submit refresh request.
@@ -278,9 +297,11 @@ def main():
     cmdline.add_option('--accounts', action = 'store_true', dest = 'accounts', default = False, help = 'Retrieve account information (default if nothing else is specified)')
     cmdline.add_option('--budgets', action = 'store_true', dest = 'budgets', default = False, help = 'Retrieve budget information')
     cmdline.add_option('--extended-accounts', action = 'store_true', dest = 'accounts_ext', default = False, help = 'Retrieve extended account information (slower, implies --accounts)')
+    cmdline.add_option('--transactions', '-t', action='store_true', default=False, help='Retrieve transactions')
+    cmdline.add_option('--filename', '-f', help='write results to file. can be {csv,json} format. default is to write to stdout.')
 
     (options, args) = cmdline.parse_args()
-    
+
     # Handle Python 3's raw_input change.
     try:
         input = raw_input
@@ -296,12 +317,11 @@ def main():
     if(options.accounts_ext):
         options.accounts = True
 
-    if(not (options.accounts or options.budgets)):
+    if(not (options.accounts or options.budgets or options.transactions)):
         options.accounts = True
-    # }}}
 
     mint = Mint.create(email, password)
-    
+
     data = None
     if(options.accounts and options.budgets):
         try:
@@ -325,8 +345,25 @@ def main():
             data = make_accounts_presentable(mint.get_accounts(get_detail = options.accounts_ext))
         except:
             data = None
-    
-    print(json.dumps(data, indent = 2))
+    elif options.transactions:
+        data = mint.get_transactions()
+
+    # output the data
+    if options.transactions:
+        if options.filename is None:
+            print(data.to_json(orient='records'))
+        if options.filename.endswith('.csv'):
+            data.to_csv(options.filename, index=False)
+        elif options.filename.endswith('.json'):
+            data.to_json(options.filename, orient='records')
+    else:
+        if options.filename is None:
+            print(json.dumps(data, indent=2))
+        elif options.filename.endswith('.json'):
+            with open(options.filename, 'w+') as f:
+                json.dumps(data, f, indent=2)
+        else:
+            raise ValueError('file type must be json for non-transaction data')
 
 if __name__ == "__main__":
     main()
