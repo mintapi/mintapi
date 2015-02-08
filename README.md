@@ -54,8 +54,8 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       --accounts           Retrieve account information (default if nothing else is specified)
       --budgets            Retrieve budget information
       --extended-accounts  Retrieve extended account information (slower, implies --accounts)
-      
-    >>> mintapi email password
+      --user               mint email login. uses OS keyring to store password info.
+    >>> mintapi
     [
       {
         "accountName": "Chase Checking", 
@@ -70,4 +70,4 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
 
 
 If you need to avoid using pip or setup.py, you can also clone/download
-this repository and run: `python mintapi/api.py email password`
+this repository and run: ``python mintapi/api.py``
