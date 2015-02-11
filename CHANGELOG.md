@@ -1,3 +1,8 @@
+1.6
+---
+- -t / --transactions option to fetch transactions
+- -f / --filename to write results to csv/json
+
 1.4
 ---
 - fix Python 3 compat
