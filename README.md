@@ -50,7 +50,7 @@ from anywhere
 ---
 Run it as a sub-process from your favorite language; `pip install mintapi` creates a binary in your $PATH. From the command-line, the output is JSON:
 
-    Usage: api.py [options]
+    Usage: mintapi [options]
 
     Options:
       -h, --help            show this help message and exit
