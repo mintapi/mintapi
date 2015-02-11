@@ -30,6 +30,9 @@ make calls to retrieve account/budget information.  We recommend using the
     
     # Get budget information
     mint.get_budgets()
+
+    # Get transactions
+    mint.get_transactions()
     
     # Initiate an account refresh
     mint.initiate_account_refresh()
@@ -47,27 +50,19 @@ from anywhere
 ---
 Run it as a sub-process from your favorite language; `pip install mintapi` creates a binary in your $PATH. From the command-line, the output is JSON:
 
-    Usage: api.py [options] email password
+    Usage: mintapi [options] email password
 
     Options:
-      -h, --help           show this help message and exit
-      --accounts           Retrieve account information (default if nothing else is specified)
-      --budgets            Retrieve budget information
-      --extended-accounts  Retrieve extended account information (slower, implies --accounts)
-      
-    >>> mintapi email password
-    [
-      {
-        "accountName": "Chase Checking", 
-        "lastUpdatedInString": "25 minutes", 
-        "accountType": "bank", 
-        "currentBalance": 100.12,
-        ...
-      },
-      ...
-    ]
-
-
+      -h, --help            show this help message and exit
+      --accounts            Retrieve account information (default if nothing else
+                            is specified)
+      --budgets             Retrieve budget information
+      --extended-accounts   Retrieve extended account information (slower, implies
+                            --accounts)
+      -t, --transactions    Retrieve transactions
+      -f FILENAME, --filename=FILENAME
+                            write results to file. can be {csv,json} format.
+                            default is to write to stdout.
 
 If you need to avoid using pip or setup.py, you can also clone/download
 this repository and run: `python mintapi/api.py email password`
