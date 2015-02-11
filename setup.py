@@ -16,7 +16,6 @@ setup(
     long_description=read_md(readme) if os.path.exists(readme) else '',
     version='1.5',
     packages=['mintapi'],
-    scripts=['bin/mintapi'],
     license='The MIT License',
     author='Michael Rooney',
     author_email='mrooney.mintapi@rowk.com',

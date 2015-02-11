@@ -11,9 +11,8 @@ from requests.packages.urllib3.poolmanager import PoolManager
 
 try:
     import pandas as pd
-    _imported_pandas = True
 except ImportError:
-    _imported_pandas = False
+    pd = None
 
 DATE_FIELDS = [
     'addAccountDate',
@@ -131,7 +130,7 @@ class Mint(requests.Session):
         return accounts
 
     def get_transactions(self):
-        if not _imported_pandas:
+        if not pd:
             raise ImportError('transactions data requires pandas')
         from StringIO import StringIO
         result = self.session.get(
@@ -352,10 +351,12 @@ def main():
     if options.transactions:
         if options.filename is None:
             print(data.to_json(orient='records'))
-        if options.filename.endswith('.csv'):
+        elif options.filename.endswith('.csv'):
             data.to_csv(options.filename, index=False)
         elif options.filename.endswith('.json'):
             data.to_json(options.filename, orient='records')
+        else:
+            raise ValueError('file extension must be either .csv or .json')
     else:
         if options.filename is None:
             print(json.dumps(data, indent=2))
