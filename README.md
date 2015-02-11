@@ -50,7 +50,7 @@ from anywhere
 ---
 Run it as a sub-process from your favorite language; `pip install mintapi` creates a binary in your $PATH. From the command-line, the output is JSON:
 
-    Usage: mintapi [options] email password
+    Usage: api.py [options]
 
     Options:
       -h, --help            show this help message and exit
@@ -63,6 +63,21 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       -f FILENAME, --filename=FILENAME
                             write results to file. can be {csv,json} format.
                             default is to write to stdout.
+      -u USER, --user=USER  mint email login. uses OS keyring to store password
+                            info.
+    
+    >>> mintapi -u email@example.com
+    [
+      {
+        "accountName": "Chase Checking", 
+        "lastUpdatedInString": "25 minutes", 
+        "accountType": "bank", 
+        "currentBalance": 100.12,
+        ...
+      },
+      ...
+    ]
+
 
 If you need to avoid using pip or setup.py, you can also clone/download
-this repository and run: `python mintapi/api.py email password`
+this repository and run: ``python mintapi/api.py``

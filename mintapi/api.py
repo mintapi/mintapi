@@ -5,6 +5,7 @@ import requests
 import ssl
 import time
 import xmltodict
+import keyring
 
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.poolmanager import PoolManager
@@ -292,12 +293,13 @@ def main():
     import sys
 
     # Parse command-line arguments {{{
-    cmdline = optparse.OptionParser(usage = 'usage: %prog [options] email password')
+    cmdline = optparse.OptionParser(usage = 'usage: %prog [options] [email password]')
     cmdline.add_option('--accounts', action = 'store_true', dest = 'accounts', default = False, help = 'Retrieve account information (default if nothing else is specified)')
     cmdline.add_option('--budgets', action = 'store_true', dest = 'budgets', default = False, help = 'Retrieve budget information')
     cmdline.add_option('--extended-accounts', action = 'store_true', dest = 'accounts_ext', default = False, help = 'Retrieve extended account information (slower, implies --accounts)')
     cmdline.add_option('--transactions', '-t', action='store_true', default=False, help='Retrieve transactions')
     cmdline.add_option('--filename', '-f', help='write results to file. can be {csv,json} format. default is to write to stdout.')
+    cmdline.add_option('--user', '-u', help='mint email login. uses OS keyring to store password info.')
 
     (options, args) = cmdline.parse_args()
 
@@ -307,8 +309,15 @@ def main():
     except NameError:
         pass
 
-    if(len(args) >= 2):
-        (email, password) = args[0:1]
+    if options.user:
+        # handle user and password through keyring
+        email = options.user
+        password = keyring.get_password('mintapi', email)
+        if password is None:
+            keyring.set_password('mintapi', email, getpass.getpass())
+            password = keyring.get_password('mintapi', email)
+    elif(len(args) >= 2):
+        email, password = args[:2]
     else:
         email = input("Mint email: ")
         password = getpass.getpass("Password: ")

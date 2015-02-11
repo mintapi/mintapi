@@ -1,7 +1,15 @@
+1.7
+---
+- -u / --user option to save and grab password from keyring
+
 1.6
 ---
 - -t / --transactions option to fetch transactions
 - -f / --filename to write results to csv/json
+
+1.5
+---
+- various changes to fix and improve scraping Mint.com
 
 1.4
 ---
