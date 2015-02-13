@@ -17,11 +17,15 @@ try:
 except ImportError:
     pd = None
 
-DATE_FIELDS = [
+ACCOUNT_DATE_TIMESTAMP_FIELDS = [
     'addAccountDate',
     'closeDate',
     'fiLastUpdated',
     'lastUpdated',
+]
+
+ACCOUNT_DATE_STRING_FIELDS = [
+    'dueDate'
 ]
 
 class MintHTTPSAdapter(HTTPAdapter):
@@ -118,7 +122,7 @@ class Mint(requests.Session):
 
         # Return datetime objects for dates
         for account in accounts:
-            for df in DATE_FIELDS:
+            for df in ACCOUNT_DATE_TIMESTAMP_FIELDS:
                 if df in account:
                     # Convert from javascript timestamp to unix timestamp
                     # http://stackoverflow.com/a/9744811/5026
@@ -128,6 +132,12 @@ class Mint(requests.Session):
                         # returned data is not a number, don't parse
                         continue
                     account[df + 'InDate'] = datetime.datetime.fromtimestamp(ts)
+            for df in ACCOUNT_DATE_STRING_FIELDS:
+                if df in account.keys():
+                    try:
+                        account["%sInDate" % df] = date_parse(account[df])
+                    except:
+                        continue
         if(get_detail):
             accounts = self.populate_extended_account_detail(accounts)
         return accounts
