@@ -20,11 +20,10 @@ setup(
     author='Michael Rooney',
     author_email='mrooney.mintapi@rowk.com',
     url='https://github.com/mrooney/mintapi',
-    install_requires=['requests', 'xmltodict', 'keyring'],
+    install_requires=['requests', 'xmltodict', 'keyring', 'dateutil',],
     entry_points=dict(
         console_scripts=[
             'mintapi = mintapi.api:main',
         ],
     ),
-    requires=['dateutil==2.4.0']
 )
