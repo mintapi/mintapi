@@ -7,6 +7,7 @@ import time
 import xmltodict
 import keyring
 
+from dateutil.parser import parse as date_parse
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.poolmanager import PoolManager
 import re
@@ -181,11 +182,10 @@ class Mint(requests.Session):
 
         return transactions, full_page
 
-    def get_transactions(self, detailed=False, account_id=0, page_size=100):
+    TRANSACTION_DATE_FIELDS = ['date', 'odate', ]
+    def get_transactions(self, detailed=True, account_id=0, page_size=100):
         """
         Gets detailed transaction information from Mint. If detailed is True, it gets them in batches of the page size
-        :param account_id:
-        :return:
         """
         self.__update_mint_preference('transactionResults', page_size)
 
@@ -204,6 +204,14 @@ class Mint(requests.Session):
                 transactions += page_transactions
             if not full_page:
                 should_continue = False
+
+        for transaction in transactions:
+            for k in self.TRANSACTION_DATE_FIELDS:
+                if k in transaction.keys():
+                    try:
+                        transaction[k] = date_parse(transaction[k])
+                    except:
+                        continue
 
         return transactions
 
