@@ -26,4 +26,5 @@ setup(
             'mintapi = mintapi.api:main',
         ],
     ),
+    requires=['dateutil==2.4.0']
 )
