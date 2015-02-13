@@ -134,9 +134,9 @@ class Mint(requests.Session):
         if not pd:
             raise ImportError('transactions data requires pandas')
         from StringIO import StringIO
-        result = self.session.get(
+        result = self.get(
             'https://wwws.mint.com/transactionDownload.event',
-            headers=self.headers
+            headers=self.json_headers
             )
         if result.status_code != 200:
             raise ValueError(result.status_code)
@@ -160,7 +160,7 @@ class Mint(requests.Session):
             headers['Referer'] = 'https://wwws.mint.com/transaction.event?accountId=' + str(account['id'])
             response = json.loads(self.get(
                 'https://wwws.mint.com/listTransaction.xevent?accountId=' + str(account['id']) + '&queryNew=&offset=0&comparableType=8&acctChanged=T&rnd=' + Mint.get_rnd(),
-                headers = headers
+                headers=headers
             ).text)
             xml = '<div>' + response['accountHeader'] + '</div>'
             xml = xml.replace('&#8211;', '-')
