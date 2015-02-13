@@ -9,6 +9,7 @@ import keyring
 
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.poolmanager import PoolManager
+import re
 
 try:
     import pandas as pd
@@ -130,7 +131,7 @@ class Mint(requests.Session):
             accounts = self.populate_extended_account_detail(accounts)
         return accounts
 
-    def get_transactions(self):
+    def get_transactions_from_csv(self):
         if not pd:
             raise ImportError('transactions data requires pandas')
         from StringIO import StringIO
@@ -150,6 +151,61 @@ class Mint(requests.Session):
         df.columns = [c.lower().replace(' ', '_') for c in df.columns]
         df.category = df.category.str.lower().replace('uncategorized', pd.np.nan)
         return df
+
+    def __update_mint_preference(self, preference_name, value):
+        url = 'https://wwws.mint.com/updatePreference.xevent'
+        body = {
+            'task': preference_name,
+            'data': value,
+            'token': self.token
+        }
+        headers = self.json_headers
+        headers['Referrer'] = 'https://wwws.mint.com/transaction.event?accountId=0'
+
+        self.post(url, data=body, headers=self.json_headers)
+
+    def _get_transaction_page(self, account_id=0, page_number=1, page_size=50):
+        page_number -= 1
+        offset = page_number * page_size
+
+        headers = self.json_headers
+        headers['Referer'] = 'https://wwws.mint.com/transaction.event?accountId=%d' % account_id
+        response = self.get(
+            'https://wwws.mint.com/app/getJsonData.xevent?accountId=%d&offset=%d&task=transactions&rnd=%s' % (account_id, offset, Mint.get_rnd()),
+            headers=self.json_headers
+        )
+
+        transactions = json.loads(response.text).get('set', [{'data': []}])[0]['data']
+        count = len(transactions)
+        full_page = count >= page_size
+
+        return transactions, full_page
+
+    def get_transactions(self, detailed=False, account_id=0, page_size=100):
+        """
+        Gets detailed transaction information from Mint. If detailed is True, it gets them in batches of the page size
+        :param account_id:
+        :return:
+        """
+        self.__update_mint_preference('transactionResults', page_size)
+
+        if not detailed:
+            return self.get_transactions_from_csv()
+
+        should_continue = True
+        page_number = 0
+        transactions = []
+
+        while should_continue:
+            page_number += 1
+            (page_transactions, full_page) = self._get_transaction_page(account_id, page_number=++page_number, page_size=page_size)
+
+            if len(page_transactions) > 0:
+                transactions += page_transactions
+            if not full_page:
+                should_continue = False
+
+        return transactions
 
     def populate_extended_account_detail(self, accounts): # {{{
         # I can't find any way to retrieve this information other than by
