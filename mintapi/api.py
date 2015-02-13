@@ -209,7 +209,7 @@ class Mint(requests.Session):
             for k in self.TRANSACTION_DATE_FIELDS:
                 if k in transaction.keys():
                     try:
-                        transaction[k] = date_parse(transaction[k])
+                        transaction["%sInDate" % k] = date_parse(transaction[k])
                     except:
                         continue
 
