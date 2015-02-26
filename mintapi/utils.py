@@ -39,7 +39,7 @@ def convert_account_timestamps_to_python_dates(account):
         except LookupError:
             # value does not exist
             continue
-        account[date_key + '_ts'] = account[date_key]
+        account[date_key + 'Ts'] = account[date_key]
         account[date_key] = datetime.fromtimestamp(ts)
 
 

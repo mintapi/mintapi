@@ -10,11 +10,11 @@ import mintapi.api
 
 accounts_example = [
     {
-        "accountName": "Chase Checking",
-        "lastUpdated": 1401201492000,
-        "lastUpdatedInString": "25 minutes",
-        "accountType": "bank",
-        "currentBalance": 100.12,
+        u"accountName": u"Chase Checking",
+        u"lastUpdated": 1401201492000,
+        u"lastUpdatedInString": u"25 minutes",
+        u"accountType": u"bank",
+        u"currentBalance": 100.12,
     },
 ]
 
@@ -62,7 +62,8 @@ class MintApiTests(unittest.TestCase):
 
         accounts_annotated = copy.deepcopy(accounts_example)
         for account in accounts_annotated:
-            account['lastUpdatedInDate'] = datetime.datetime.fromtimestamp(account['lastUpdated'] / 1000)
+            account['lastUpdatedTs'] = account['lastUpdated']
+            account['lastUpdated'] = datetime.datetime.fromtimestamp(account['lastUpdated'] / 1000)
         self.assertEqual(accounts, accounts_annotated)
 
         # ensure everything is json serializable as this is the command-line behavior.
