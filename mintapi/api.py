@@ -7,19 +7,25 @@ import time
 import xmltodict
 import keyring
 
+from dateutil.parser import parse as date_parse
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.poolmanager import PoolManager
+import re
 
 try:
     import pandas as pd
 except ImportError:
     pd = None
 
-DATE_FIELDS = [
+ACCOUNT_DATE_TIMESTAMP_FIELDS = [
     'addAccountDate',
     'closeDate',
     'fiLastUpdated',
     'lastUpdated',
+]
+
+ACCOUNT_DATE_STRING_FIELDS = [
+    'dueDate'
 ]
 
 class MintHTTPSAdapter(HTTPAdapter):
@@ -116,7 +122,7 @@ class Mint(requests.Session):
 
         # Return datetime objects for dates
         for account in accounts:
-            for df in DATE_FIELDS:
+            for df in ACCOUNT_DATE_TIMESTAMP_FIELDS:
                 if df in account:
                     # Convert from javascript timestamp to unix timestamp
                     # http://stackoverflow.com/a/9744811/5026
@@ -126,17 +132,23 @@ class Mint(requests.Session):
                         # returned data is not a number, don't parse
                         continue
                     account[df + 'InDate'] = datetime.datetime.fromtimestamp(ts)
+            for df in ACCOUNT_DATE_STRING_FIELDS:
+                if df in account.keys():
+                    try:
+                        account["%sInDate" % df] = date_parse(account[df])
+                    except:
+                        continue
         if(get_detail):
             accounts = self.populate_extended_account_detail(accounts)
         return accounts
 
-    def get_transactions(self):
+    def get_transactions_from_csv(self):
         if not pd:
             raise ImportError('transactions data requires pandas')
         from StringIO import StringIO
         result = self.get(
             'https://wwws.mint.com/transactionDownload.event',
-            headers=self.headers
+            headers=self.json_headers
             )
         if result.status_code != 200:
             raise ValueError(result.status_code)
@@ -151,6 +163,68 @@ class Mint(requests.Session):
         df.category = df.category.str.lower().replace('uncategorized', pd.np.nan)
         return df
 
+    def __update_mint_preference(self, preference_name, value):
+        url = 'https://wwws.mint.com/updatePreference.xevent'
+        body = {
+            'task': preference_name,
+            'data': value,
+            'token': self.token
+        }
+        headers = self.json_headers
+        headers['Referrer'] = 'https://wwws.mint.com/transaction.event?accountId=0'
+
+        self.post(url, data=body, headers=self.json_headers)
+
+    def _get_transaction_page(self, account_id=0, page_number=1, page_size=50):
+        page_number -= 1
+        offset = page_number * page_size
+
+        headers = self.json_headers
+        headers['Referer'] = 'https://wwws.mint.com/transaction.event?accountId=%d' % account_id
+        response = self.get(
+            'https://wwws.mint.com/app/getJsonData.xevent?accountId=%d&offset=%d&task=transactions&rnd=%s' % (account_id, offset, Mint.get_rnd()),
+            headers=self.json_headers
+        )
+
+        transactions = json.loads(response.text).get('set', [{'data': []}])[0]['data']
+        count = len(transactions)
+        full_page = count >= page_size
+
+        return transactions, full_page
+
+    TRANSACTION_DATE_FIELDS = ['date', 'odate', ]
+    def get_transactions(self, detailed=True, account_id=0, page_size=100):
+        """
+        Gets detailed transaction information from Mint. If detailed is True, it gets them in batches of the page size
+        """
+        self.__update_mint_preference('transactionResults', page_size)
+
+        if not detailed:
+            return self.get_transactions_from_csv()
+
+        should_continue = True
+        page_number = 0
+        transactions = []
+
+        while should_continue:
+            page_number += 1
+            (page_transactions, full_page) = self._get_transaction_page(account_id, page_number=++page_number, page_size=page_size)
+
+            if len(page_transactions) > 0:
+                transactions += page_transactions
+            if not full_page:
+                should_continue = False
+
+        for transaction in transactions:
+            for k in self.TRANSACTION_DATE_FIELDS:
+                if k in transaction.keys():
+                    try:
+                        transaction["%sInDate" % k] = date_parse(transaction[k])
+                    except:
+                        continue
+
+        return transactions
+
     def populate_extended_account_detail(self, accounts): # {{{
         # I can't find any way to retrieve this information other than by
         # doing this stupid one-call-per-account to listTransactions.xevent
@@ -160,7 +234,7 @@ class Mint(requests.Session):
             headers['Referer'] = 'https://wwws.mint.com/transaction.event?accountId=' + str(account['id'])
             response = json.loads(self.get(
                 'https://wwws.mint.com/listTransaction.xevent?accountId=' + str(account['id']) + '&queryNew=&offset=0&comparableType=8&acctChanged=T&rnd=' + Mint.get_rnd(),
-                headers = headers
+                headers=headers
             ).text)
             xml = '<div>' + response['accountHeader'] + '</div>'
             xml = xml.replace('&#8211;', '-')
