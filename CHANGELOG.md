@@ -1,3 +1,7 @@
+1.8
+---
+- fix retrieving transactions (-t)
+
 1.7
 ---
 - -u / --user option to save and grab password from keyring

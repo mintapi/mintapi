@@ -134,7 +134,7 @@ class Mint(requests.Session):
         if not pd:
             raise ImportError('transactions data requires pandas')
         from StringIO import StringIO
-        result = self.session.get(
+        result = self.get(
             'https://wwws.mint.com/transactionDownload.event',
             headers=self.headers
             )
