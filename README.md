@@ -20,20 +20,20 @@ make calls to retrieve account/budget information.  We recommend using the
 
     import mintapi
     mint = mintapi.Mint(email, password)
-    
+
     # Get basic account information
     mint.get_accounts()
-    
+
     # Get extended account detail at the expense of speed - requires an
     # additional API call for each account
     mint.get_accounts(True)
-    
+
     # Get budget information
     mint.get_budgets()
 
     # Get transactions
     mint.get_transactions()
-    
+
     # Initiate an account refresh
     mint.initiate_account_refresh()
 
@@ -50,28 +50,33 @@ from anywhere
 ---
 Run it as a sub-process from your favorite language; `pip install mintapi` creates a binary in your $PATH. From the command-line, the output is JSON:
 
-    Usage: mintapi [options]
+    usage: mintapi [-h] [--accounts] [--budgets] [--extended-accounts]
+                   [--transactions] [--filename FILENAME] [--keyring]
+                   [email] [password]
 
-    Options:
+    positional arguments:
+      email                 The e-mail address for your Mint.com account
+      password              The password for your Mint.com account
+
+    optional arguments:
       -h, --help            show this help message and exit
       --accounts            Retrieve account information (default if nothing else
                             is specified)
       --budgets             Retrieve budget information
       --extended-accounts   Retrieve extended account information (slower, implies
                             --accounts)
-      -t, --transactions    Retrieve transactions
-      -f FILENAME, --filename=FILENAME
+      --transactions, -t    Retrieve transactions
+      --filename FILENAME, -f FILENAME
                             write results to file. can be {csv,json} format.
                             default is to write to stdout.
-      -u USER, --user=USER  mint email login. uses OS keyring to store password
-                            info.
-    
-    >>> mintapi -u email@example.com
+      --keyring             Use OS keyring for storing password information
+
+    >>> mintapi --keyring email@example.com
     [
       {
-        "accountName": "Chase Checking", 
-        "lastUpdatedInString": "25 minutes", 
-        "accountType": "bank", 
+        "accountName": "Chase Checking",
+        "lastUpdatedInString": "25 minutes",
+        "accountType": "bank",
         "currentBalance": 100.12,
         ...
       },

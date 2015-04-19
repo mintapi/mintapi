@@ -4,7 +4,6 @@ import random
 import requests
 import time
 import xmltodict
-import keyring
 
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.poolmanager import PoolManager
@@ -331,19 +330,39 @@ def initiate_account_refresh(email, password):
 
 def main():
     import getpass
-    import optparse
+    import argparse
     import sys
 
-    # Parse command-line arguments {{{
-    cmdline = optparse.OptionParser(usage = 'usage: %prog [options] [email password]')
-    cmdline.add_option('--accounts', action = 'store_true', dest = 'accounts', default = False, help = 'Retrieve account information (default if nothing else is specified)')
-    cmdline.add_option('--budgets', action = 'store_true', dest = 'budgets', default = False, help = 'Retrieve budget information')
-    cmdline.add_option('--extended-accounts', action = 'store_true', dest = 'accounts_ext', default = False, help = 'Retrieve extended account information (slower, implies --accounts)')
-    cmdline.add_option('--transactions', '-t', action='store_true', default=False, help='Retrieve transactions')
-    cmdline.add_option('--filename', '-f', help='write results to file. can be {csv,json} format. default is to write to stdout.')
-    cmdline.add_option('--user', '-u', help='mint email login. uses OS keyring to store password info.')
+    try:
+        import keyring
+    except ImportError:
+        keyring = None
 
-    (options, args) = cmdline.parse_args()
+    # Parse command-line arguments {{{
+    cmdline = argparse.ArgumentParser()
+    cmdline.add_argument('email', nargs='?', default=None,
+                         help='The e-mail address for your Mint.com account')
+    cmdline.add_argument('password', nargs='?', default=None,
+                         help='The password for your Mint.com account')
+    cmdline.add_argument('--accounts', action='store_true', dest='accounts',
+                         default=False, help='Retrieve account information'
+                         ' (default if nothing else is specified)')
+    cmdline.add_argument('--budgets', action='store_true', dest='budgets',
+                         default=False, help='Retrieve budget information')
+    cmdline.add_argument('--extended-accounts', action='store_true',
+                         dest='accounts_ext', default=False,
+                         help='Retrieve extended account information (slower, '
+                         'implies --accounts)')
+    cmdline.add_argument('--transactions', '-t', action='store_true',
+                         default=False, help='Retrieve transactions')
+    cmdline.add_argument('--filename', '-f', help='write results to file. can '
+                         'be {csv,json} format. default is to write to '
+                         'stdout.')
+    cmdline.add_argument('--keyring', action='store_true',
+                         help='Use OS keyring for storing password '
+                         'information')
+
+    options = cmdline.parse_args()
 
     # Handle Python 3's raw_input change.
     try:
@@ -351,18 +370,25 @@ def main():
     except NameError:
         pass
 
-    if options.user:
-        # handle user and password through keyring
-        email = options.user
-        password = keyring.get_password('mintapi', email)
-        if password is None:
-            keyring.set_password('mintapi', email, getpass.getpass())
+    email = options.email
+    password = options.password
+
+    if not email:
+        email = input("Mint e-mail: ")
+
+    if options.keyring:
+        if not keyring:
+            cmdline.error('--keyring can only be used if the `keyring`'
+                          'library is installed.')
+
+        if not password:
             password = keyring.get_password('mintapi', email)
-    elif(len(args) >= 2):
-        email, password = args[:2]
-    else:
-        email = input("Mint email: ")
-        password = getpass.getpass("Password: ")
+
+    if not password:
+        password = getpass.getpass("Mint password: ")
+
+    if options.keyring:
+        keyring.set_password('mintapi', email, password)
 
     if options.accounts_ext:
         options.accounts = True
