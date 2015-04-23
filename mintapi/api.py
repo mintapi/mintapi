@@ -1,12 +1,15 @@
-import datetime
 import json
 import random
-import requests
 import time
-import xmltodict
+
+from datetime import date, datetime, timedelta
+
+import requests
 
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.poolmanager import PoolManager
+
+import xmltodict
 
 try:
     import pandas as pd
@@ -46,7 +49,7 @@ class Mint(requests.Session):
 
     @classmethod
     def get_rnd(cls):  # {{{
-        return (str(int(time.mktime(datetime.datetime.now().timetuple())))
+        return (str(int(time.mktime(datetime.now().timetuple())))
                 + str(random.randrange(999)).zfill(3))
 
     @classmethod
@@ -136,7 +139,7 @@ class Mint(requests.Session):
                     except TypeError:
                         # returned data is not a number, don't parse
                         continue
-                    account[df + 'InDate'] = datetime.datetime.fromtimestamp(ts)
+                    account[df + 'InDate'] = datetime.fromtimestamp(ts)
         if get_detail:
             accounts = self.populate_extended_account_detail(accounts)
         return accounts
@@ -261,9 +264,9 @@ class Mint(requests.Session):
         categories = self.get_categories()
 
         # Issue request for budget utilization
-        today = datetime.date.today()
-        this_month = datetime.date(today.year, today.month, 1)
-        last_year = this_month - datetime.timedelta(days=330)
+        today = date.today()
+        this_month = date(today.year, today.month, 1)
+        last_year = this_month - timedelta(days=330)
         this_month = (str(this_month.month).zfill(2) +
                       '/01/' + str(this_month.year))
         last_year = (str(last_year.month).zfill(2) +
@@ -291,14 +294,13 @@ class Mint(requests.Session):
 
         return budgets
 
-    def initiate_account_refresh(self):  # {{{
+    def initiate_account_refresh(self):
         # Submit refresh request.
         data = {
             'token': self.token
         }
-        response = self.post('https://wwws.mint.com/refreshFILogins.xevent',
-                             data=data, headers=self.json_headers)
-    # }}}
+        self.post('https://wwws.mint.com/refreshFILogins.xevent',
+                  data=data, headers=self.json_headers)
 
 
 def get_accounts(email, password, get_detail=False):
@@ -309,7 +311,7 @@ def get_accounts(email, password, get_detail=False):
 def make_accounts_presentable(accounts):
     for account in accounts:
         for k, v in account.items():
-            if isinstance(v, datetime.datetime):
+            if isinstance(v, datetime):
                 account[k] = repr(v)
     return accounts
 
@@ -331,7 +333,6 @@ def initiate_account_refresh(email, password):
 def main():
     import getpass
     import argparse
-    import sys
 
     try:
         import keyring
