@@ -366,7 +366,7 @@ def main():
     options = cmdline.parse_args()
 
     if options.keyring and not keyring:
-        cmdline.error('--keyring can only be used if the `keyring`'
+        cmdline.error('--keyring can only be used if the `keyring` '
                       'library is installed.')
 
     try:
