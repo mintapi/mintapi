@@ -1,13 +1,15 @@
-import datetime
 import json
 import random
-import requests
 import time
-import xmltodict
-import keyring
+
+from datetime import date, datetime, timedelta
+
+import requests
 
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.poolmanager import PoolManager
+
+import xmltodict
 
 try:
     import pandas as pd
@@ -47,7 +49,7 @@ class Mint(requests.Session):
 
     @classmethod
     def get_rnd(cls):  # {{{
-        return (str(int(time.mktime(datetime.datetime.now().timetuple())))
+        return (str(int(time.mktime(datetime.now().timetuple())))
                 + str(random.randrange(999)).zfill(3))
 
     @classmethod
@@ -137,7 +139,7 @@ class Mint(requests.Session):
                     except TypeError:
                         # returned data is not a number, don't parse
                         continue
-                    account[df + 'InDate'] = datetime.datetime.fromtimestamp(ts)
+                    account[df + 'InDate'] = datetime.fromtimestamp(ts)
         if get_detail:
             accounts = self.populate_extended_account_detail(accounts)
         return accounts
@@ -262,9 +264,9 @@ class Mint(requests.Session):
         categories = self.get_categories()
 
         # Issue request for budget utilization
-        today = datetime.date.today()
-        this_month = datetime.date(today.year, today.month, 1)
-        last_year = this_month - datetime.timedelta(days=330)
+        today = date.today()
+        this_month = date(today.year, today.month, 1)
+        last_year = this_month - timedelta(days=330)
         this_month = (str(this_month.month).zfill(2) +
                       '/01/' + str(this_month.year))
         last_year = (str(last_year.month).zfill(2) +
@@ -292,14 +294,13 @@ class Mint(requests.Session):
 
         return budgets
 
-    def initiate_account_refresh(self):  # {{{
+    def initiate_account_refresh(self):
         # Submit refresh request.
         data = {
             'token': self.token
         }
-        response = self.post('https://wwws.mint.com/refreshFILogins.xevent',
-                             data=data, headers=self.json_headers)
-    # }}}
+        self.post('https://wwws.mint.com/refreshFILogins.xevent',
+                  data=data, headers=self.json_headers)
 
 
 def get_accounts(email, password, get_detail=False):
@@ -310,7 +311,7 @@ def get_accounts(email, password, get_detail=False):
 def make_accounts_presentable(accounts):
     for account in accounts:
         for k, v in account.items():
-            if isinstance(v, datetime.datetime):
+            if isinstance(v, datetime):
                 account[k] = repr(v)
     return accounts
 
@@ -331,38 +332,68 @@ def initiate_account_refresh(email, password):
 
 def main():
     import getpass
-    import optparse
-    import sys
+    import argparse
+
+    try:
+        import keyring
+    except ImportError:
+        keyring = None
 
     # Parse command-line arguments {{{
-    cmdline = optparse.OptionParser(usage = 'usage: %prog [options] [email password]')
-    cmdline.add_option('--accounts', action = 'store_true', dest = 'accounts', default = False, help = 'Retrieve account information (default if nothing else is specified)')
-    cmdline.add_option('--budgets', action = 'store_true', dest = 'budgets', default = False, help = 'Retrieve budget information')
-    cmdline.add_option('--extended-accounts', action = 'store_true', dest = 'accounts_ext', default = False, help = 'Retrieve extended account information (slower, implies --accounts)')
-    cmdline.add_option('--transactions', '-t', action='store_true', default=False, help='Retrieve transactions')
-    cmdline.add_option('--filename', '-f', help='write results to file. can be {csv,json} format. default is to write to stdout.')
-    cmdline.add_option('--user', '-u', help='mint email login. uses OS keyring to store password info.')
+    cmdline = argparse.ArgumentParser()
+    cmdline.add_argument('email', nargs='?', default=None,
+                         help='The e-mail address for your Mint.com account')
+    cmdline.add_argument('password', nargs='?', default=None,
+                         help='The password for your Mint.com account')
+    cmdline.add_argument('--accounts', action='store_true', dest='accounts',
+                         default=False, help='Retrieve account information'
+                         ' (default if nothing else is specified)')
+    cmdline.add_argument('--budgets', action='store_true', dest='budgets',
+                         default=False, help='Retrieve budget information')
+    cmdline.add_argument('--extended-accounts', action='store_true',
+                         dest='accounts_ext', default=False,
+                         help='Retrieve extended account information (slower, '
+                         'implies --accounts)')
+    cmdline.add_argument('--transactions', '-t', action='store_true',
+                         default=False, help='Retrieve transactions')
+    cmdline.add_argument('--filename', '-f', help='write results to file. can '
+                         'be {csv,json} format. default is to write to '
+                         'stdout.')
+    cmdline.add_argument('--keyring', action='store_true',
+                         help='Use OS keyring for storing password '
+                         'information')
 
-    (options, args) = cmdline.parse_args()
+    options = cmdline.parse_args()
 
-    # Handle Python 3's raw_input change.
+    if options.keyring and not keyring:
+        cmdline.error('--keyring can only be used if the `keyring`'
+                      'library is installed.')
+
     try:
-        input = raw_input
+        from __builtin__ import raw_input as input
     except NameError:
         pass
 
-    if options.user:
-        # handle user and password through keyring
-        email = options.user
+    # Try to get the e-mail and password from the arguments
+    email = options.email
+    password = options.password
+
+    if not email:
+        # If the user did not provide an e-mail, prompt for it
+        email = input("Mint e-mail: ")
+
+    if keyring and not password:
+        # If the keyring module is installed and we don't yet have
+        # a password, try prompting for it
         password = keyring.get_password('mintapi', email)
-        if password is None:
-            keyring.set_password('mintapi', email, getpass.getpass())
-            password = keyring.get_password('mintapi', email)
-    elif(len(args) >= 2):
-        email, password = args[:2]
-    else:
-        email = input("Mint email: ")
-        password = getpass.getpass("Password: ")
+
+    if not password:
+        # If we still don't have a password, prompt for it
+        password = getpass.getpass("Mint password: ")
+
+    if options.keyring:
+        # If keyring option is specified, save the password in the keyring
+        keyring.set_password('mintapi', email, password)
 
     if options.accounts_ext:
         options.accounts = True
