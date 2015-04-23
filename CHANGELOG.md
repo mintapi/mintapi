@@ -1,3 +1,9 @@
+1.9
+---
+- keyring is lazily required, now compatible with systems where keyring
+  module is not available
+- PEP8
+
 1.8
 ---
 - fix retrieving transactions (-t)
