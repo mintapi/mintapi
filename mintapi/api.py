@@ -365,30 +365,34 @@ def main():
 
     options = cmdline.parse_args()
 
-    # Handle Python 3's raw_input change.
+    if options.keyring and not keyring:
+        cmdline.error('--keyring can only be used if the `keyring`'
+                      'library is installed.')
+
     try:
-        input = raw_input
+        from __builtin__ import raw_input as input
     except NameError:
         pass
 
+    # Try to get the e-mail and password from the arguments
     email = options.email
     password = options.password
 
     if not email:
+        # If the user did not provide an e-mail, prompt for it
         email = input("Mint e-mail: ")
 
-    if options.keyring:
-        if not keyring:
-            cmdline.error('--keyring can only be used if the `keyring`'
-                          'library is installed.')
-
-        if not password:
-            password = keyring.get_password('mintapi', email)
+    if keyring and not password:
+        # If the keyring module is installed and we don't yet have
+        # a password, try prompting for it
+        password = keyring.get_password('mintapi', email)
 
     if not password:
+        # If we still don't have a password, prompt for it
         password = getpass.getpass("Mint password: ")
 
     if options.keyring:
+        # If keyring option is specified, save the password in the keyring
         keyring.set_password('mintapi', email, password)
 
     if options.accounts_ext:
