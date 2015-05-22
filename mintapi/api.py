@@ -147,7 +147,12 @@ class Mint(requests.Session):
     def get_transactions(self):
         if not pd:
             raise ImportError('transactions data requires pandas')
-        from StringIO import StringIO
+
+        try:
+            from StringIO import StringIO  # Python 2
+        except ImportError:
+            from io import StringIO  # Python 3
+
         result = self.get(
             'https://wwws.mint.com/transactionDownload.event',
             headers=self.headers
@@ -157,8 +162,13 @@ class Mint(requests.Session):
         if not result.headers['content-type'].startswith('text/csv'):
             raise ValueError('non csv content returned')
 
-        s = StringIO()
-        s.write(result.content)
+        csv_data = result.content
+
+        try:
+            s = StringIO(csv_data)  # Python 2
+        except Exception:
+            s = StringIO(csv_data.decode())  # Python 3
+
         s.seek(0)
         df = pd.read_csv(s, parse_dates=['Date'])
         df.columns = [c.lower().replace(' ', '_') for c in df.columns]
