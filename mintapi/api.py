@@ -162,12 +162,10 @@ class Mint(requests.Session):
         if not result.headers['content-type'].startswith('text/csv'):
             raise ValueError('non csv content returned')
 
-        csv_data = result.content
-
         try:
-            s = StringIO(csv_data)  # Python 2
+            s = StringIO(result.content)  # Python 2
         except Exception:
-            s = StringIO(csv_data.decode())  # Python 3
+            s = StringIO(result.content.decode())  # Python 3
 
         s.seek(0)
         df = pd.read_csv(s, parse_dates=['Date'])
