@@ -40,14 +40,14 @@ class MockSession(mintapi.api.Mint):
 
 
 class MintApiTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self):  # noqa
         self._Mint = mintapi.api.Mint
         mintapi.api.Mint = MockSession
 
-    def tearDown(self):
+    def tearDown(self):  # noqa
         mintapi.api.Mint = self._Mint
 
-    def testAccounts(self):
+    def test_accounts(self):
         accounts = mintapi.get_accounts('foo', 'bar')
 
         self.assertFalse('lastUpdatedInDate' in accounts)
