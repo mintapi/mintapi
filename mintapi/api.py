@@ -149,9 +149,9 @@ class Mint(requests.Session):
             accounts = self.populate_extended_account_detail(accounts)
         return accounts
 
-    def get_transactions(self):
-        if not pd:
-            raise ImportError('transactions data requires pandas; please pip install pandas')
+    def get_transactions_csv(self):
+        """Returns the raw CSV transaction data as downloaded from Mint.
+        """
         result = self.get(
             'https://wwws.mint.com/transactionDownload.event',
             headers=self.headers
@@ -160,8 +160,15 @@ class Mint(requests.Session):
             raise ValueError(result.status_code)
         if not result.headers['content-type'].startswith('text/csv'):
             raise ValueError('non csv content returned')
+        return result.content
 
-        s = StringIO(result.content)
+    def get_transactions(self):
+        """Returns the transaction data as a Pandas DataFrame.
+        """
+        if not pd:
+            raise ImportError('transactions data requires pandas; please pip install pandas')
+
+        s = StringIO(self.get_transactions_csv())
         s.seek(0)
         df = pd.read_csv(s, parse_dates=['Date'])
         df.columns = [c.lower().replace(' ', '_') for c in df.columns]
