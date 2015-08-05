@@ -149,6 +149,20 @@ class Mint(requests.Session):
             accounts = self.populate_extended_account_detail(accounts)
         return accounts
 
+    def get_net_worth(self, account_data):
+        # account types in this list will be subtracted
+        negativeAccounts = ['loans', 'credit']
+        net_worth = 0L
+
+        # iterate over accounts and add or subtract account balances
+        for account in account_data:
+            current_balance = account['currentBalance']
+            if account['accountType'] in negativeAccounts:
+                net_worth -= current_balance
+            else:
+                net_worth += current_balance
+        return net_worth
+
     def get_transactions(self):
         if not pd:
             raise ImportError('transactions data requires pandas')
@@ -156,7 +170,7 @@ class Mint(requests.Session):
         result = self.get(
             'https://wwws.mint.com/transactionDownload.event',
             headers=self.headers
-            )
+        )
         if result.status_code != 200:
             raise ValueError(result.status_code)
         if not result.headers['content-type'].startswith('text/csv'):
@@ -181,7 +195,7 @@ class Mint(requests.Session):
 
             list_txn_url = ('https://wwws.mint.com/listTransaction.xevent?'
                             'accountId=' + str(account['id']) + '&queryNew=&'
-                            'offset=0&comparableType=8&acctChanged=T&rnd=' +
+                                                                'offset=0&comparableType=8&acctChanged=T&rnd=' +
                             Mint.get_rnd())
 
             response = json.loads(self.get(list_txn_url, headers=headers).text)
@@ -312,6 +326,11 @@ def get_accounts(email, password, get_detail=False):
     return mint.get_accounts(get_detail=get_detail)
 
 
+def get_net_worth(email, password):
+    mint = Mint.create(email, password)
+    account_data = mint.get_accounts()
+    return mint.get_net_worth(account_data)
+
 def make_accounts_presentable(accounts):
     for account in accounts:
         for k, v in account.items():
@@ -351,21 +370,21 @@ def main():
                          help='The password for your Mint.com account')
     cmdline.add_argument('--accounts', action='store_true', dest='accounts',
                          default=False, help='Retrieve account information'
-                         ' (default if nothing else is specified)')
+                                             ' (default if nothing else is specified)')
     cmdline.add_argument('--budgets', action='store_true', dest='budgets',
                          default=False, help='Retrieve budget information')
     cmdline.add_argument('--extended-accounts', action='store_true',
                          dest='accounts_ext', default=False,
                          help='Retrieve extended account information (slower, '
-                         'implies --accounts)')
+                              'implies --accounts)')
     cmdline.add_argument('--transactions', '-t', action='store_true',
                          default=False, help='Retrieve transactions')
     cmdline.add_argument('--filename', '-f', help='write results to file. can '
-                         'be {csv,json} format. default is to write to '
-                         'stdout.')
+                                                  'be {csv,json} format. default is to write to '
+                                                  'stdout.')
     cmdline.add_argument('--keyring', action='store_true',
                          help='Use OS keyring for storing password '
-                         'information')
+                              'information')
 
     options = cmdline.parse_args()
 
