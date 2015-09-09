@@ -1,5 +1,9 @@
+1.10.2
+---
+- re-release to actually include the intended changes from 1.10.1
+
 1.10.1
-----
+---
 - fix for get_transactions with Python 3
 - more helpful error message when pandas is missing
 
