@@ -151,8 +151,7 @@ class Mint(requests.Session):
 
     def get_transactions(self):
         if not pd:
-            raise ImportError('transactions data requires pandas')
-
+            raise ImportError('transactions data requires pandas; please pip install pandas')
         result = self.get(
             'https://wwws.mint.com/transactionDownload.event',
             headers=self.headers

@@ -1,3 +1,8 @@
+1.10.1
+----
+- fix for get_transactions with Python 3
+- more helpful error message when pandas is missing
+
 1.9
 ---
 - keyring is lazily required, now compatible with systems where keyring
