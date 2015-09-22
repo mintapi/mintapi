@@ -149,6 +149,24 @@ class Mint(requests.Session):
             accounts = self.populate_extended_account_detail(accounts)
         return accounts
 
+    def set_user_property(self, name, value):
+        url = 'https://wwws.mint.com/bundledServiceController.xevent?legacy=false&token=' + self.token
+        req_id = str(self.request_id)
+        self.request_id += 1
+        result = self.post(
+            url,
+            data = {'input': json.dumps([{'args': {'propertyName': name,
+                                                   'propertyValue': value},
+                                          'service': 'MintUserService',
+                                          'task': 'setUserProperty',
+                                          'id': req_id}])},
+            headers=self.json_headers)
+        if result.status_code != 200:
+            raise Exception('Received HTTP error %d' % result.status_code)
+        response = result.text
+        if req_id not in response:
+            raise Exception("Could not parse response to set_user_property")
+
     def get_transactions_csv(self):
         """Returns the raw CSV transaction data as downloaded from Mint.
         """
