@@ -150,16 +150,17 @@ class Mint(requests.Session):
         return accounts
 
     def set_user_property(self, name, value):
-        url = 'https://wwws.mint.com/bundledServiceController.xevent?legacy=false&token=' + self.token
+        url = ('https://wwws.mint.com/bundledServiceController.xevent?' +
+               'legacy=false&token=' + self.token)
         req_id = str(self.request_id)
         self.request_id += 1
         result = self.post(
             url,
-            data = {'input': json.dumps([{'args': {'propertyName': name,
-                                                   'propertyValue': value},
-                                          'service': 'MintUserService',
-                                          'task': 'setUserProperty',
-                                          'id': req_id}])},
+            data={'input': json.dumps([{'args': {'propertyName': name,
+                                                 'propertyValue': value},
+                                        'service': 'MintUserService',
+                                        'task': 'setUserProperty',
+                                        'id': req_id}])},
             headers=self.json_headers)
         if result.status_code != 200:
             raise Exception('Received HTTP error %d' % result.status_code)
@@ -167,7 +168,8 @@ class Mint(requests.Session):
         if req_id not in response:
             raise Exception("Could not parse response to set_user_property")
 
-    def get_transactions_json(self, include_investment = False, skip_duplicates = False):
+    def get_transactions_json(self, include_investment=False,
+                              skip_duplicates=False):
         """Returns the raw JSON transaction data as downloaded from Mint.  The JSON
         transaction data includes some additional information missing from the
         CSV data, such as whether the transaction is pending or completed, but
@@ -175,12 +177,14 @@ class Mint(requests.Session):
 
         Warning: In order to reliably include or exclude duplicates, it is
         necessary to change the user account property 'hide_duplicates' to the
-        appropriate value.  This affects what is displayed in the web interface.
-        Note that the CSV transactions never exclude duplicates.
+        appropriate value.  This affects what is displayed in the web
+        interface.  Note that the CSV transactions never exclude duplicates.
+
         """
 
         # Warning: This is a global property for the user that we are changing.
-        self.set_user_property('hide_duplicates', 'T' if skip_duplicates else 'F')
+        self.set_user_property('hide_duplicates',
+                               'T' if skip_duplicates else 'F')
 
         all_txns = []
         offset = 0
@@ -190,12 +194,15 @@ class Mint(requests.Session):
             # Specifying accountId=0 causes Mint to return investment
             # transactions as well.  Otherwise they are skipped by
             # default.
-            url = ('https://wwws.mint.com/getJsonData.xevent?' +
-                   'queryNew=&offset={offset}&comparableType=8&rnd={rnd}&{query_options}').format(
-                       offset = offset,
-                       rnd = Mint.get_rnd(),
-                       query_options = ('accountId=0&task=transactions' if include_investment
-                                        else 'task=transactions,txnfilters&filterType=cash'))
+            url = (
+                'https://wwws.mint.com/getJsonData.xevent?' +
+                'queryNew=&offset={offset}&comparableType=8&' +
+                'rnd={rnd}&{query_options}').format(
+                    offset=offset,
+                    rnd=Mint.get_rnd(),
+                    query_options=(
+                        'accountId=0&task=transactions' if include_investment
+                        else 'task=transactions,txnfilters&filterType=cash'))
             result = self.get(url)
             if result.status_code != 200:
                 raise ValueError(result.status_code)
@@ -211,7 +218,7 @@ class Mint(requests.Session):
 
         return all_txns
 
-    def get_transactions_csv(self, include_investment = False):
+    def get_transactions_csv(self, include_investment=False):
         """Returns the raw CSV transaction data as downloaded from Mint.
 
         If include_investment == True, also includes transactions that Mint
@@ -224,7 +231,8 @@ class Mint(requests.Session):
         # transactions as well.  Otherwise they are skipped by
         # default.
         result = self.get(
-            'https://wwws.mint.com/transactionDownload.event' + ('?accountId=0' if include_investment else ''),
+            'https://wwws.mint.com/transactionDownload.event' +
+            ('?accountId=0' if include_investment else ''),
             headers=self.headers
             )
         if result.status_code != 200:
