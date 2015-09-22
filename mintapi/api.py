@@ -167,6 +167,50 @@ class Mint(requests.Session):
         if req_id not in response:
             raise Exception("Could not parse response to set_user_property")
 
+    def get_transactions_json(self, include_investment = False, skip_duplicates = False):
+        """Returns the raw JSON transaction data as downloaded from Mint.  The JSON
+        transaction data includes some additional information missing from the
+        CSV data, such as whether the transaction is pending or completed, but
+        leaves off the year.
+
+        Warning: In order to reliably include or exclude duplicates, it is
+        necessary to change the user account property 'hide_duplicates' to the
+        appropriate value.  This affects what is displayed in the web interface.
+        Note that the CSV transactions never exclude duplicates.
+        """
+
+        # Warning: This is a global property for the user that we are changing.
+        self.set_user_property('hide_duplicates', 'T' if skip_duplicates else 'F')
+
+        all_txns = []
+        offset = 0
+        # Mint only returns some of the transactions at once.  To get all of
+        # them, we have to keep asking for more until we reach the end.
+        while 1:
+            # Specifying accountId=0 causes Mint to return investment
+            # transactions as well.  Otherwise they are skipped by
+            # default.
+            url = ('https://wwws.mint.com/getJsonData.xevent?' +
+                   'queryNew=&offset={offset}&comparableType=8&rnd={rnd}&{query_options}').format(
+                       offset = offset,
+                       rnd = Mint.get_rnd(),
+                       query_options = ('accountId=0&task=transactions' if include_investment
+                                        else 'task=transactions,txnfilters&filterType=cash'))
+            result = self.get(url)
+            if result.status_code != 200:
+                raise ValueError(result.status_code)
+            if not result.headers['content-type'].startswith('text/json'):
+                raise ValueError('non-json content returned')
+
+            data = json.loads(result.text)
+            txns = data['set'][0].get('data', [])
+            if not txns:
+                break
+            all_txns.extend(txns)
+            offset += len(txns)
+
+        return all_txns
+
     def get_transactions_csv(self, include_investment = False):
         """Returns the raw CSV transaction data as downloaded from Mint.
 
