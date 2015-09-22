@@ -167,11 +167,20 @@ class Mint(requests.Session):
         if req_id not in response:
             raise Exception("Could not parse response to set_user_property")
 
-    def get_transactions_csv(self):
+    def get_transactions_csv(self, include_investment = False):
         """Returns the raw CSV transaction data as downloaded from Mint.
+
+        If include_investment == True, also includes transactions that Mint
+        classifies as investment-related.  You may find that the investment
+        transaction data is not sufficiently detailed to actually be useful,
+        however.
         """
+
+        # Specifying accountId=0 causes Mint to return investment
+        # transactions as well.  Otherwise they are skipped by
+        # default.
         result = self.get(
-            'https://wwws.mint.com/transactionDownload.event',
+            'https://wwws.mint.com/transactionDownload.event' + ('?accountId=0' if include_investment else ''),
             headers=self.headers
             )
         if result.status_code != 200:
