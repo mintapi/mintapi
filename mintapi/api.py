@@ -151,7 +151,10 @@ class Mint(requests.Session):
 
     def get_transactions(self):
         if not pd:
-            raise ImportError('transactions data requires pandas; please pip install pandas')
+            raise ImportError(
+                'transactions data requires pandas; '
+                'please pip install pandas'
+            )
         result = self.get(
             'https://wwws.mint.com/transactionDownload.event',
             headers=self.headers
@@ -263,8 +266,6 @@ class Mint(requests.Session):
         return categories
 
     def get_budgets(self):  # {{{
-        # Get categories
-        categories = self.get_categories()
 
         # Issue request for budget utilization
         today = date.today()
