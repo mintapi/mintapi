@@ -293,9 +293,27 @@ class Mint(requests.Session):
         # Fill in the return structure
         for direction in budgets.keys():
             for budget in budgets[direction]:
-                budget['cat'] = categories[budget['cat']]
+                budget['cat'] = self.get_category_from_id(budget['cat'])
 
         return budgets
+    
+    def get_category_from_id(self, cid):
+        if cid == 0:
+            return 'Uncategorized'
+         
+        categories = self.get_categories()
+
+        for i in categories:
+            if categories[i]['id'] == cid:
+               return categories[i]['name']
+               
+            if 'children' in categories[i]:
+                for j in categories[i]['children']:
+                    if categories[i][j]['id'] == cid:
+                        return categories[i][j]['name']
+
+        return 'Unknown'
+    
 
     def initiate_account_refresh(self):
         # Submit refresh request.
