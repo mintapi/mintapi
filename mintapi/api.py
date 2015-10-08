@@ -267,6 +267,9 @@ class Mint(requests.Session):
 
     def get_budgets(self):  # {{{
 
+        # Get categories
+        categories = self.get_categories()
+
         # Issue request for budget utilization
         today = date.today()
         this_month = date(today.year, today.month, 1)
@@ -294,15 +297,16 @@ class Mint(requests.Session):
         # Fill in the return structure
         for direction in budgets.keys():
             for budget in budgets[direction]:
-                budget['cat'] = self.get_category_from_id(budget['cat'])
+                budget['cat'] = self.get_category_from_id(
+                    budget['cat'],
+                    categories
+                )
 
         return budgets
 
-    def get_category_from_id(self, cid):
+    def get_category_from_id(self, cid, categories):
         if cid == 0:
             return 'Uncategorized'
-
-        categories = self.get_categories()
 
         for i in categories:
             if categories[i]['id'] == cid:
