@@ -67,8 +67,8 @@ class Mint(requests.Session):
         except ValueError:
             return None
 
-    def request_and_check(self, url, method = 'get',
-                          expected_content_type = None, **kwargs):
+    def request_and_check(self, url, method='get',
+                          expected_content_type=None, **kwargs):
         """Performs a request, and checks that the status is OK, and that the
         content-type matches expectations.
 
@@ -87,7 +87,7 @@ class Mint(requests.Session):
             raise RuntimeError('Error requesting %r, status = %d' %
                                (url, result.status_code))
         if expected_content_type is not None:
-            content_type = result.headers.get('content-type','')
+            content_type = result.headers.get('content-type', '')
             if not content_type.startswith(expected_content_type):
                 raise RuntimeError(
                     'Error requesting %r, content type %r does not match %r' %
@@ -103,8 +103,8 @@ class Mint(requests.Session):
         login_url = 'https://wwws.mint.com/login.event?task=L'
         try:
             self.request_and_check(login_url)
-        except RuntimeError as e:
-            raise Exception('Failed to load Mint login page') from e
+        except RuntimeError:
+            raise Exception('Failed to load Mint login page')
 
         data = {'username': email}
         response = self.post('https://wwws.mint.com/getUserPod.xevent',
@@ -232,8 +232,9 @@ class Mint(requests.Session):
                     query_options=(
                         'accountId=0&task=transactions' if include_investment
                         else 'task=transactions,txnfilters&filterType=cash'))
-            result = self.request_and_check(url, headers = self.json_headers,
-                                            expected_content_type = 'text/json')
+            result = self.request_and_check(
+                url, headers=self.json_headers,
+                expected_content_type='text/json')
             data = json.loads(result.text)
             txns = data['set'][0].get('data', [])
             if not txns:
@@ -259,7 +260,7 @@ class Mint(requests.Session):
             'https://wwws.mint.com/transactionDownload.event' +
             ('?accountId=0' if include_investment else ''),
             headers=self.headers,
-            expected_content_type = 'text/csv'
+            expected_content_type='text/csv'
             )
         return result.content
 
