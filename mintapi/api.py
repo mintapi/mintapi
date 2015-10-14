@@ -67,6 +67,33 @@ class Mint(requests.Session):
         except ValueError:
             return None
 
+    def request_and_check(self, url, method = 'get',
+                          expected_content_type = None, **kwargs):
+        """Performs a request, and checks that the status is OK, and that the
+        content-type matches expectations.
+
+        Args:
+          url: URL to request
+          method: either 'get' or 'post'
+          expected_content_type: prefix to match response content-type against
+          **kwargs: passed to the request method directly.
+
+        Raises:
+          RuntimeError if status_code does not match.
+        """
+        assert (method == 'get' or method == 'post')
+        result = getattr(self, method)(url, **kwargs)
+        if result.status_code != requests.codes.ok:
+            raise RuntimeError('Error requesting %r, status = %d' %
+                               (url, result.status_code))
+        if expected_content_type is not None:
+            content_type = result.headers.get('content-type','')
+            if not content_type.startswith(expected_content_type):
+                raise RuntimeError(
+                    'Error requesting %r, content type %r does not match %r' %
+                    (url, content_type, expected_content_type))
+        return result
+
     def login_and_get_token(self, email, password):  # {{{
         # 0: Check to see if we're already logged in.
         if self.token is not None:
@@ -74,8 +101,10 @@ class Mint(requests.Session):
 
         # 1: Login.
         login_url = 'https://wwws.mint.com/login.event?task=L'
-        if self.get(login_url).status_code != requests.codes.ok:
-            raise Exception('Failed to load Mint login page')
+        try:
+            self.request_and_check(login_url)
+        except RuntimeError as e:
+            raise Exception('Failed to load Mint login page') from e
 
         data = {'username': email}
         response = self.post('https://wwws.mint.com/getUserPod.xevent',
@@ -203,12 +232,8 @@ class Mint(requests.Session):
                     query_options=(
                         'accountId=0&task=transactions' if include_investment
                         else 'task=transactions,txnfilters&filterType=cash'))
-            result = self.get(url)
-            if result.status_code != 200:
-                raise ValueError(result.status_code)
-            if not result.headers['content-type'].startswith('text/json'):
-                raise ValueError('non-json content returned')
-
+            result = self.request_and_check(url, headers = self.json_headers,
+                                            expected_content_type = 'text/json')
             data = json.loads(result.text)
             txns = data['set'][0].get('data', [])
             if not txns:
@@ -230,15 +255,12 @@ class Mint(requests.Session):
         # Specifying accountId=0 causes Mint to return investment
         # transactions as well.  Otherwise they are skipped by
         # default.
-        result = self.get(
+        result = self.request_and_check(
             'https://wwws.mint.com/transactionDownload.event' +
             ('?accountId=0' if include_investment else ''),
-            headers=self.headers
+            headers=self.headers,
+            expected_content_type = 'text/csv'
             )
-        if result.status_code != 200:
-            raise ValueError(result.status_code)
-        if not result.headers['content-type'].startswith('text/csv'):
-            raise ValueError('non csv content returned')
         return result.content
 
     def get_transactions(self):
