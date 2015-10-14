@@ -67,6 +67,33 @@ class Mint(requests.Session):
         except ValueError:
             return None
 
+    def request_and_check(self, url, method='get',
+                          expected_content_type=None, **kwargs):
+        """Performs a request, and checks that the status is OK, and that the
+        content-type matches expectations.
+
+        Args:
+          url: URL to request
+          method: either 'get' or 'post'
+          expected_content_type: prefix to match response content-type against
+          **kwargs: passed to the request method directly.
+
+        Raises:
+          RuntimeError if status_code does not match.
+        """
+        assert (method == 'get' or method == 'post')
+        result = getattr(self, method)(url, **kwargs)
+        if result.status_code != requests.codes.ok:
+            raise RuntimeError('Error requesting %r, status = %d' %
+                               (url, result.status_code))
+        if expected_content_type is not None:
+            content_type = result.headers.get('content-type', '')
+            if not content_type.startswith(expected_content_type):
+                raise RuntimeError(
+                    'Error requesting %r, content type %r does not match %r' %
+                    (url, content_type, expected_content_type))
+        return result
+
     def login_and_get_token(self, email, password):  # {{{
         # 0: Check to see if we're already logged in.
         if self.token is not None:
@@ -74,7 +101,9 @@ class Mint(requests.Session):
 
         # 1: Login.
         login_url = 'https://wwws.mint.com/login.event?task=L'
-        if self.get(login_url).status_code != requests.codes.ok:
+        try:
+            self.request_and_check(login_url)
+        except RuntimeError:
             raise Exception('Failed to load Mint login page')
 
         data = {'username': email}
@@ -149,22 +178,101 @@ class Mint(requests.Session):
             accounts = self.populate_extended_account_detail(accounts)
         return accounts
 
+    def set_user_property(self, name, value):
+        url = ('https://wwws.mint.com/bundledServiceController.xevent?' +
+               'legacy=false&token=' + self.token)
+        req_id = str(self.request_id)
+        self.request_id += 1
+        result = self.post(
+            url,
+            data={'input': json.dumps([{'args': {'propertyName': name,
+                                                 'propertyValue': value},
+                                        'service': 'MintUserService',
+                                        'task': 'setUserProperty',
+                                        'id': req_id}])},
+            headers=self.json_headers)
+        if result.status_code != 200:
+            raise Exception('Received HTTP error %d' % result.status_code)
+        response = result.text
+        if req_id not in response:
+            raise Exception("Could not parse response to set_user_property")
+
+    def get_transactions_json(self, include_investment=False,
+                              skip_duplicates=False):
+        """Returns the raw JSON transaction data as downloaded from Mint.  The JSON
+        transaction data includes some additional information missing from the
+        CSV data, such as whether the transaction is pending or completed, but
+        leaves off the year.
+
+        Warning: In order to reliably include or exclude duplicates, it is
+        necessary to change the user account property 'hide_duplicates' to the
+        appropriate value.  This affects what is displayed in the web
+        interface.  Note that the CSV transactions never exclude duplicates.
+
+        """
+
+        # Warning: This is a global property for the user that we are changing.
+        self.set_user_property('hide_duplicates',
+                               'T' if skip_duplicates else 'F')
+
+        all_txns = []
+        offset = 0
+        # Mint only returns some of the transactions at once.  To get all of
+        # them, we have to keep asking for more until we reach the end.
+        while 1:
+            # Specifying accountId=0 causes Mint to return investment
+            # transactions as well.  Otherwise they are skipped by
+            # default.
+            url = (
+                'https://wwws.mint.com/getJsonData.xevent?' +
+                'queryNew=&offset={offset}&comparableType=8&' +
+                'rnd={rnd}&{query_options}').format(
+                    offset=offset,
+                    rnd=Mint.get_rnd(),
+                    query_options=(
+                        'accountId=0&task=transactions' if include_investment
+                        else 'task=transactions,txnfilters&filterType=cash'))
+            result = self.request_and_check(
+                url, headers=self.json_headers,
+                expected_content_type='text/json')
+            data = json.loads(result.text)
+            txns = data['set'][0].get('data', [])
+            if not txns:
+                break
+            all_txns.extend(txns)
+            offset += len(txns)
+
+        return all_txns
+
+    def get_transactions_csv(self, include_investment=False):
+        """Returns the raw CSV transaction data as downloaded from Mint.
+
+        If include_investment == True, also includes transactions that Mint
+        classifies as investment-related.  You may find that the investment
+        transaction data is not sufficiently detailed to actually be useful,
+        however.
+        """
+
+        # Specifying accountId=0 causes Mint to return investment
+        # transactions as well.  Otherwise they are skipped by
+        # default.
+        result = self.request_and_check(
+            'https://wwws.mint.com/transactionDownload.event' +
+            ('?accountId=0' if include_investment else ''),
+            headers=self.headers,
+            expected_content_type='text/csv'
+            )
+        return result.content
+
     def get_transactions(self):
+        """Returns the transaction data as a Pandas DataFrame.
+        """
         if not pd:
             raise ImportError(
                 'transactions data requires pandas; '
                 'please pip install pandas'
             )
-        result = self.get(
-            'https://wwws.mint.com/transactionDownload.event',
-            headers=self.headers
-            )
-        if result.status_code != 200:
-            raise ValueError(result.status_code)
-        if not result.headers['content-type'].startswith('text/csv'):
-            raise ValueError('non csv content returned')
-
-        s = StringIO(result.content)
+        s = StringIO(self.get_transactions_csv())
         s.seek(0)
         df = pd.read_csv(s, parse_dates=['Date'])
         df.columns = [c.lower().replace(' ', '_') for c in df.columns]
