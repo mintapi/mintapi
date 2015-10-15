@@ -32,7 +32,9 @@ make calls to retrieve account/budget information.  We recommend using the
     mint.get_budgets()
 
     # Get transactions
-    mint.get_transactions()
+    mint.get_transactions() # as pandas dataframe
+    mint.get_transactions_csv(self, include_investment=False) # as raw csv data
+    mint.get_transactions_json(self, include_investment=False, skip_duplicates=False):
 
     # Initiate an account refresh
     mint.initiate_account_refresh()
