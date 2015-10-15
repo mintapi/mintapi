@@ -1,3 +1,7 @@
+1.12
+---
+- get_transactions_csv and get_transactions_json API methods
+
 1.11
 ---
 - fix get_budgets with nested categories
