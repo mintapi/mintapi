@@ -1,3 +1,7 @@
+1.13
+---
+- new get_net_worth / --net-worth options, thanks @wendlinga!
+
 1.12
 ---
 - get_transactions_csv and get_transactions_json API methods
