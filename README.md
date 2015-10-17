@@ -36,8 +36,8 @@ make calls to retrieve account/budget information.  We recommend using the
     mint.get_transactions_csv(self, include_investment=False) # as raw csv data
     mint.get_transactions_json(self, include_investment=False, skip_duplicates=False):
 
-    # Get transactions
-    mint.get_net_worth(mint.get_accounts())
+    # Get net worth
+    mint.get_net_worth()
 
     # Initiate an account refresh
     mint.initiate_account_refresh()
@@ -68,6 +68,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       --accounts            Retrieve account information (default if nothing else
                             is specified)
       --budgets             Retrieve budget information
+      --net-worth           Retrieve net worth (as a single float value)
       --extended-accounts   Retrieve extended account information (slower, implies
                             --accounts)
       --transactions, -t    Retrieve transactions

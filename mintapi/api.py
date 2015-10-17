@@ -264,13 +264,16 @@ class Mint(requests.Session):
             )
         return result.content
 
-    def get_net_worth(self, account_data):
+    def get_net_worth(self, account_data=None):
+        if account_data is None:
+            account_data = self.get_accounts()
+
         # account types in this list will be subtracted
-        negativeAccounts = ['loans', 'credit']
+        negativeAccounts = ['loan', 'loans', 'credit']
         net_worth = 0L
 
         # iterate over accounts and add or subtract account balances
-        for account in account_data:
+        for account in [a for a in account_data if a['isActive']]:
             current_balance = account['currentBalance']
             if account['accountType'] in negativeAccounts:
                 net_worth -= current_balance
@@ -503,6 +506,8 @@ def main():
                          ' (default if nothing else is specified)')
     cmdline.add_argument('--budgets', action='store_true', dest='budgets',
                          default=False, help='Retrieve budget information')
+    cmdline.add_argument('--net-worth', action='store_true', dest='net_worth',
+                         default=False, help='Retrieve net worth information')
     cmdline.add_argument('--extended-accounts', action='store_true',
                          dest='accounts_ext', default=False,
                          help='Retrieve extended account information (slower, '
@@ -551,7 +556,7 @@ def main():
     if options.accounts_ext:
         options.accounts = True
 
-    if not (options.accounts or options.budgets or options.transactions):
+    if not (options.accounts or options.budgets or options.transactions or options.net_worth):
         options.accounts = True
 
     mint = Mint.create(email, password)
@@ -585,6 +590,8 @@ def main():
             data = None
     elif options.transactions:
         data = mint.get_transactions()
+    elif options.net_worth:
+        data = mint.get_net_worth()
 
     # output the data
     if options.transactions:
