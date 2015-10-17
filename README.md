@@ -36,6 +36,9 @@ make calls to retrieve account/budget information.  We recommend using the
     mint.get_transactions_csv(self, include_investment=False) # as raw csv data
     mint.get_transactions_json(self, include_investment=False, skip_duplicates=False):
 
+    # Get transactions
+    mint.get_net_worth(mint.get_accounts())
+
     # Initiate an account refresh
     mint.initiate_account_refresh()
 

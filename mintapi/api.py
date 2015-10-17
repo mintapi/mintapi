@@ -264,6 +264,20 @@ class Mint(requests.Session):
             )
         return result.content
 
+    def get_net_worth(self, account_data):
+        # account types in this list will be subtracted
+        negativeAccounts = ['loans', 'credit']
+        net_worth = 0L
+
+        # iterate over accounts and add or subtract account balances
+        for account in account_data:
+            current_balance = account['currentBalance']
+            if account['accountType'] in negativeAccounts:
+                net_worth -= current_balance
+            else:
+                net_worth += current_balance
+        return net_worth
+
     def get_transactions(self):
         """Returns the transaction data as a Pandas DataFrame.
         """
@@ -439,6 +453,12 @@ class Mint(requests.Session):
 def get_accounts(email, password, get_detail=False):
     mint = Mint.create(email, password)
     return mint.get_accounts(get_detail=get_detail)
+
+
+def get_net_worth(email, password):
+    mint = Mint.create(email, password)
+    account_data = mint.get_accounts()
+    return mint.get_net_worth(account_data)
 
 
 def make_accounts_presentable(accounts):
