@@ -210,12 +210,27 @@ class Mint(requests.Session):
         interface.  Note that the CSV transactions never exclude duplicates.
 
         """
+        
+        return list(self.get_transactions_json_generator(include_investment=include_investment, skip_duplicates=skip_duplicates))
+
+    def get_transactions_json_generator(self, include_investment=False,
+                              skip_duplicates=False):
+        """Returns a generator for the raw JSON transaction data as downloaded from Mint.  The JSON
+        transaction data includes some additional information missing from the
+        CSV data, such as whether the transaction is pending or completed, but
+        leaves off the year.
+
+        Warning: In order to reliably include or exclude duplicates, it is
+        necessary to change the user account property 'hide_duplicates' to the
+        appropriate value.  This affects what is displayed in the web
+        interface.  Note that the CSV transactions never exclude duplicates.
+
+        """
 
         # Warning: This is a global property for the user that we are changing.
         self.set_user_property('hide_duplicates',
                                'T' if skip_duplicates else 'F')
 
-        all_txns = []
         offset = 0
         # Mint only returns some of the transactions at once.  To get all of
         # them, we have to keep asking for more until we reach the end.
@@ -239,10 +254,9 @@ class Mint(requests.Session):
             txns = data['set'][0].get('data', [])
             if not txns:
                 break
-            all_txns.extend(txns)
             offset += len(txns)
-
-        return all_txns
+            for txn in txns:
+                yield txn
 
     def get_transactions_csv(self, include_investment=False):
         """Returns the raw CSV transaction data as downloaded from Mint.
