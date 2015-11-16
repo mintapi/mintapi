@@ -201,8 +201,7 @@ class Mint(requests.Session):
                               skip_duplicates=False):
         """Returns the raw JSON transaction data as downloaded from Mint.  The JSON
         transaction data includes some additional information missing from the
-        CSV data, such as whether the transaction is pending or completed, but
-        leaves off the year.
+        CSV data, such as whether the transaction is pending or completed.
 
         Warning: In order to reliably include or exclude duplicates, it is
         necessary to change the user account property 'hide_duplicates' to the
@@ -269,13 +268,13 @@ class Mint(requests.Session):
             account_data = self.get_accounts()
 
         # account types in this list will be subtracted
-        negativeAccounts = ['loan', 'loans', 'credit']
+        negative_accounts = ['loan', 'loans', 'credit']
         net_worth = 0L
 
         # iterate over accounts and add or subtract account balances
         for account in [a for a in account_data if a['isActive']]:
             current_balance = account['currentBalance']
-            if account['accountType'] in negativeAccounts:
+            if account['accountType'] in negative_accounts:
                 net_worth -= current_balance
             else:
                 net_worth += current_balance
@@ -556,7 +555,8 @@ def main():
     if options.accounts_ext:
         options.accounts = True
 
-    if not (options.accounts or options.budgets or options.transactions or options.net_worth):
+    if not (options.accounts or options.budgets or options.transactions or
+            options.net_worth):
         options.accounts = True
 
     mint = Mint.create(email, password)
