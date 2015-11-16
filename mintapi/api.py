@@ -201,7 +201,8 @@ class Mint(requests.Session):
                               skip_duplicates=False):
         """Returns the raw JSON transaction data as downloaded from Mint.  The JSON
         transaction data includes some additional information missing from the
-        CSV data, such as whether the transaction is pending or completed.
+        CSV data, such as whether the transaction is pending or completed. If
+        the year is missing, this indicates that the date is the current year.
 
         Warning: In order to reliably include or exclude duplicates, it is
         necessary to change the user account property 'hide_duplicates' to the
