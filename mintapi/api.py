@@ -197,12 +197,12 @@ class Mint(requests.Session):
         if req_id not in response:
             raise Exception("Could not parse response to set_user_property")
 
-    def get_transactions_json(self, start_date = None, include_investment=False,
+    def get_transactions_json(self, start_date=None, include_investment=False,
                               skip_duplicates=False):
         """Returns the raw JSON transaction data as downloaded from Mint.  The JSON
         transaction data includes some additional information missing from the
         CSV data, such as whether the transaction is pending or completed, but
-        leaves off the year for current year transactions. 
+        leaves off the year for current year transactions.
 
         Warning: In order to reliably include or exclude duplicates, it is
         necessary to change the user account property 'hide_duplicates' to the
@@ -213,13 +213,13 @@ class Mint(requests.Session):
         # Warning: This is a global property for the user that we are changing.
         self.set_user_property('hide_duplicates',
                                'T' if skip_duplicates else 'F')
-        
-        #Converts the start date into datetime format - must be mm/dd/yy (not yyyy)
+
+        # Converts the start date into datetime format - must be mm/dd/yy
         try:
-            start_date = datetime.strptime(start_date,'%m/%d/%y')
+            start_date = datetime.strptime(start_date, '%m/%d/%y')
         except:
             start_date = None
-                           
+
         all_txns = []
         offset = 0
         # Mint only returns some of the transactions at once.  To get all of
@@ -242,13 +242,14 @@ class Mint(requests.Session):
                 expected_content_type='text/json')
             data = json.loads(result.text)
             txns = data['set'][0].get('data', [])
-            df = pd.DataFrame(txns)            
-            if start_date:            
+            df = pd.DataFrame(txns)
+            if start_date:
                 dates = list(df['odate'])
                 try:
-                    first_date = datetime.strptime(dates[0]+str(datetime.isocalendar(date.today())[0]),'%b %d%Y')
+                    first_date = datetime.strptime(dates[0] + 
+                        str(datetime.isocalendar(date.today())[0]), '%b %d%Y')
                 except:
-                    first_date = datetime.strptime(dates[0],'%m/%d/%y')
+                    first_date = datetime.strptime(dates[0], '%m/%d/%y')
                 if first_date < start_date:
                     break
             if not txns:
@@ -258,28 +259,31 @@ class Mint(requests.Session):
         return all_txns
 
     def _dateconvert(self, dateraw):
-        #Converts dates from json data       
+        # Converts dates from json data
         try:
-            newdate = datetime.strptime(dateraw+str(datetime.isocalendar(date.today())[0]),'%b %d%Y')
+            newdate = datetime.strptime(dateraw + 
+                str(datetime.isocalendar(date.today())[0]), '%b %d%Y')
         except:
-            newdate = datetime.strptime(dateraw,'%m/%d/%y')
-        return newdate  
-        
+            newdate = datetime.strptime(dateraw, '%m/%d/%y')
+        return newdate
+
     def _debit_credit(self, row):
-        #Reverses credit balances    
-        dic = {False:-1,True:1}    
-        return float(row['amount'][1:].replace(',','')) * dic[row['isDebit']]
-    
-    def get_detailed_transactions(self, start_date = None, include_investment=False,
-                              skip_duplicates=False, remove_pending=True):
-        """Returns the JSON transaction data as a DataFrame, and converts current
-        year dates and prior year dates into consistent datetime format, and reverses
-        credit activity. 
-        
-        Note: start_date must be in format mm/dd/yy. If pulls take a long time, 
-        use a more recent start date. See json explanations of include_investment
-        and skip_duplicates. 
-        
+        # Reverses credit balances
+        dic = {False: -1, True: 1}
+        return float(row['amount'][1:].replace(',', '')) * dic[row['isDebit']]
+
+    def get_detailed_transactions(self, start_date=None, 
+                                  include_investment=False,
+                                  skip_duplicates=False,
+                                  remove_pending=True):
+        """Returns the JSON transaction data as a DataFrame, and converts
+        current year dates and prior year dates into consistent datetime
+        format, and reverses credit activity.
+
+        Note: start_date must be in format mm/dd/yy. If pulls take too long,
+        use a more recent start date. See json explanations of
+        include_investment and skip_duplicates.
+
         Also note: Mint includes pending transactions, however these sometimes change dates/amounts
         after the transactions post. They have been removed by default in this pull, 
         but can be included by changing include_pending to False
@@ -291,16 +295,17 @@ class Mint(requests.Session):
                 'please pip install pandas'
             )     
         
-        result = self.get_transactions_json(start_date, include_investment, skip_duplicates)
+        result = self.get_transactions_json(start_date, include_investment,
+                                            skip_duplicates)
         df = pd.DataFrame(result)
         df['odate'] = df['odate'].apply(self._dateconvert)
 
         if remove_pending:
-            df = df[df.isPending == False]
-            df.reset_index(drop=True,inplace=True)
-                        
-        df.amount = df.apply(self._debit_credit, axis = 1)        
-        
+            df = df[df.isPending is False]
+            df.reset_index(drop=True, inplace=True)
+
+        df.amount = df.apply(self._debit_credit, axis=1)
+
         return df
 
     def get_transactions_csv(self, include_investment=False):
