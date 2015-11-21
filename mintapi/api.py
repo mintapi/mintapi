@@ -284,9 +284,10 @@ class Mint(requests.Session):
         use a more recent start date. See json explanations of
         include_investment and skip_duplicates.
 
-        Also note: Mint includes pending transactions, however these sometimes change dates/amounts
-        after the transactions post. They have been removed by default in this pull, 
-        but can be included by changing include_pending to False
+        Also note: Mint includes pending transactions, however these sometimes
+        change dates/amounts after the transactions post. They have been
+        removed by default in this pull, but can be included by changing
+        include_pending to False
 
         """
         if not pd:
@@ -301,7 +302,7 @@ class Mint(requests.Session):
         df['odate'] = df['odate'].apply(self._dateconvert)
 
         if remove_pending:
-            df = df[df.isPending is False]
+            df = df[~df.isPending]
             df.reset_index(drop=True, inplace=True)
 
         df.amount = df.apply(self._debit_credit, axis=1)
