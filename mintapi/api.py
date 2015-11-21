@@ -246,8 +246,9 @@ class Mint(requests.Session):
             if start_date:
                 dates = list(df['odate'])
                 try:
-                    first_date = datetime.strptime(dates[0] + 
-                        str(datetime.isocalendar(date.today())[0]), '%b %d%Y')
+                    first_date = datetime.strptime(dates[0] +
+                                 str(datetime.isocalendar(date.today())[0]),
+                                 '%b %d%Y')
                 except:
                     first_date = datetime.strptime(dates[0], '%m/%d/%y')
                 if first_date < start_date:
@@ -261,8 +262,8 @@ class Mint(requests.Session):
     def _dateconvert(self, dateraw):
         # Converts dates from json data
         try:
-            newdate = datetime.strptime(dateraw + 
-                str(datetime.isocalendar(date.today())[0]), '%b %d%Y')
+            newdate = datetime.strptime(dateraw +
+                      str(datetime.isocalendar(date.today())[0]), '%b %d%Y')
         except:
             newdate = datetime.strptime(dateraw, '%m/%d/%y')
         return newdate
@@ -272,7 +273,7 @@ class Mint(requests.Session):
         dic = {False: -1, True: 1}
         return float(row['amount'][1:].replace(',', '')) * dic[row['isDebit']]
 
-    def get_detailed_transactions(self, start_date=None, 
+    def get_detailed_transactions(self, start_date=None,
                                   include_investment=False,
                                   skip_duplicates=False,
                                   remove_pending=True):
@@ -294,7 +295,7 @@ class Mint(requests.Session):
             raise ImportError(
                 'transactions data requires pandas; '
                 'please pip install pandas'
-            )     
+            )
         
         result = self.get_transactions_json(start_date, include_investment,
                                             skip_duplicates)
@@ -335,7 +336,7 @@ class Mint(requests.Session):
 
         # account types in this list will be subtracted
         negative_accounts = ['loan', 'loans', 'credit']
-        net_worth = 0L
+        net_worth = 0
 
         # iterate over accounts and add or subtract account balances
         for account in [a for a in account_data if a['isActive']]:
