@@ -257,6 +257,52 @@ class Mint(requests.Session):
             offset += len(txns)
         return all_txns
 
+    def _dateconvert(self, dateraw):
+        #Converts dates from json data       
+        try:
+            newdate = datetime.strptime(dateraw+str(datetime.isocalendar(date.today())[0]),'%b %d%Y')
+        except:
+            newdate = datetime.strptime(dateraw,'%m/%d/%y')
+        return newdate  
+        
+    def _debit_credit(self, row):
+        #Reverses credit balances    
+        dic = {False:-1,True:1}    
+        return float(row['amount'][1:].replace(',','')) * dic[row['isDebit']]
+    
+    def get_detailed_transactions(self, start_date = None, include_investment=False,
+                              skip_duplicates=False, remove_pending=True):
+        """Returns the JSON transaction data as a DataFrame, and converts current
+        year dates and prior year dates into consistent datetime format, and reverses
+        credit activity. 
+        
+        Note: start_date must be in format mm/dd/yy. If pulls take a long time, 
+        use a more recent start date. See json explanations of include_investment
+        and skip_duplicates. 
+        
+        Also note: Mint includes pending transactions, however these sometimes change dates/amounts
+        after the transactions post. They have been removed by default in this pull, 
+        but can be included by changing include_pending to False
+
+        """
+        if not pd:
+            raise ImportError(
+                'transactions data requires pandas; '
+                'please pip install pandas'
+            )     
+        
+        result = self.get_transactions_json(start_date, include_investment, skip_duplicates)
+        df = pd.DataFrame(result)
+        df['odate'] = df['odate'].apply(self._dateconvert)
+
+        if remove_pending:
+            df = df[df.isPending == False]
+            df.reset_index(drop=True,inplace=True)
+                        
+        df.amount = df.apply(self._debit_credit, axis = 1)        
+        
+        return df
+
     def get_transactions_csv(self, include_investment=False):
         """Returns the raw CSV transaction data as downloaded from Mint.
 
