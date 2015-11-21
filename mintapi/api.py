@@ -245,10 +245,9 @@ class Mint(requests.Session):
             df = pd.DataFrame(txns)
             if start_date:
                 dates = list(df['odate'])
+                cy = datetime.isocalendar(date.today())[0]
                 try:
-                    first_date = datetime.strptime(dates[0] +
-                                 str(datetime.isocalendar(date.today())[0]),
-                                 '%b %d%Y')
+                    first_date = datetime.strptime(dates[0] + str(cy), '%b %d%Y')
                 except:
                     first_date = datetime.strptime(dates[0], '%m/%d/%y')
                 if first_date < start_date:
@@ -261,9 +260,9 @@ class Mint(requests.Session):
 
     def _dateconvert(self, dateraw):
         # Converts dates from json data
+        cy = datetime.isocalendar(date.today())[0]
         try:
-            newdate = datetime.strptime(dateraw +
-                      str(datetime.isocalendar(date.today())[0]), '%b %d%Y')
+            newdate = datetime.strptime(dateraw + str(cy), '%b %d%Y')
         except:
             newdate = datetime.strptime(dateraw, '%m/%d/%y')
         return newdate
@@ -296,7 +295,7 @@ class Mint(requests.Session):
                 'transactions data requires pandas; '
                 'please pip install pandas'
             )
-        
+
         result = self.get_transactions_json(start_date, include_investment,
                                             skip_duplicates)
         df = pd.DataFrame(result)
