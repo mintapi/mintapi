@@ -247,10 +247,10 @@ class Mint(requests.Session):
                 dates = list(df['odate'])
                 cy = datetime.isocalendar(date.today())[0]
                 try:
-                    first_date = datetime.strptime(dates[0] + str(cy), '%b %d%Y')
+                    first_dt = datetime.strptime(dates[0] + str(cy), '%b %d%Y')
                 except:
-                    first_date = datetime.strptime(dates[0], '%m/%d/%y')
-                if first_date < start_date:
+                    first_dt = datetime.strptime(dates[0], '%m/%d/%y')
+                if first_dt < start_date:
                     break
             if not txns:
                 break
