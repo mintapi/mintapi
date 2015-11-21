@@ -197,24 +197,29 @@ class Mint(requests.Session):
         if req_id not in response:
             raise Exception("Could not parse response to set_user_property")
 
-    def get_transactions_json(self, include_investment=False,
+    def get_transactions_json(self, start_date = None, include_investment=False,
                               skip_duplicates=False):
         """Returns the raw JSON transaction data as downloaded from Mint.  The JSON
         transaction data includes some additional information missing from the
-        CSV data, such as whether the transaction is pending or completed. If
-        the year is missing, this indicates that the date is the current year.
+        CSV data, such as whether the transaction is pending or completed, but
+        leaves off the year for current year transactions. 
 
         Warning: In order to reliably include or exclude duplicates, it is
         necessary to change the user account property 'hide_duplicates' to the
         appropriate value.  This affects what is displayed in the web
         interface.  Note that the CSV transactions never exclude duplicates.
-
         """
 
         # Warning: This is a global property for the user that we are changing.
         self.set_user_property('hide_duplicates',
                                'T' if skip_duplicates else 'F')
-
+        
+        #Converts the start date into datetime format - must be mm/dd/yy (not yyyy)
+        try:
+            start_date = datetime.strptime(start_date,'%m/%d/%y')
+        except:
+            start_date = None
+                           
         all_txns = []
         offset = 0
         # Mint only returns some of the transactions at once.  To get all of
@@ -237,11 +242,19 @@ class Mint(requests.Session):
                 expected_content_type='text/json')
             data = json.loads(result.text)
             txns = data['set'][0].get('data', [])
+            df = pd.DataFrame(txns)            
+            if start_date:            
+                dates = list(df['odate'])
+                try:
+                    first_date = datetime.strptime(dates[0]+str(datetime.isocalendar(date.today())[0]),'%b %d%Y')
+                except:
+                    first_date = datetime.strptime(dates[0],'%m/%d/%y')
+                if first_date < start_date:
+                    break
             if not txns:
                 break
             all_txns.extend(txns)
             offset += len(txns)
-
         return all_txns
 
     def get_transactions_csv(self, include_investment=False):
