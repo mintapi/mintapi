@@ -197,8 +197,8 @@ class Mint(requests.Session):
         if req_id not in response:
             raise Exception("Could not parse response to set_user_property")
 
-    def get_transactions_json(self, start_date=None, include_investment=False,
-                              skip_duplicates=False):
+    def get_transactions_json(self, include_investment=False,
+                              skip_duplicates=False, start_date=None):
         """Returns the raw JSON transaction data as downloaded from Mint.  The JSON
         transaction data includes some additional information missing from the
         CSV data, such as whether the transaction is pending or completed, but
