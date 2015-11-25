@@ -287,7 +287,7 @@ class Mint(requests.Session):
         Also note: Mint includes pending transactions, however these sometimes
         change dates/amounts after the transactions post. They have been
         removed by default in this pull, but can be included by changing
-        include_pending to False
+        remove_pending to False
 
         """
         if not pd:
