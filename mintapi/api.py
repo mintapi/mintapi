@@ -21,8 +21,9 @@ try:
 except ImportError:
     pd = None
 
-# Create common function to check if pd is installed
+
 def assert_pd():
+    # Common function to check if pd is installed
     if not pd:
         raise ImportError(
             'transactions data requires pandas; '
