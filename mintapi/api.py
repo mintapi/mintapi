@@ -21,7 +21,7 @@ try:
 except ImportError:
     pd = None
 
-
+# Create common function to check if pd is installed
 def assert_pd():
     if not pd:
         raise ImportError(
