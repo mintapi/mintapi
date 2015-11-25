@@ -21,6 +21,13 @@ try:
 except ImportError:
     pd = None
 
+def assert_pd():
+    if not pd:
+        raise ImportError(
+            'transactions data requires pandas; '
+            'please pip install pandas'
+        )
+
 DATE_FIELDS = [
     'addAccountDate',
     'closeDate',
@@ -197,6 +204,20 @@ class Mint(requests.Session):
         if req_id not in response:
             raise Exception("Could not parse response to set_user_property")
 
+    def _dateconvert(self, dateraw):
+        # Converts dates from json data
+        cy = datetime.isocalendar(date.today())[0]
+        try:
+            newdate = datetime.strptime(dateraw + str(cy), '%b %d%Y')
+        except:
+            newdate = datetime.strptime(dateraw, '%m/%d/%y')
+        return newdate
+
+    def _debit_credit(self, row):
+        # Reverses credit balances
+        dic = {False: -1, True: 1}
+        return float(row['amount'][1:].replace(',', '')) * dic[row['isDebit']]
+
     def get_transactions_json(self, include_investment=False,
                               skip_duplicates=False, start_date=None):
         """Returns the raw JSON transaction data as downloaded from Mint.  The JSON
@@ -245,32 +266,19 @@ class Mint(requests.Session):
             df = pd.DataFrame(txns)
             if start_date:
                 dates = list(df['odate'])
-                cy = datetime.isocalendar(date.today())[0]
-                try:
-                    first_dt = datetime.strptime(dates[0] + str(cy), '%b %d%Y')
-                except:
-                    first_dt = datetime.strptime(dates[0], '%m/%d/%y')
-                if first_dt < start_date:
+                last_dt = self._dateconvert(dates[-1])
+                if last_dt < start_date:
+                    keep_txns = []
+                    for item in txns:
+                        if self._dateconvert(item['odate']) >= start_date:
+                            keep_txns.append(item)
+                    all_txns.extend(keep_txns)
                     break
             if not txns:
                 break
             all_txns.extend(txns)
             offset += len(txns)
         return all_txns
-
-    def _dateconvert(self, dateraw):
-        # Converts dates from json data
-        cy = datetime.isocalendar(date.today())[0]
-        try:
-            newdate = datetime.strptime(dateraw + str(cy), '%b %d%Y')
-        except:
-            newdate = datetime.strptime(dateraw, '%m/%d/%y')
-        return newdate
-
-    def _debit_credit(self, row):
-        # Reverses credit balances
-        dic = {False: -1, True: 1}
-        return float(row['amount'][1:].replace(',', '')) * dic[row['isDebit']]
 
     def get_detailed_transactions(self, include_investment=False,
                                   skip_duplicates=False,
@@ -290,14 +298,10 @@ class Mint(requests.Session):
         remove_pending to False
 
         """
-        if not pd:
-            raise ImportError(
-                'transactions data requires pandas; '
-                'please pip install pandas'
-            )
+        assert_pd()
 
-        result = self.get_transactions_json(start_date, include_investment,
-                                            skip_duplicates)
+        result = self.get_transactions_json(include_investment,
+                                            skip_duplicates, start_date)
         df = pd.DataFrame(result)
         df['odate'] = df['odate'].apply(self._dateconvert)
 
@@ -349,11 +353,7 @@ class Mint(requests.Session):
     def get_transactions(self):
         """Returns the transaction data as a Pandas DataFrame.
         """
-        if not pd:
-            raise ImportError(
-                'transactions data requires pandas; '
-                'please pip install pandas'
-            )
+        assert_pd()
         s = StringIO(self.get_transactions_csv())
         s.seek(0)
         df = pd.read_csv(s, parse_dates=['Date'])
