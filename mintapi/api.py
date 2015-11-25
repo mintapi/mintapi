@@ -272,10 +272,10 @@ class Mint(requests.Session):
         dic = {False: -1, True: 1}
         return float(row['amount'][1:].replace(',', '')) * dic[row['isDebit']]
 
-    def get_detailed_transactions(self, start_date=None,
-                                  include_investment=False,
+    def get_detailed_transactions(self, include_investment=False,
                                   skip_duplicates=False,
-                                  remove_pending=True):
+                                  remove_pending=True,
+                                  start_date=None):
         """Returns the JSON transaction data as a DataFrame, and converts
         current year dates and prior year dates into consistent datetime
         format, and reverses credit activity.
