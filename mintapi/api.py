@@ -21,6 +21,7 @@ try:
 except ImportError:
     pd = None
 
+
 def assert_pd():
     if not pd:
         raise ImportError(
