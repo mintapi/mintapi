@@ -270,7 +270,10 @@ class Mint(requests.Session):
 
         # account types in this list will be subtracted
         negative_accounts = ['loan', 'loans', 'credit']
-        net_worth = 0L
+        try:
+            net_worth = long()
+        except NameError:
+            net_worth = 0
 
         # iterate over accounts and add or subtract account balances
         for account in [a for a in account_data if a['isActive']]:
@@ -556,8 +559,8 @@ def main():
     if options.accounts_ext:
         options.accounts = True
 
-    if not (options.accounts or options.budgets or options.transactions or
-            options.net_worth):
+    if not any([options.accounts, options.budgets, options.transactions,
+                options.net_worth]):
         options.accounts = True
 
     mint = Mint.create(email, password)
