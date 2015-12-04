@@ -559,13 +559,8 @@ def main():
     if options.accounts_ext:
         options.accounts = True
 
-<<<<<<< HEAD
-    if not (options.accounts or options.budgets or options.transactions or
-            options.net_worth):
-=======
     if not any([options.accounts, options.budgets, options.transactions,
                 options.net_worth]):
->>>>>>> b933723649c7c20ab43e930ac5fb0e4640f7e47a
         options.accounts = True
 
     mint = Mint.create(email, password)
