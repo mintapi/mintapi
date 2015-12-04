@@ -612,7 +612,7 @@ def main():
             print(json.dumps(data, indent=2))
         elif options.filename.endswith('.json'):
             with open(options.filename, 'w+') as f:
-                json.dumps(data, f, indent=2)
+                json.dump(data, f, indent=2)
         else:
             raise ValueError('file type must be json for non-transaction data')
 

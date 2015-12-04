@@ -1,3 +1,8 @@
+1.14
+---
+- fix json output when using --filename
+- flake8 fixes
+
 1.13
 ---
 - new get_net_worth / --net-worth options, thanks @wendlinga!
