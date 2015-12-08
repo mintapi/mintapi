@@ -12,7 +12,10 @@ from datetime import date, datetime, timedelta
 import requests
 
 from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.poolmanager import PoolManager
+try:
+        from requests.packages.urllib3.poolmanager import PoolManager
+except:
+        from urllib3.poolmanager import PoolManager
 
 import xmltodict
 
