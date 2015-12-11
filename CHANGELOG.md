@@ -1,3 +1,7 @@
+1.15
+---
+- fix urllib3 import exception on Ubuntu/Debian, thanks @dancudds!
+
 1.14
 ---
 - fix json output when using --filename
