@@ -1,3 +1,10 @@
+1.16
+---
+- allow specifying a start date for get_transactions_json
+- add get_detailed_transactions which converts the json to a pandas
+  dataframe, adds the year to all transactions, and reverses credit
+  activity.
+
 1.15
 ---
 - fix urllib3 import exception on Ubuntu/Debian, thanks @dancudds!
