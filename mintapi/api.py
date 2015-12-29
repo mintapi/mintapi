@@ -605,7 +605,7 @@ def main():
     except NameError:
         pass
     except ImportError:
-        from builtins import input as input #Python 3
+        from builtins import input as input  # Python 3
 
     # Try to get the e-mail and password from the arguments
     email = options.email
