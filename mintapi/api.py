@@ -1,6 +1,7 @@
 import json
 import random
 import time
+import re
 
 try:
     from StringIO import StringIO  # Python 2
@@ -100,7 +101,7 @@ class Mint(requests.Session):
                                (url, result.status_code))
         if expected_content_type is not None:
             content_type = result.headers.get('content-type', '')
-            if not content_type.startswith(expected_content_type):
+            if not re.match(expected_content_type, content_type):
                 raise RuntimeError(
                     'Error requesting %r, content type %r does not match %r' %
                     (url, content_type, expected_content_type))
@@ -265,7 +266,7 @@ class Mint(requests.Session):
                         else 'task=transactions,txnfilters&filterType=cash'))
             result = self.request_and_check(
                 url, headers=self.json_headers,
-                expected_content_type='text/json')
+                expected_content_type='text/json|application/json')
             data = json.loads(result.text)
             txns = data['set'][0].get('data', [])
             df = pd.DataFrame(txns)
