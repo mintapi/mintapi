@@ -265,7 +265,7 @@ class Mint(requests.Session):
                         else 'task=transactions,txnfilters&filterType=cash'))
             result = self.request_and_check(
                 url, headers=self.json_headers,
-                expected_content_type='text/json')
+                expected_content_type='application/json')
             data = json.loads(result.text)
             txns = data['set'][0].get('data', [])
             df = pd.DataFrame(txns)
