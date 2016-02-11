@@ -1,3 +1,8 @@
+1.17
+---
+- fix get_transactions_json to work with Mint change (github#57),
+  thanks @dtiz!
+
 1.16
 ---
 - allow specifying a start date for get_transactions_json
