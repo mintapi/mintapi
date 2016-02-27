@@ -67,8 +67,8 @@ class Mint(requests.Session):
 
     @classmethod
     def get_rnd(cls):  # {{{
-        return (str(int(time.mktime(datetime.now().timetuple())))
-                + str(random.randrange(999)).zfill(3))
+        return (str(int(time.mktime(datetime.now().timetuple()))) +
+                str(random.randrange(999)).zfill(3))
 
     @classmethod
     def parse_float(cls, string):  # {{{
@@ -266,7 +266,7 @@ class Mint(requests.Session):
                         else 'task=transactions,txnfilters&filterType=cash'))
             result = self.request_and_check(
                 url, headers=self.json_headers,
-                expected_content_type='text/json')
+                expected_content_type='application/json')
             data = json.loads(result.text)
             txns = data['set'][0].get('data', [])
             df = pd.DataFrame(txns)
@@ -451,8 +451,8 @@ class Mint(requests.Session):
                              headers=self.json_headers).text
         self.request_id = self.request_id + 1
         if req_id not in response:
-            raise Exception('Could not parse category data: "'
-                            + response + '"')
+            raise Exception('Could not parse category data: "' +
+                            response + '"')
         response = json.loads(response)
         response = response['response'][req_id]['response']
 
