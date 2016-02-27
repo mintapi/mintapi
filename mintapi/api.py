@@ -1,6 +1,7 @@
 import json
 import random
 import time
+import os
 
 try:
     from StringIO import StringIO  # Python 2
@@ -358,11 +359,12 @@ class Mint(requests.Session):
                 net_worth += current_balance
         return net_worth
 
-    def get_transactions(self):
+
+    def get_transactions(self, include_investment=False):
         """Returns the transaction data as a Pandas DataFrame.
         """
         assert_pd()
-        s = StringIO(self.get_transactions_csv())
+        s = StringIO(self.get_transactions_csv(include_investment=include_investment))
         s.seek(0)
         df = pd.read_csv(s, parse_dates=['Date'])
         df.columns = [c.lower().replace(' ', '_') for c in df.columns]
@@ -585,6 +587,10 @@ def main():
                          dest='accounts_ext', default=False,
                          help='Retrieve extended account information (slower, '
                          'implies --accounts)')
+    cmdline.add_argument('--include-investments', '-i', action='store_true',
+                         dest='include_investments', default=False,
+                         help='Retrieve investment transactions as well (slower, '
+                         'implies --transactions)')
     cmdline.add_argument('--transactions', '-t', action='store_true',
                          default=False, help='Retrieve transactions')
     cmdline.add_argument('--filename', '-f', help='write results to file. can '
@@ -629,6 +635,9 @@ def main():
     if options.accounts_ext:
         options.accounts = True
 
+    if options.include_investments:
+        options.transactions = True
+
     if not any([options.accounts, options.budgets, options.transactions,
                 options.net_worth]):
         options.accounts = True
@@ -663,7 +672,7 @@ def main():
         except:
             data = None
     elif options.transactions:
-        data = mint.get_transactions()
+        data = mint.get_transactions(include_investment=options.include_investments)
     elif options.net_worth:
         data = mint.get_net_worth()
 
@@ -675,8 +684,11 @@ def main():
             data.to_csv(options.filename, index=False)
         elif options.filename.endswith('.json'):
             data.to_json(options.filename, orient='records')
+        elif options.filename.endswith('.jsonandcsv'):
+            data.to_json(os.path.splitext(options.filename)[0]+'.json', orient='records')
+            data.to_csv(os.path.splitext(options.filename)[0]+'.csv', orient='records')
         else:
-            raise ValueError('file extension must be either .csv or .json')
+            raise ValueError('file extension must be either .csv, .json, or .jsonandcsv')
     else:
         if options.filename is None:
             print(json.dumps(data, indent=2))
