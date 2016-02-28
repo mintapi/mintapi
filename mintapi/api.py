@@ -318,7 +318,7 @@ class Mint(requests.Session):
 
         return df
 
-    def get_transactions_csv(self, include_investment=False):
+    def get_transactions_csv(self, include_investment=False, start_date=None, end_date=None):
         """Returns the raw CSV transaction data as downloaded from Mint.
 
         If include_investment == True, also includes transactions that Mint
@@ -326,13 +326,29 @@ class Mint(requests.Session):
         transaction data is not sufficiently detailed to actually be useful,
         however.
         """
-
+        import urllib
+        from datetime import datetime
+        
+        #dates have to be in mm/dd/yyyy format for csv download
+        if start_date:
+            try:
+                datetime.strptime(start_date, '%m/%d/%Y')
+            except Exception, e:
+                raise ValueError('start_date must be in mm/dd/yyyy format for csv download')
+        if end_date:
+            try:
+                datetime.strptime(end_date, '%m/%d/%Y')
+            except Exception, e:
+                raise ValueError('end_date must be in mm/dd/yyyy format for csv download')
+        start_date = '' if start_date is None else start_date
+        end_date = '' if end_date is None else end_date
         # Specifying accountId=0 causes Mint to return investment
         # transactions as well.  Otherwise they are skipped by
         # default.
+        url = 'https://wwws.mint.com/transactionDownload.event?' + ('accountId=0' if include_investment else '')
+        url = url + 'startDate={}&endDate={}'.format(urllib.quote_plus(start_date), urllib.quote_plus(end_date))
         result = self.request_and_check(
-            'https://wwws.mint.com/transactionDownload.event' +
-            ('?accountId=0' if include_investment else ''),
+            url,
             headers=self.headers,
             expected_content_type='text/csv'
             )
@@ -358,11 +374,11 @@ class Mint(requests.Session):
                 net_worth += current_balance
         return net_worth
 
-    def get_transactions(self):
+    def get_transactions(self, start_date=None, end_date=None):
         """Returns the transaction data as a Pandas DataFrame.
         """
         assert_pd()
-        s = StringIO(self.get_transactions_csv())
+        s = StringIO(self.get_transactions_csv(start_date=start_date, end_date=end_date))
         s.seek(0)
         df = pd.read_csv(s, parse_dates=['Date'])
         df.columns = [c.lower().replace(' ', '_') for c in df.columns]
@@ -562,7 +578,6 @@ def initiate_account_refresh(email, password):
 def main():
     import getpass
     import argparse
-
     try:
         import keyring
     except ImportError:
@@ -593,6 +608,10 @@ def main():
     cmdline.add_argument('--keyring', action='store_true',
                          help='Use OS keyring for storing password '
                          'information')
+    cmdline.add_argument('--start', '-sd', nargs='?', dest='start_date',
+                         help='Start date for transactions')
+    cmdline.add_argument('--end', '-ed', nargs='?', dest='end_date',
+                         help='End date for transactions')
 
     options = cmdline.parse_args()
 
@@ -663,7 +682,7 @@ def main():
         except:
             data = None
     elif options.transactions:
-        data = mint.get_transactions()
+        data = mint.get_transactions(start_date=options.start_date, end_date=options.end_date)
     elif options.net_worth:
         data = mint.get_net_worth()
 
