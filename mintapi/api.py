@@ -318,7 +318,8 @@ class Mint(requests.Session):
 
         return df
 
-    def get_transactions_csv(self, include_investment=False, start_date=None, end_date=None):
+    def get_transactions_csv(self, include_investment=False,
+                             start_date=None, end_date=None):
         """Returns the raw CSV transaction data as downloaded from Mint.
 
         If include_investment == True, also includes transactions that Mint
@@ -328,25 +329,30 @@ class Mint(requests.Session):
         """
         import urllib
         from datetime import datetime
-        
-        #dates have to be in mm/dd/yyyy format for csv download
+
+        # dates have to be in mm/dd/yyyy format for csv download
         if start_date:
             try:
                 datetime.strptime(start_date, '%m/%d/%Y')
-            except Exception, e:
-                raise ValueError('start_date must be in mm/dd/yyyy format for csv download')
+            except Exception:
+                raise ValueError('start_date must be in '
+                                 'mm/dd/yyyy format for csv download')
         if end_date:
             try:
                 datetime.strptime(end_date, '%m/%d/%Y')
-            except Exception, e:
-                raise ValueError('end_date must be in mm/dd/yyyy format for csv download')
+            except Exception:
+                raise ValueError('end_date must be in '
+                                 'mm/dd/yyyy format for csv download')
         start_date = '' if start_date is None else start_date
         end_date = '' if end_date is None else end_date
         # Specifying accountId=0 causes Mint to return investment
         # transactions as well.  Otherwise they are skipped by
         # default.
-        url = 'https://wwws.mint.com/transactionDownload.event?' + ('accountId=0' if include_investment else '')
-        url = url + 'startDate={}&endDate={}'.format(urllib.quote_plus(start_date), urllib.quote_plus(end_date))
+        url = 'https://wwws.mint.com/transactionDownload.event?'
+        url = url + ('accountId=0' if include_investment else '')
+        url = url + 'startDate={}&endDate={}'.format(
+                     urllib.quote_plus(start_date),
+                     urllib.quote_plus(end_date))
         result = self.request_and_check(
             url,
             headers=self.headers,
@@ -378,7 +384,8 @@ class Mint(requests.Session):
         """Returns the transaction data as a Pandas DataFrame.
         """
         assert_pd()
-        s = StringIO(self.get_transactions_csv(start_date=start_date, end_date=end_date))
+        s = StringIO(self.get_transactions_csv(start_date=start_date,
+                                               end_date=end_date))
         s.seek(0)
         df = pd.read_csv(s, parse_dates=['Date'])
         df.columns = [c.lower().replace(' ', '_') for c in df.columns]
@@ -682,7 +689,8 @@ def main():
         except:
             data = None
     elif options.transactions:
-        data = mint.get_transactions(start_date=options.start_date, end_date=options.end_date)
+        data = mint.get_transactions(start_date=options.start_date,
+                                     end_date=options.end_date)
     elif options.net_worth:
         data = mint.get_net_worth()
 
