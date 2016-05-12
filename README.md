@@ -55,9 +55,12 @@ from anywhere
 ---
 Run it as a sub-process from your favorite language; `pip install mintapi` creates a binary in your $PATH. From the command-line, the output is JSON:
 
-    usage: mintapi [-h] [--accounts] [--budgets] [--extended-accounts]
-                   [--transactions] [--filename FILENAME] [--keyring]
-                   [email] [password]
+    usage: mintapi [-h] [--accounts] [--budgets] [--net-worth]
+              [--extended-accounts] [--transactions] [--extended-transactions]
+              [--start-date [START_DATE]] [--include-investment]
+              [--skip-duplicates] [--show-pending] [--filename FILENAME]
+              [--keyring]
+              [email] [password]
 
     positional arguments:
       email                 The e-mail address for your Mint.com account
@@ -68,10 +71,20 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       --accounts            Retrieve account information (default if nothing else
                             is specified)
       --budgets             Retrieve budget information
-      --net-worth           Retrieve net worth (as a single float value)
+      --net-worth           Retrieve net worth information
       --extended-accounts   Retrieve extended account information (slower, implies
                             --accounts)
       --transactions, -t    Retrieve transactions
+      --extended-transactions
+                            Retrieve transactions with extra information and
+                            arguments
+      --start-date [START_DATE]
+                            Earliest date for transactions to be retrieved from.
+                            Used with --extended-transactions. Format: mm/dd/yy
+      --include-investment  Used with --extended-transactions
+      --skip-duplicates     Used with --extended-transactions
+      --show-pending        Exclude pending transactions from being retrieved.
+                            Used with --extended-transactions
       --filename FILENAME, -f FILENAME
                             write results to file. can be {csv,json} format.
                             default is to write to stdout.
