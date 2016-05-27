@@ -622,6 +622,8 @@ def main():
     cmdline.add_argument('--keyring', action='store_true',
                          help='Use OS keyring for storing password '
                          'information')
+    cmdline.add_argument('--wait-for-account-refresh', action='store_true',
+                         default=False, help='Initiate account refresh on Mint.com and wait for refresh to finish before executing other commands')
 
     options = cmdline.parse_args()
 
@@ -663,6 +665,9 @@ def main():
         options.accounts = True
 
     mint = Mint.create(email, password)
+
+    if options.wait_for_account_refresh:
+        mint.refresh_accounts()
 
     data = None
     if options.accounts and options.budgets:
