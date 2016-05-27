@@ -525,6 +525,24 @@ class Mint(requests.Session):
         self.post('https://wwws.mint.com/refreshFILogins.xevent',
                   data=data, headers=self.json_headers)
 
+    def refresh_accounts(self, max_wait_time=60, refresh_every=10):
+        """Initiate an account refresh and wait for the refresh to finish.
+        Returns number of accounts in error, or -1 if timed out."""
+        self.initiate_account_refresh()
+        waited = 0
+        while True:
+            result = self.request_and_check(
+                'https://wwws.mint.com/userStatus.xevent?rnd='+str(random.randint(0, 10**14)),
+                headers=self.json_headers,
+                expected_content_type='application/json')
+            data = json.loads(result.text)
+            if data['isRefreshing'] is False:
+                return data['errorCount']
+            elif waited > max_wait_time/refresh_every:
+                return -1
+            else:
+                waited += 1
+                time.sleep(refresh_every)
 
 def get_accounts(email, password, get_detail=False):
     mint = Mint.create(email, password)
