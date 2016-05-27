@@ -647,7 +647,11 @@ def main():
     if keyring and not password:
         # If the keyring module is installed and we don't yet have
         # a password, try prompting for it
-        password = keyring.get_password('mintapi', email)
+        try:
+            password = keyring.get_password('mintapi', email)
+        except:
+            print("Cannot access system keyring")
+            options.keyring = False
 
     if not password:
         # If we still don't have a password, prompt for it
