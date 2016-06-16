@@ -61,7 +61,7 @@ class Mint(requests.Session):
     @classmethod
     def create(cls, email, password):  # {{{
         mint = Mint()
-        mint.login_and_get_token(email, password)
+        mint.login_and_get_token(email, password, None)
         return mint
 
     @classmethod
@@ -123,7 +123,10 @@ class Mint(requests.Session):
         response = self.post('https://accounts.mint.com/access_client/sign_in',
                              json=data, headers=self.json_headers).text
 
-        data = {'clientType': 'Mint', 'authid': json.loads(response)['iamTicket']['userId']}
+        json_response = json.loads(response)
+        if json_response.get('action') == 'CHALLENGE':
+            raise Exception('Challenge required, please log in to Mint.com manually and complete the captcha.')
+        data = {'clientType': 'Mint', 'authid': json_response['iamTicket']['userId']}
         self.post('https://wwws.mint.com/getUserPod.xevent',
                   data=data, headers=self.json_headers)
 
