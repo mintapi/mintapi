@@ -52,11 +52,11 @@ class Mint(requests.Session):
     request_id = 42  # magic number? random number?
     token = None
 
-    def __init__(self, email=None, password=None):
+    def __init__(self, email=None, password=None, ius_session=None):
         requests.Session.__init__(self)
         self.mount('https://', MintHTTPSAdapter())
         if email and password:
-            self.login_and_get_token(email, password)
+            self.login_and_get_token(email, password, ius_session)
 
     @classmethod
     def create(cls, email, password):  # {{{
@@ -106,7 +106,7 @@ class Mint(requests.Session):
                     (url, content_type, expected_content_type))
         return result
 
-    def login_and_get_token(self, email, password):  # {{{
+    def login_and_get_token(self, email, password, ius_session):  # {{{
         # 0: Check to see if we're already logged in.
         if self.token is not None:
             return
@@ -118,11 +118,16 @@ class Mint(requests.Session):
         except RuntimeError:
             raise Exception('Failed to load Mint login page')
 
-        data = {'username': email}
-        response = self.post('https://wwws.mint.com/getUserPod.xevent',
-                             data=data, headers=self.json_headers).text
+        self.cookies['ius_session'] = ius_session
+        data = {'username': email, 'password': password}
+        response = self.post('https://accounts.mint.com/access_client/sign_in',
+                             json=data, headers=self.json_headers).text
 
-        data = {'username': email, 'password': password, 'task': 'L',
+        data = {'clientType': 'Mint', 'authid': json.loads(response)['iamTicket']['userId']}
+        self.post('https://wwws.mint.com/getUserPod.xevent',
+                  data=data, headers=self.json_headers)
+
+        data = {'task': 'L',
                 'browser': 'firefox', 'browserVersion': '27', 'os': 'linux'}
         response = self.post('https://wwws.mint.com/loginUserSubmit.xevent',
                              data=data, headers=self.json_headers).text
