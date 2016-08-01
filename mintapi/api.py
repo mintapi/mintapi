@@ -54,6 +54,7 @@ class Mint(requests.Session):
 
     def __init__(self, email=None, password=None, ius_session=None):
         requests.Session.__init__(self)
+        self.headers.update({'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9) AppleWebKit/537.71 (KHTML, like Gecko) Version/7.0 Safari/537.71'})
         self.mount('https://', MintHTTPSAdapter())
         if email and password:
             self.login_and_get_token(email, password, ius_session)
@@ -112,13 +113,17 @@ class Mint(requests.Session):
             return
 
         # 1: Login.
-        login_url = 'https://wwws.mint.com/login.event?task=L'
+        login_url = 'https://wwws.mint.com/login.event'
         try:
             self.request_and_check(login_url)
         except RuntimeError:
             raise Exception('Failed to load Mint login page')
 
-        self.cookies['ius_session'] = ius_session
+        if ius_session:
+            self.cookies['ius_session'] = ius_session
+        else: # this get call will populate self.cookies
+            self.get('https://accounts.mint.com/xdr.html?v2=true&corsEnabled')
+
         data = {'username': email, 'password': password}
         response = self.post('https://accounts.mint.com/access_client/sign_in',
                              json=data, headers=self.json_headers).text
