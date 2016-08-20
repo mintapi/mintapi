@@ -659,14 +659,10 @@ def main():
     if options.accounts_ext:
         options.accounts = True
 
-<<<<<<< HEAD
     if options.include_investments:
         options.transactions = True
 
-    if not any([options.accounts, options.budgets, options.transactions,
-=======
     if not any([options.accounts, options.budgets, options.transactions, options.extended_transactions,
->>>>>>> mrooney/master
                 options.net_worth]):
         options.accounts = True
 
