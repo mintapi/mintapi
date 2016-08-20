@@ -1,3 +1,8 @@
+1.18
+---
+- add the ability to get extended transaction information from the command line,
+  along with all its options
+
 1.17
 ---
 - fix get_transactions_json to work with Mint change (github#57),

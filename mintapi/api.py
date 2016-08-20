@@ -53,16 +53,17 @@ class Mint(requests.Session):
     request_id = 42  # magic number? random number?
     token = None
 
-    def __init__(self, email=None, password=None):
+    def __init__(self, email=None, password=None, ius_session=None):
         requests.Session.__init__(self)
+        self.headers.update({'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9) AppleWebKit/537.71 (KHTML, like Gecko) Version/7.0 Safari/537.71'})
         self.mount('https://', MintHTTPSAdapter())
         if email and password:
-            self.login_and_get_token(email, password)
+            self.login_and_get_token(email, password, ius_session)
 
     @classmethod
     def create(cls, email, password):  # {{{
         mint = Mint()
-        mint.login_and_get_token(email, password)
+        mint.login_and_get_token(email, password, None)
         return mint
 
     @classmethod
@@ -107,23 +108,35 @@ class Mint(requests.Session):
                     (url, content_type, expected_content_type))
         return result
 
-    def login_and_get_token(self, email, password):  # {{{
+    def login_and_get_token(self, email, password, ius_session):  # {{{
         # 0: Check to see if we're already logged in.
         if self.token is not None:
             return
 
         # 1: Login.
-        login_url = 'https://wwws.mint.com/login.event?task=L'
+        login_url = 'https://wwws.mint.com/login.event'
         try:
             self.request_and_check(login_url)
         except RuntimeError:
             raise Exception('Failed to load Mint login page')
 
-        data = {'username': email}
-        response = self.post('https://wwws.mint.com/getUserPod.xevent',
-                             data=data, headers=self.json_headers).text
+        if ius_session:
+            self.cookies['ius_session'] = ius_session
+        else: # this get call will populate self.cookies
+            self.get('https://accounts.mint.com/xdr.html?v2=true&corsEnabled')
 
-        data = {'username': email, 'password': password, 'task': 'L',
+        data = {'username': email, 'password': password}
+        response = self.post('https://accounts.mint.com/access_client/sign_in',
+                             json=data, headers=self.json_headers).text
+
+        json_response = json.loads(response)
+        if json_response.get('action') == 'CHALLENGE':
+            raise Exception('Challenge required, please log in to Mint.com manually and complete the captcha.')
+        data = {'clientType': 'Mint', 'authid': json_response['iamTicket']['userId']}
+        self.post('https://wwws.mint.com/getUserPod.xevent',
+                  data=data, headers=self.json_headers)
+
+        data = {'task': 'L',
                 'browser': 'firefox', 'browserVersion': '27', 'os': 'linux'}
         response = self.post('https://wwws.mint.com/loginUserSubmit.xevent',
                              data=data, headers=self.json_headers).text
@@ -237,6 +250,7 @@ class Mint(requests.Session):
         interface.  Note that the CSV transactions never exclude duplicates.
         """
 
+
         # Warning: This is a global property for the user that we are changing.
         self.set_user_property('hide_duplicates',
                                'T' if skip_duplicates else 'F')
@@ -246,7 +260,6 @@ class Mint(requests.Session):
             start_date = datetime.strptime(start_date, '%m/%d/%y')
         except:
             start_date = None
-
         all_txns = []
         offset = 0
         # Mint only returns some of the transactions at once.  To get all of
@@ -593,6 +606,17 @@ def main():
                          'implies --transactions)')
     cmdline.add_argument('--transactions', '-t', action='store_true',
                          default=False, help='Retrieve transactions')
+    cmdline.add_argument('--extended-transactions',action='store_true',default=False,
+                         help='Retrieve transactions with extra information and arguments')
+    cmdline.add_argument('--start-date',nargs='?',default=None,
+                         help='Earliest date for transactions to be retrieved from. Used with --extended-transactions. Format: mm/dd/yy')
+    cmdline.add_argument('--include-investment',action='store_true',default=False,
+                         help='Used with --extended-transactions')
+    cmdline.add_argument('--skip-duplicates',action='store_true',default=False,
+                         help='Used with --extended-transactions')
+# Displayed to the user as a postive switch, but processed back here as a negative
+    cmdline.add_argument('--show-pending',action='store_false',default=True,
+                         help='Exclude pending transactions from being retrieved. Used with --extended-transactions')
     cmdline.add_argument('--filename', '-f', help='write results to file. can '
                          'be {csv,json} format. default is to write to '
                          'stdout.')
@@ -635,10 +659,14 @@ def main():
     if options.accounts_ext:
         options.accounts = True
 
+<<<<<<< HEAD
     if options.include_investments:
         options.transactions = True
 
     if not any([options.accounts, options.budgets, options.transactions,
+=======
+    if not any([options.accounts, options.budgets, options.transactions, options.extended_transactions,
+>>>>>>> mrooney/master
                 options.net_worth]):
         options.accounts = True
 
@@ -673,11 +701,17 @@ def main():
             data = None
     elif options.transactions:
         data = mint.get_transactions(include_investment=options.include_investments)
+    elif options.extended_transactions:
+        data = mint.get_detailed_transactions(start_date=options.start_date,
+                                              include_investment=options.include_investment,
+                                              remove_pending=options.show_pending,
+                                              skip_duplicates=options.skip_duplicates
+        )
     elif options.net_worth:
         data = mint.get_net_worth()
 
     # output the data
-    if options.transactions:
+    if options.transactions or options.extended_transactions:
         if options.filename is None:
             print(data.to_json(orient='records'))
         elif options.filename.endswith('.csv'):
