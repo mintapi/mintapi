@@ -1,3 +1,8 @@
+1.19
+---
+- updated URLs for intuit.com domain change
+- added command-line switch for --session=ius_session_cookie
+
 1.18
 ---
 - add the ability to get extended transaction information from the command line,
