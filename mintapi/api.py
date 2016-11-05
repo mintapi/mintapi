@@ -43,6 +43,7 @@ DATE_FIELDS = [
 MINT_ROOT_URL = 'https://mint.intuit.com'
 MINT_ACCOUNTS_URL = 'https://accounts.intuit.com'
 
+
 class MintHTTPSAdapter(HTTPAdapter):
     def init_poolmanager(self, connections, maxsize, **kwargs):
         self.poolmanager = PoolManager(num_pools=connections,
@@ -54,17 +55,17 @@ class Mint(requests.Session):
     request_id = 42  # magic number? random number?
     token = None
 
-    def __init__(self, email=None, password=None, ius_session=None):
+    def __init__(self, email=None, password=None, ius_session=None, thx_guid=None):
         requests.Session.__init__(self)
         self.headers.update({'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9) AppleWebKit/537.71 (KHTML, like Gecko) Version/7.0 Safari/537.71'})
         self.mount('https://', MintHTTPSAdapter())
         if email and password:
-            self.login_and_get_token(email, password, ius_session)
+            self.login_and_get_token(email, password, ius_session, thx_guid)
 
     @classmethod
-    def create(cls, email, password, ius_session=None):  # {{{
+    def create(cls, email, password, ius_session=None, thx_guid=None):  # {{{
         mint = Mint()
-        mint.login_and_get_token(email, password, ius_session)
+        mint.login_and_get_token(email, password, ius_session, thx_guid)
         return mint
 
     @classmethod
@@ -109,7 +110,7 @@ class Mint(requests.Session):
                     (url, content_type, expected_content_type))
         return result
 
-    def login_and_get_token(self, email, password, ius_session):  # {{{
+    def login_and_get_token(self, email, password, ius_session, thx_guid):  # {{{
         # 0: Check to see if we're already logged in.
         if self.token is not None:
             return
@@ -126,6 +127,9 @@ class Mint(requests.Session):
         else: # this get call will populate self.cookies
             self.get('https://accounts.mint.com/xdr.html?v2=true&corsEnabled')
 
+        self.cookies['thx_guid'] = thx_guid
+        self.get('https://pf.intuit.com/fp/tags?js=0&org_id=v60nf4oj&session_id=' + ius_session)
+
         data = {'username': email, 'password': password}
         response = self.post('{}/access_client/sign_in'.format(MINT_ACCOUNTS_URL),
                              json=data, headers=self.json_headers).text
@@ -133,6 +137,10 @@ class Mint(requests.Session):
         json_response = json.loads(response)
         if json_response.get('action') == 'CHALLENGE':
             raise Exception('Challenge required, please log in to Mint.com manually and complete the captcha.')
+
+        if json_response.get('responseCode') == 'INVALID_CREDENTIALS':
+            raise Exception('Username/Password is incorrect.  Please verify and try again.')
+
         data = {'clientType': 'Mint', 'authid': json_response['iamTicket']['userId']}
         self.post('{}/getUserPod.xevent'.format(MINT_ROOT_URL),
                   data=data, headers=self.json_headers)
@@ -615,6 +623,7 @@ def main():
                          help='Use OS keyring for storing password '
                          'information')
     cmdline.add_argument('--session', help='ius_session cookie')
+    cmdline.add_argument('--thx_guid', help='thx_guid cookie')
 
     options = cmdline.parse_args()
 
@@ -655,7 +664,7 @@ def main():
                 options.net_worth]):
         options.accounts = True
 
-    mint = Mint.create(email, password, ius_session=options.session)
+    mint = Mint.create(email, password, ius_session=options.session, thx_guid=options.session)
 
     data = None
     if options.accounts and options.budgets:
