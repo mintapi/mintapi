@@ -41,6 +41,8 @@ DATE_FIELDS = [
     'lastUpdated',
 ]
 
+MINT_ROOT_URL = 'https://mint.intuit.com'
+MINT_ACCOUNTS_URL = 'https://accounts.intuit.com'
 
 class MintHTTPSAdapter(HTTPAdapter):
     def init_poolmanager(self, connections, maxsize, **kwargs):
@@ -61,9 +63,9 @@ class Mint(requests.Session):
             self.login_and_get_token(email, password, ius_session)
 
     @classmethod
-    def create(cls, email, password):  # {{{
+    def create(cls, email, password, ius_session=None):  # {{{
         mint = Mint()
-        mint.login_and_get_token(email, password, None)
+        mint.login_and_get_token(email, password, ius_session)
         return mint
 
     @classmethod
@@ -114,7 +116,7 @@ class Mint(requests.Session):
             return
 
         # 1: Login.
-        login_url = 'https://wwws.mint.com/login.event'
+        login_url = '{}/login.event'.format(MINT_ROOT_URL)
         try:
             self.request_and_check(login_url)
         except RuntimeError:
@@ -126,19 +128,20 @@ class Mint(requests.Session):
             self.get('https://accounts.mint.com/xdr.html?v2=true&corsEnabled')
 
         data = {'username': email, 'password': password}
-        response = self.post('https://accounts.mint.com/access_client/sign_in',
+
+        response = self.post('{}/access_client/sign_in'.format(MINT_ACCOUNTS_URL),
                              json=data, headers=self.json_headers).text
 
         json_response = json.loads(response)
         if json_response.get('action') == 'CHALLENGE':
             raise Exception('Challenge required, please log in to Mint.com manually and complete the captcha.')
         data = {'clientType': 'Mint', 'authid': json_response['iamTicket']['userId']}
-        self.post('https://wwws.mint.com/getUserPod.xevent',
+        self.post('{}/getUserPod.xevent'.format(MINT_ROOT_URL),
                   data=data, headers=self.json_headers)
 
         data = {'task': 'L',
                 'browser': 'firefox', 'browserVersion': '27', 'os': 'linux'}
-        response = self.post('https://wwws.mint.com/loginUserSubmit.xevent',
+        response = self.post('{}/loginUserSubmit.xevent'.format(MINT_ROOT_URL),
                              data=data, headers=self.json_headers).text
 
         if 'token' not in response:
@@ -176,8 +179,7 @@ class Mint(requests.Session):
         }
 
         data = {'input': json.dumps([input])}
-        account_data_url = ('https://wwws.mint.com/bundledServiceController.'
-                            'xevent?legacy=false&token=' + self.token)
+        account_data_url = '{}/bundledServiceController.xevent?legacy=false&token={}'.format(MINT_ROOT_URL, self.token)
         response = self.post(account_data_url, data=data,
                              headers=self.json_headers).text
         self.request_id = self.request_id + 1
@@ -205,8 +207,7 @@ class Mint(requests.Session):
         return accounts
 
     def set_user_property(self, name, value):
-        url = ('https://wwws.mint.com/bundledServiceController.xevent?' +
-               'legacy=false&token=' + self.token)
+        url = '{}/bundledServiceController.xevent?legacy=false&token={}'.format(MINT_ROOT_URL, self.token)
         req_id = str(self.request_id)
         self.request_id += 1
         result = self.post(
@@ -269,7 +270,8 @@ class Mint(requests.Session):
             # transactions as well.  Otherwise they are skipped by
             # default.
             url = (
-                'https://wwws.mint.com/getJsonData.xevent?' +
+                MINT_ROOT_URL +
+                '/getJsonData.xevent?' +
                 'queryNew=&offset={offset}&comparableType=8&' +
                 'rnd={rnd}&{query_options}').format(
                     offset=offset,
@@ -345,7 +347,7 @@ class Mint(requests.Session):
         # transactions as well.  Otherwise they are skipped by
         # default.
         result = self.request_and_check(
-            'https://wwws.mint.com/transactionDownload.event' +
+            '{}/transactionDownload.event'.format(MINT_ROOT_URL) +
             ('?accountId=0' if include_investment else ''),
             headers=self.headers,
             expected_content_type='text/csv'
@@ -391,11 +393,11 @@ class Mint(requests.Session):
         # and parsing the HTML snippet :(
         for account in accounts:
             headers = self.json_headers
-            headers['Referer'] = ('https://wwws.mint.com/transaction.event?'
+            headers['Referer'] = ('{}/transaction.event?'.format(MINT_ROOT_URL) +
                                   'accountId=' + str(account['id']))
 
-            list_txn_url = ('https://wwws.mint.com/listTransaction.xevent?'
-                            'accountId=' + str(account['id']) + '&queryNew=&'
+            list_txn_url = ('{}/listTransaction.xevent?'.format(MINT_ROOT_URL) +
+                            'accountId=' + str(account['id']) + '&queryNew=&' +
                             'offset=0&comparableType=8&acctChanged=T&rnd=' +
                             Mint.get_rnd())
 
@@ -458,8 +460,7 @@ class Mint(requests.Session):
             }])
         }
 
-        cat_url = ('https://wwws.mint.com/bundledServiceController.xevent'
-                   '?legacy=false&token=' + self.token)
+        cat_url = '{}/bundledServiceController.xevent?legacy=false&token={}'.format(MINT_ROOT_URL, self.token)
         response = self.post(cat_url, data=data,
                              headers=self.json_headers).text
         self.request_id = self.request_id + 1
@@ -492,7 +493,7 @@ class Mint(requests.Session):
         last_year = (str(last_year.month).zfill(2) +
                      '/01/' + str(last_year.year))
         response = json.loads(self.get(
-            'https://wwws.mint.com/getBudget.xevent?startDate=' + last_year +
+            MINT_ROOT_URL + '/getBudget.xevent?startDate=' + last_year +
             '&endDate=' + this_month + '&rnd=' + Mint.get_rnd(),
             headers=self.json_headers
         ).text)
@@ -534,11 +535,8 @@ class Mint(requests.Session):
 
     def initiate_account_refresh(self):
         # Submit refresh request.
-        data = {
-            'token': self.token
-        }
-        self.post('https://wwws.mint.com/refreshFILogins.xevent',
-                  data=data, headers=self.json_headers)
+        data = {'token': self.token}
+        self.post('{}/refreshFILogins.xevent'.format(MINT_ROOT_URL), data=data, headers=self.json_headers)
 
 
 def get_accounts(email, password, get_detail=False):
@@ -623,6 +621,7 @@ def main():
     cmdline.add_argument('--keyring', action='store_true',
                          help='Use OS keyring for storing password '
                          'information')
+    cmdline.add_argument('--session', help='ius_session cookie')
 
     options = cmdline.parse_args()
 
@@ -666,7 +665,7 @@ def main():
                 options.net_worth]):
         options.accounts = True
 
-    mint = Mint.create(email, password)
+    mint = Mint.create(email, password, ius_session=options.session)
 
     data = None
     if options.accounts and options.budgets:
@@ -697,6 +696,7 @@ def main():
             data = None
     elif options.transactions:
         data = mint.get_transactions(include_investment=options.include_investments)
+
     elif options.extended_transactions:
         data = mint.get_detailed_transactions(start_date=options.start_date,
                                               include_investment=options.include_investment,
