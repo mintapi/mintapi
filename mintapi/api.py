@@ -125,10 +125,11 @@ class Mint(requests.Session):
 
         if ius_session:
             self.cookies['ius_session'] = ius_session
-        else:  # this get call will populate self.cookies
-            self.get('https://accounts.mint.com/xdr.html?v2=true&corsEnabled')
+        else:
+            raise RuntimeError("No ius_session was provided, please see the README for details.")
 
         self.cookies['thx_guid'] = thx_guid
+
         self.get('https://pf.intuit.com/fp/tags?js=0&org_id=v60nf4oj&session_id=' + ius_session)
 
         data = {'username': email, 'password': password}
@@ -542,8 +543,8 @@ class Mint(requests.Session):
         self.post('{}/refreshFILogins.xevent'.format(MINT_ROOT_URL), data=data, headers=self.json_headers)
 
 
-def get_accounts(email, password, get_detail=False):
-    mint = Mint.create(email, password)
+def get_accounts(email, password, get_detail=False, ius_session=None):
+    mint = Mint.create(email, password, ius_session=ius_session)
     return mint.get_accounts(get_detail=get_detail)
 
 

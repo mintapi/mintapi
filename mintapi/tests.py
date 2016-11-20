@@ -28,14 +28,18 @@ class MockSession(mintapi.api.Mint):
     def get(self, path, data=None, headers=None):
         return MockResponse('')
 
-    def post(self, path, data=None, headers=None):
-        if 'loginUserSubmit' in path:
-            text = {'sUser': {'token': 'foo'}}
+    def post(self, path, data=None, headers=None, **kwargs):
+        if 'sign_in' in path:
+            text = {'iamTicket': {'userId': 1}}
+        elif 'loginUserSubmit.xevent' in path:
+            text = {'sUser': {'token': 1}}
         elif 'getUserPod' in path:
             text = {'userPN': 6}
         elif 'bundledServiceController' in path:
             data = json.loads(data['input'])[0]
             text = {'response': {data['id']: {'response': accounts_example}}}
+        else:
+            print path, data
         return MockResponse(json.dumps(text))
 
 
@@ -48,7 +52,7 @@ class MintApiTests(unittest.TestCase):
         mintapi.api.Mint = self._Mint
 
     def test_accounts(self):
-        accounts = mintapi.get_accounts('foo', 'bar')
+        accounts = mintapi.get_accounts('foo', 'bar', ius_session='baz')
 
         self.assertFalse('lastUpdatedInDate' in accounts)
         self.assertNotEqual(accounts, accounts_example)
