@@ -34,6 +34,7 @@ def assert_pd():
             'please pip install pandas'
         )
 
+
 DATE_FIELDS = [
     'addAccountDate',
     'closeDate',
@@ -43,6 +44,7 @@ DATE_FIELDS = [
 
 MINT_ROOT_URL = 'https://mint.intuit.com'
 MINT_ACCOUNTS_URL = 'https://accounts.intuit.com'
+
 
 class MintHTTPSAdapter(HTTPAdapter):
     def init_poolmanager(self, connections, maxsize, **kwargs):
@@ -55,17 +57,17 @@ class Mint(requests.Session):
     request_id = 42  # magic number? random number?
     token = None
 
-    def __init__(self, email=None, password=None, ius_session=None):
+    def __init__(self, email=None, password=None, ius_session=None, thx_guid=None):
         requests.Session.__init__(self)
         self.headers.update({'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9) AppleWebKit/537.71 (KHTML, like Gecko) Version/7.0 Safari/537.71'})
         self.mount('https://', MintHTTPSAdapter())
         if email and password:
-            self.login_and_get_token(email, password, ius_session)
+            self.login_and_get_token(email, password, ius_session, thx_guid)
 
     @classmethod
-    def create(cls, email, password, ius_session=None):  # {{{
+    def create(cls, email, password, ius_session=None, thx_guid=None):  # {{{
         mint = Mint()
-        mint.login_and_get_token(email, password, ius_session)
+        mint.login_and_get_token(email, password, ius_session, thx_guid)
         return mint
 
     @classmethod
@@ -110,7 +112,7 @@ class Mint(requests.Session):
                     (url, content_type, expected_content_type))
         return result
 
-    def login_and_get_token(self, email, password, ius_session):  # {{{
+    def login_and_get_token(self, email, password, ius_session, thx_guid):  # {{{
         # 0: Check to see if we're already logged in.
         if self.token is not None:
             return
@@ -124,8 +126,12 @@ class Mint(requests.Session):
 
         if ius_session:
             self.cookies['ius_session'] = ius_session
-        else: # this get call will populate self.cookies
-            self.get('https://accounts.mint.com/xdr.html?v2=true&corsEnabled')
+        else:
+            raise RuntimeError("No ius_session was provided, please see the README for details.")
+
+        self.cookies['thx_guid'] = thx_guid
+
+        self.get('https://pf.intuit.com/fp/tags?js=0&org_id=v60nf4oj&session_id=' + ius_session)
 
         data = {'username': email, 'password': password}
 
@@ -135,6 +141,10 @@ class Mint(requests.Session):
         json_response = json.loads(response)
         if json_response.get('action') == 'CHALLENGE':
             raise Exception('Challenge required, please log in to Mint.com manually and complete the captcha.')
+
+        if json_response.get('responseCode') == 'INVALID_CREDENTIALS':
+            raise Exception('Username/Password is incorrect.  Please verify and try again.')
+
         data = {'clientType': 'Mint', 'authid': json_response['iamTicket']['userId']}
         self.post('{}/getUserPod.xevent'.format(MINT_ROOT_URL),
                   data=data, headers=self.json_headers)
@@ -251,10 +261,8 @@ class Mint(requests.Session):
         interface.  Note that the CSV transactions never exclude duplicates.
         """
 
-
         # Warning: This is a global property for the user that we are changing.
-        self.set_user_property('hide_duplicates',
-                               'T' if skip_duplicates else 'F')
+        self.set_user_property('hide_duplicates', 'T' if skip_duplicates else 'F')
 
         # Converts the start date into datetime format - must be mm/dd/yy
         try:
@@ -350,8 +358,7 @@ class Mint(requests.Session):
             '{}/transactionDownload.event'.format(MINT_ROOT_URL) +
             ('?accountId=0' if include_investment else ''),
             headers=self.headers,
-            expected_content_type='text/csv'
-            )
+            expected_content_type='text/csv')
         return result.content
 
     def get_net_worth(self, account_data=None):
@@ -539,8 +546,8 @@ class Mint(requests.Session):
         self.post('{}/refreshFILogins.xevent'.format(MINT_ROOT_URL), data=data, headers=self.json_headers)
 
 
-def get_accounts(email, password, get_detail=False):
-    mint = Mint.create(email, password)
+def get_accounts(email, password, get_detail=False, ius_session=None):
+    mint = Mint.create(email, password, ius_session=ius_session)
     return mint.get_accounts(get_detail=get_detail)
 
 
@@ -604,16 +611,16 @@ def main():
                          'implies --transactions)')
     cmdline.add_argument('--transactions', '-t', action='store_true',
                          default=False, help='Retrieve transactions')
-    cmdline.add_argument('--extended-transactions',action='store_true',default=False,
+    cmdline.add_argument('--extended-transactions', action='store_true', default=False,
                          help='Retrieve transactions with extra information and arguments')
-    cmdline.add_argument('--start-date',nargs='?',default=None,
+    cmdline.add_argument('--start-date', nargs='?', default=None,
                          help='Earliest date for transactions to be retrieved from. Used with --extended-transactions. Format: mm/dd/yy')
-    cmdline.add_argument('--include-investment',action='store_true',default=False,
+    cmdline.add_argument('--include-investment', action='store_true', default=False,
                          help='Used with --extended-transactions')
-    cmdline.add_argument('--skip-duplicates',action='store_true',default=False,
+    cmdline.add_argument('--skip-duplicates', action='store_true', default=False,
                          help='Used with --extended-transactions')
 # Displayed to the user as a postive switch, but processed back here as a negative
-    cmdline.add_argument('--show-pending',action='store_false',default=True,
+    cmdline.add_argument('--show-pending', action='store_false', default=True,
                          help='Exclude pending transactions from being retrieved. Used with --extended-transactions')
     cmdline.add_argument('--filename', '-f', help='write results to file. can '
                          'be {csv,json} format. default is to write to '
@@ -622,6 +629,7 @@ def main():
                          help='Use OS keyring for storing password '
                          'information')
     cmdline.add_argument('--session', help='ius_session cookie')
+    cmdline.add_argument('--thx_guid', help='thx_guid cookie')
 
     options = cmdline.parse_args()
 
@@ -665,7 +673,7 @@ def main():
                 options.net_worth]):
         options.accounts = True
 
-    mint = Mint.create(email, password, ius_session=options.session)
+    mint = Mint.create(email, password, ius_session=options.session, thx_guid=options.session)
 
     data = None
     if options.accounts and options.budgets:
@@ -698,11 +706,11 @@ def main():
         data = mint.get_transactions(include_investment=options.include_investments)
 
     elif options.extended_transactions:
-        data = mint.get_detailed_transactions(start_date=options.start_date,
-                                              include_investment=options.include_investment,
-                                              remove_pending=options.show_pending,
-                                              skip_duplicates=options.skip_duplicates
-        )
+        data = mint.get_detailed_transactions(
+            start_date=options.start_date,
+            include_investment=options.include_investment,
+            remove_pending=options.show_pending,
+            skip_duplicates=options.skip_duplicates)
     elif options.net_worth:
         data = mint.get_net_worth()
 
@@ -727,6 +735,7 @@ def main():
                 json.dump(data, f, indent=2)
         else:
             raise ValueError('file type must be json for non-transaction data')
+
 
 if __name__ == '__main__':
     main()

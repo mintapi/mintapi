@@ -28,9 +28,11 @@ class MockSession(mintapi.api.Mint):
     def get(self, path, data=None, headers=None):
         return MockResponse('')
 
-    def post(self, path, data=None, headers=None):
-        if 'loginUserSubmit' in path:
-            text = {'sUser': {'token': 'foo'}}
+    def post(self, path, data=None, headers=None, **kwargs):
+        if 'sign_in' in path:
+            text = {'iamTicket': {'userId': 1}}
+        elif 'loginUserSubmit.xevent' in path:
+            text = {'sUser': {'token': 1}}
         elif 'getUserPod' in path:
             text = {'userPN': 6}
         elif 'bundledServiceController' in path:
@@ -48,15 +50,14 @@ class MintApiTests(unittest.TestCase):
         mintapi.api.Mint = self._Mint
 
     def test_accounts(self):
-        accounts = mintapi.get_accounts('foo', 'bar')
+        accounts = mintapi.get_accounts('foo', 'bar', ius_session='baz')
 
         self.assertFalse('lastUpdatedInDate' in accounts)
         self.assertNotEqual(accounts, accounts_example)
 
         accounts_annotated = copy.deepcopy(accounts_example)
         for account in accounts_annotated:
-            account['lastUpdatedInDate'] = (datetime.datetime.fromtimestamp(
-                                            account['lastUpdated']/1000))
+            account['lastUpdatedInDate'] = (datetime.datetime.fromtimestamp(account['lastUpdated'] / 1000))
         self.assertEqual(accounts, accounts_annotated)
 
         # ensure everything is json serializable as this is the command-line
