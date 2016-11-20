@@ -64,11 +64,12 @@ from anywhere
 Run it as a sub-process from your favorite language; `pip install mintapi` creates a binary in your $PATH. From the command-line, the output is JSON:
 
     usage: mintapi [-h] [--accounts] [--budgets] [--net-worth]
-              [--extended-accounts] [--transactions] [--extended-transactions]
-              [--start-date [START_DATE]] [--include-investment]
-              [--skip-duplicates] [--show-pending] [--filename FILENAME]
-              [--keyring]
-              [email] [password]
+                   [--extended-accounts] [--include-investments] [--transactions]
+                   [--extended-transactions] [--start-date [START_DATE]]
+                   [--include-investment] [--skip-duplicates] [--show-pending]
+                   [--filename FILENAME] [--keyring] [--session SESSION]
+                   [--thx_guid THX_GUID]
+                   [email] [password]
 
     positional arguments:
       email                 The e-mail address for your Mint.com account
@@ -97,6 +98,8 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                             write results to file. can be {csv,json} format.
                             default is to write to stdout.
       --keyring             Use OS keyring for storing password information
+      --session SESSION     ius_session cookie
+      --thx_guid THX_GUID   thx_guid cookie
 
     >>> mintapi --keyring email@example.com
     [
