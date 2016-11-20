@@ -19,7 +19,7 @@ make calls to retrieve account/budget information.  We recommend using the
 `keyring` library for persisting credentials.
 
     import mintapi
-    mint = mintapi.Mint(email, password)
+    mint = mintapi.Mint(email, password, ius_session, thx_guid)
 
     # Get basic account information
     mint.get_accounts()
@@ -41,6 +41,14 @@ make calls to retrieve account/budget information.  We recommend using the
 
     # Initiate an account refresh
     mint.initiate_account_refresh()
+
+You will notice the login step requires an ius_session and thx_guid.  These are session
+cookies that must persists.  You can obtain these values by searching your browser's cookies.
+In Chrome, for example, visit chrome://settings/cookies and type intuit.  Alternatively, you
+can login to Mint manually with your browser in inspect mode and poke around in the network tab.
+Providing these two cookies eliminates the need to 2-step authenticate.  Mint requires this with
+all new browsers attempting to connect.  In essense, your script will be masquerading in as your
+browser session.
 
 There are, additionally, deprecated wrappers for backward compatibility with
 old versions of the API.
