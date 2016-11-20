@@ -38,8 +38,6 @@ class MockSession(mintapi.api.Mint):
         elif 'bundledServiceController' in path:
             data = json.loads(data['input'])[0]
             text = {'response': {data['id']: {'response': accounts_example}}}
-        else:
-            print path, data
         return MockResponse(json.dumps(text))
 
 
