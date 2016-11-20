@@ -55,8 +55,7 @@ class MintApiTests(unittest.TestCase):
 
         accounts_annotated = copy.deepcopy(accounts_example)
         for account in accounts_annotated:
-            account['lastUpdatedInDate'] = (datetime.datetime.fromtimestamp(
-                                            account['lastUpdated']/1000))
+            account['lastUpdatedInDate'] = (datetime.datetime.fromtimestamp(account['lastUpdated'] / 1000))
         self.assertEqual(accounts, accounts_annotated)
 
         # ensure everything is json serializable as this is the command-line

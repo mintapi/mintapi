@@ -33,6 +33,7 @@ def assert_pd():
             'please pip install pandas'
         )
 
+
 DATE_FIELDS = [
     'addAccountDate',
     'closeDate',
@@ -124,7 +125,7 @@ class Mint(requests.Session):
 
         if ius_session:
             self.cookies['ius_session'] = ius_session
-        else: # this get call will populate self.cookies
+        else:  # this get call will populate self.cookies
             self.get('https://accounts.mint.com/xdr.html?v2=true&corsEnabled')
 
         self.cookies['thx_guid'] = thx_guid
@@ -257,10 +258,8 @@ class Mint(requests.Session):
         interface.  Note that the CSV transactions never exclude duplicates.
         """
 
-
         # Warning: This is a global property for the user that we are changing.
-        self.set_user_property('hide_duplicates',
-                               'T' if skip_duplicates else 'F')
+        self.set_user_property('hide_duplicates', 'T' if skip_duplicates else 'F')
 
         # Converts the start date into datetime format - must be mm/dd/yy
         try:
@@ -356,8 +355,7 @@ class Mint(requests.Session):
             '{}/transactionDownload.event'.format(MINT_ROOT_URL) +
             ('?accountId=0' if include_investment else ''),
             headers=self.headers,
-            expected_content_type='text/csv'
-            )
+            expected_content_type='text/csv')
         return result.content
 
     def get_net_worth(self, account_data=None):
@@ -605,16 +603,16 @@ def main():
                          'implies --accounts)')
     cmdline.add_argument('--transactions', '-t', action='store_true',
                          default=False, help='Retrieve transactions')
-    cmdline.add_argument('--extended-transactions',action='store_true',default=False,
+    cmdline.add_argument('--extended-transactions', action='store_true', default=False,
                          help='Retrieve transactions with extra information and arguments')
-    cmdline.add_argument('--start-date',nargs='?',default=None,
+    cmdline.add_argument('--start-date', nargs='?', default=None,
                          help='Earliest date for transactions to be retrieved from. Used with --extended-transactions. Format: mm/dd/yy')
-    cmdline.add_argument('--include-investment',action='store_true',default=False,
+    cmdline.add_argument('--include-investment', action='store_true', default=False,
                          help='Used with --extended-transactions')
-    cmdline.add_argument('--skip-duplicates',action='store_true',default=False,
+    cmdline.add_argument('--skip-duplicates', action='store_true', default=False,
                          help='Used with --extended-transactions')
 # Displayed to the user as a postive switch, but processed back here as a negative
-    cmdline.add_argument('--show-pending',action='store_false',default=True,
+    cmdline.add_argument('--show-pending', action='store_false', default=True,
                          help='Exclude pending transactions from being retrieved. Used with --extended-transactions')
     cmdline.add_argument('--filename', '-f', help='write results to file. can '
                          'be {csv,json} format. default is to write to '
@@ -696,11 +694,11 @@ def main():
     elif options.transactions:
         data = mint.get_transactions()
     elif options.extended_transactions:
-        data = mint.get_detailed_transactions(start_date=options.start_date,
-                                              include_investment=options.include_investment,
-                                              remove_pending=options.show_pending,
-                                              skip_duplicates=options.skip_duplicates
-        )
+        data = mint.get_detailed_transactions(
+            start_date=options.start_date,
+            include_investment=options.include_investment,
+            remove_pending=options.show_pending,
+            skip_duplicates=options.skip_duplicates)
     elif options.net_worth:
         data = mint.get_net_worth()
 
@@ -722,6 +720,7 @@ def main():
                 json.dump(data, f, indent=2)
         else:
             raise ValueError('file type must be json for non-transaction data')
+
 
 if __name__ == '__main__':
     main()
