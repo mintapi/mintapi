@@ -673,7 +673,7 @@ def main():
                 options.net_worth]):
         options.accounts = True
 
-    mint = Mint.create(email, password, ius_session=options.session, thx_guid=options.session)
+    mint = Mint.create(email, password, ius_session=options.session, thx_guid=options.thx_guid)
 
     data = None
     if options.accounts and options.budgets:
