@@ -605,10 +605,6 @@ def main():
                          dest='accounts_ext', default=False,
                          help='Retrieve extended account information (slower, '
                          'implies --accounts)')
-    cmdline.add_argument('--include-investments', '-i', action='store_true',
-                         dest='include_investments', default=False,
-                         help='Retrieve investment transactions as well (slower, '
-                         'implies --transactions)')
     cmdline.add_argument('--transactions', '-t', action='store_true',
                          default=False, help='Retrieve transactions')
     cmdline.add_argument('--extended-transactions', action='store_true', default=False,
