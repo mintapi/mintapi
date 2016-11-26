@@ -662,9 +662,6 @@ def main():
     if options.accounts_ext:
         options.accounts = True
 
-    if options.include_investments:
-        options.transactions = True
-
     if not any([options.accounts, options.budgets, options.transactions, options.extended_transactions,
                 options.net_worth]):
         options.accounts = True
@@ -699,7 +696,7 @@ def main():
         except:
             data = None
     elif options.transactions:
-        data = mint.get_transactions(include_investment=options.include_investments)
+        data = mint.get_transactions()
 
     elif options.extended_transactions:
         data = mint.get_detailed_transactions(
