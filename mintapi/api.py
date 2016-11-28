@@ -379,11 +379,11 @@ class Mint(requests.Session):
                 net_worth += current_balance
         return net_worth
 
-    def get_transactions(self):
+    def get_transactions(self, include_investment=False):
         """Returns the transaction data as a Pandas DataFrame.
         """
         assert_pd()
-        s = StringIO(self.get_transactions_csv())
+        s = StringIO(self.get_transactions_csv(include_investment=include_investment))
         s.seek(0)
         df = pd.read_csv(s, parse_dates=['Date'])
         df.columns = [c.lower().replace(' ', '_') for c in df.columns]
@@ -693,7 +693,7 @@ def main():
         except:
             data = None
     elif options.transactions:
-        data = mint.get_transactions()
+        data = mint.get_transactions(include_investment=options.include_investment)
     elif options.extended_transactions:
         data = mint.get_detailed_transactions(
             start_date=options.start_date,
