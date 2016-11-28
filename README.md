@@ -9,17 +9,10 @@ Ensure you have Python 2 or 3 and pip (`easy_install pip`) and then:
 
     pip install mintapi
 
-If you do not want to manually find the `ius_session` cookie, as described below, then please also install `selenium` and `chromedriver`. Installing `selenium` can be done through `pip`:
+If you do not want to manually find the `ius_session` and `thx_guid` cookies, as described below, then please also install `selenium` and `chromedriver`:
 
     pip install selenium
-
-Installing `chromedriver` must be done separately, and be made accessible on your executable path. It can either be done manually by downloading it from [here](https://sites.google.com/a/chromium.org/chromedriver/downloads); or by using your operating system's package manager. For example, in Ubuntu 16.10+ you would run:
-
-    sudo apt-get install chromium-chromedriver
-
-And Mac OS X users who use Homebrew can run:
-
-    brew install chromedriver
+    brew install chromedriver # or sudo apt-get install chromium-chromedriver on Ubuntu/Debian
 
 Usage
 ===
@@ -32,7 +25,7 @@ make calls to retrieve account/budget information.  We recommend using the
 
     import mintapi
     mint = mintapi.Mint(email, password, ius_session, thx_guid)
-    # Note: ius_session and thx_guid are optional, and will be automatically extracted if possible.
+    # Note: ius_session and thx_guid are optional, and will be automatically extracted if possible (see above for installing selenium/chromedriver)
 
     # Get basic account information
     mint.get_accounts()
@@ -56,12 +49,11 @@ make calls to retrieve account/budget information.  We recommend using the
     mint.initiate_account_refresh()
 
 You will notice the login step requires an ius_session and thx_guid.  These are session
-cookies that must persists.  You can obtain these values by searching your browser's cookies.
+cookies that must persists. If you choose not to install selenium and chromedriver, you must obtain these values by searching your browser's cookies.
 In Chrome, for example, visit chrome://settings/cookies and type intuit.  Alternatively, you
 can login to Mint manually with your browser in inspect mode and poke around in the network tab.
 Providing these two cookies eliminates the need to 2-step authenticate.  Mint requires this with
-all new browsers attempting to connect.  In essence, your script will be masquerading in as your
-browser session.
+all new browsers attempting to connect.
 
 There are, additionally, deprecated wrappers for backward compatibility with
 old versions of the API.
@@ -80,7 +72,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
               [--extended-accounts] [--transactions] [--extended-transactions]
               [--start-date [START_DATE]] [--include-investment]
               [--skip-duplicates] [--show-pending] [--filename FILENAME]
-              [--keyring]
+              [--keyring] [--session SESSION] [--thx_guid THX_GUID]
               [email] [password]
 
     positional arguments:
@@ -110,7 +102,8 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                             write results to file. can be {csv,json} format.
                             default is to write to stdout.
       --keyring             Use OS keyring for storing password information
-
+      --session SESSION     ius_session cookie
+      --thx_guid THX_GUID   thx_guid cookie
     >>> mintapi --keyring email@example.com
     [
       {
