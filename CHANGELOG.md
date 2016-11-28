@@ -1,3 +1,7 @@
+1.21
+---
+- import fix for python3
+
 1.20
 ---
 - automate cookie grabbing w/ selenium+chromedriver (thanks @matthewwardrop!)
