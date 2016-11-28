@@ -3,11 +3,23 @@ mintapi
 
 a screen-scraping API for Mint.com. [![Build Status](https://travis-ci.org/mrooney/mintapi.svg?branch=master)](https://travis-ci.org/mrooney/mintapi)
 
-Requirements
+Installation
 ===
 Ensure you have Python 2 or 3 and pip (`easy_install pip`) and then:
 
     pip install mintapi
+
+If you do not want to manually find the `ius_session` cookie, as described below, then please also install `selenium` and `chromedriver`. Installing `selenium` can be done through `pip`:
+
+    pip install selenium
+
+Installing `chromedriver` must be done separately, and be made accessible on your executable path. It can either be done manually by downloading it from [here](https://sites.google.com/a/chromium.org/chromedriver/downloads); or by using your operating system's package manager. For example, in Ubuntu 16.10+ you would run:
+
+    sudo apt-get install chromium-chromedriver
+
+And Mac OS X users who use Homebrew can run:
+
+    brew install chromedriver
 
 Usage
 ===
@@ -20,6 +32,7 @@ make calls to retrieve account/budget information.  We recommend using the
 
     import mintapi
     mint = mintapi.Mint(email, password, ius_session, thx_guid)
+    # Note: ius_session and thx_guid are optional, and will be automatically extracted if possible.
 
     # Get basic account information
     mint.get_accounts()
@@ -47,7 +60,7 @@ cookies that must persists.  You can obtain these values by searching your brows
 In Chrome, for example, visit chrome://settings/cookies and type intuit.  Alternatively, you
 can login to Mint manually with your browser in inspect mode and poke around in the network tab.
 Providing these two cookies eliminates the need to 2-step authenticate.  Mint requires this with
-all new browsers attempting to connect.  In essense, your script will be masquerading in as your
+all new browsers attempting to connect.  In essence, your script will be masquerading in as your
 browser session.
 
 There are, additionally, deprecated wrappers for backward compatibility with

@@ -123,16 +123,20 @@ class Mint(requests.Session):
         except RuntimeError:
             raise Exception('Failed to load Mint login page')
 
-        if ius_session:
-            self.cookies['ius_session'] = ius_session
-        else:
-            raise RuntimeError("No ius_session was provided, please see the README for details.")
-
-        self.cookies['thx_guid'] = thx_guid
-
-        self.get('https://pf.intuit.com/fp/tags?js=0&org_id=v60nf4oj&session_id=' + ius_session)
-
         data = {'username': email, 'password': password}
+
+        # Extract ius_token/thx_guid using browser if not provided manually
+        if ius_session is None:
+            session_cookies = self.get_session_cookies(**data)
+        else:
+            session_cookies = {
+                'ius_session': ius_session,
+                'thx_guid': thx_guid
+            }
+        self.cookies.update(session_cookies)
+
+        self.get('https://pf.intuit.com/fp/tags?js=0&org_id=v60nf4oj&session_id=' + self.cookies['ius_session'])
+
         response = self.post('{}/access_client/sign_in'.format(MINT_ACCOUNTS_URL),
                              json=data, headers=self.json_headers).text
 
@@ -161,6 +165,37 @@ class Mint(requests.Session):
 
         # 2: Grab token.
         self.token = response['sUser']['token']
+
+    def get_session_cookies(self, username, password):
+        try:
+            from selenium import webdriver
+            driver = webdriver.Chrome()
+        except Exception as e:
+            raise RuntimeError("ius_session not specified, and was unable to load "
+                               "the chromedriver selenium plugin. Please ensure "
+                               "that the `selenium` and `chromedriver` packages "
+                               "are installed.\n\nThe original error message was: " +
+                               (e.args[0] if len(e.args) > 0 else 'No error message found.'))
+
+        driver.get("https://www.mint.com")
+        driver.implicitly_wait(20)  # seconds
+        driver.find_element_by_link_text("Log In").click()
+
+        driver.find_element_by_id("ius-userid").send_keys(username)
+        driver.find_element_by_id("ius-password").send_keys(password)
+        driver.find_element_by_id("ius-sign-in-submit-btn").submit()
+
+        # Wait until logged in, just in case we need to deal with MFA.
+        while not driver.current_url.startswith('https://mint.intuit.com/overview.event'):
+            time.sleep(1)
+
+        try:
+            return {
+                'ius_session': driver.get_cookie('ius_session')['value'],
+                'thx_guid': driver.get_cookie('thx_guid')['value']
+            }
+        finally:
+            driver.close()
 
     def get_accounts(self, get_detail=False):  # {{{
         # Issue service request.
