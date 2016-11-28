@@ -665,8 +665,10 @@ def main():
         cmdline.error('--keyring can only be used if the `keyring` '
                       'library is installed.')
 
-    try:
+    try: # python 2.x
         from __builtin__ import raw_input as input
+    except ImportError: # python 3
+        from builtins import input
     except NameError:
         pass
 
