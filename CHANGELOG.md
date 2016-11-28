@@ -1,3 +1,10 @@
+1.20
+---
+- automate cookie grabbing w/ selenium+chromedriver (thanks @matthewwardrop!)
+- allow passing in required cookies via CLI/API
+- update README to cover the cookies now required
+- --include-investments now works with --transactions (thanks @felciano)
+
 1.19
 ---
 - updated URLs for intuit.com domain change

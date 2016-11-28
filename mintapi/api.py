@@ -126,7 +126,7 @@ class Mint(requests.Session):
         data = {'username': email, 'password': password}
 
         # Extract ius_token/thx_guid using browser if not provided manually
-        if ius_session is None:
+        if not ius_session:
             session_cookies = self.get_session_cookies(**data)
         else:
             session_cookies = {
