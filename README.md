@@ -9,7 +9,7 @@ Ensure you have Python 2 or 3 and pip (`easy_install pip`) and then:
 
     pip install mintapi
 
-If you do not want to manually find the `ius_session` and `thx_guid` cookies, as described below, then please also install `selenium` and `chromedriver`:
+If you do not want to manually find and provide your Mint session cookies, as described below, then please also install `selenium` and `chromedriver`:
 
     pip install selenium
     brew install chromedriver # or sudo apt-get install chromium-chromedriver on Ubuntu/Debian
@@ -24,8 +24,8 @@ make calls to retrieve account/budget information.  We recommend using the
 `keyring` library for persisting credentials.
 
     import mintapi
+    # ius_session and thx_guid are optional, and will be automatically extracted if possible (see above for installing selenium/chromedriver)
     mint = mintapi.Mint(email, password, ius_session, thx_guid)
-    # Note: ius_session and thx_guid are optional, and will be automatically extracted if possible (see above for installing selenium/chromedriver)
 
     # Get basic account information
     mint.get_accounts()
@@ -54,15 +54,6 @@ In Chrome, for example, visit chrome://settings/cookies and type intuit.  Altern
 can login to Mint manually with your browser in inspect mode and poke around in the network tab.
 Providing these two cookies eliminates the need to 2-step authenticate.  Mint requires this with
 all new browsers attempting to connect.
-
-There are, additionally, deprecated wrappers for backward compatibility with
-old versions of the API.
-
-    import mintapi
-    mintapi.get_accounts(email, password)
-    mintapi.get_accounts(email, password, True)
-    mintapi.get_budgets(email, password)
-    mintapi.initiate_account_refresh(email, password)
 
 from anywhere
 ---
