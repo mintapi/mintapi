@@ -124,14 +124,19 @@ class Mint(requests.Session):
         except RuntimeError:
             raise Exception('Failed to load Mint login page')
 
-        if ius_session:
-            self.cookies['ius_session'] = ius_session
+        data = {'username': email, 'password': password}
+
+        # Extract ius_token/thx_guid using browser if not provided manually
+        if not ius_session:
+            session_cookies = self.get_session_cookies(**data)
         else:
-            raise RuntimeError("No ius_session was provided, please see the README for details.")
+            session_cookies = {
+                'ius_session': ius_session,
+                'thx_guid': thx_guid
+            }
+        self.cookies.update(session_cookies)
 
-        self.cookies['thx_guid'] = thx_guid
-
-        self.get('https://pf.intuit.com/fp/tags?js=0&org_id=v60nf4oj&session_id=' + ius_session)
+        self.get('https://pf.intuit.com/fp/tags?js=0&org_id=v60nf4oj&session_id=' + self.cookies['ius_session'])
 
         data = {'username': email, 'password': password}
 
@@ -163,6 +168,37 @@ class Mint(requests.Session):
 
         # 2: Grab token.
         self.token = response['sUser']['token']
+
+    def get_session_cookies(self, username, password):
+        try:
+            from selenium import webdriver
+            driver = webdriver.Chrome()
+        except Exception as e:
+            raise RuntimeError("ius_session not specified, and was unable to load "
+                               "the chromedriver selenium plugin. Please ensure "
+                               "that the `selenium` and `chromedriver` packages "
+                               "are installed.\n\nThe original error message was: " +
+                               (e.args[0] if len(e.args) > 0 else 'No error message found.'))
+
+        driver.get("https://www.mint.com")
+        driver.implicitly_wait(20)  # seconds
+        driver.find_element_by_link_text("Log In").click()
+
+        driver.find_element_by_id("ius-userid").send_keys(username)
+        driver.find_element_by_id("ius-password").send_keys(password)
+        driver.find_element_by_id("ius-sign-in-submit-btn").submit()
+
+        # Wait until logged in, just in case we need to deal with MFA.
+        while not driver.current_url.startswith('https://mint.intuit.com/overview.event'):
+            time.sleep(1)
+
+        try:
+            return {
+                'ius_session': driver.get_cookie('ius_session')['value'],
+                'thx_guid': driver.get_cookie('thx_guid')['value']
+            }
+        finally:
+            driver.close()
 
     def get_accounts(self, get_detail=False):  # {{{
         # Issue service request.
@@ -380,7 +416,6 @@ class Mint(requests.Session):
             else:
                 net_worth += current_balance
         return net_worth
-
 
     def get_transactions(self, include_investment=False):
         """Returns the transaction data as a Pandas DataFrame.
@@ -633,8 +668,10 @@ def main():
         cmdline.error('--keyring can only be used if the `keyring` '
                       'library is installed.')
 
-    try:
+    try: # python 2.x
         from __builtin__ import raw_input as input
+    except ImportError: # python 3
+        from builtins import input
     except NameError:
         pass
 
@@ -696,8 +733,7 @@ def main():
         except:
             data = None
     elif options.transactions:
-        data = mint.get_transactions()
-
+        data = mint.get_transactions(include_investment=options.include_investment)
     elif options.extended_transactions:
         data = mint.get_detailed_transactions(
             start_date=options.start_date,
