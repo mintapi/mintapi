@@ -1,3 +1,19 @@
+1.21
+---
+- import fix for python3
+
+1.20
+---
+- automate cookie grabbing w/ selenium+chromedriver (thanks @matthewwardrop!)
+- allow passing in required cookies via CLI/API
+- update README to cover the cookies now required
+- --include-investments now works with --transactions (thanks @felciano)
+
+1.19
+---
+- updated URLs for intuit.com domain change
+- added command-line switch for --session=ius_session_cookie
+
 1.18
 ---
 - add the ability to get extended transaction information from the command line,
