@@ -329,9 +329,7 @@ class Mint(requests.Session):
             if start_date:
                 last_dt = self._dateconvert(txns[-1]['odate'])
                 if last_dt < start_date:
-                    keep_txns = [
-                        item for item in txns
-                        if self._dateconvert(item['odate']) >= start_date]
+                    keep_txns = [t for t in txns if self._dateconvert(t['odate']) >= start_date]
                     all_txns.extend(keep_txns)
                     break
             if not txns:
@@ -663,9 +661,9 @@ def main():
         cmdline.error('--keyring can only be used if the `keyring` '
                       'library is installed.')
 
-    try: # python 2.x
+    try:  # python 2.x
         from __builtin__ import raw_input as input
-    except ImportError: # python 3
+    except ImportError:  # python 3
         from builtins import input
     except NameError:
         pass
