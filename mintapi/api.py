@@ -2,6 +2,7 @@ import json
 import random
 import time
 import os
+import re
 
 try:
     from StringIO import StringIO  # Python 2
@@ -106,7 +107,7 @@ class Mint(requests.Session):
                                (url, result.status_code))
         if expected_content_type is not None:
             content_type = result.headers.get('content-type', '')
-            if not content_type.startswith(expected_content_type):
+            if not re.match(expected_content_type, content_type):
                 raise RuntimeError(
                     'Error requesting %r, content type %r does not match %r' %
                     (url, content_type, expected_content_type))
@@ -325,18 +326,13 @@ class Mint(requests.Session):
                         else 'task=transactions,txnfilters&filterType=cash'))
             result = self.request_and_check(
                 url, headers=self.json_headers,
-                expected_content_type='application/json')
+                expected_content_type='text/json|application/json')
             data = json.loads(result.text)
             txns = data['set'][0].get('data', [])
-            df = pd.DataFrame(txns)
             if start_date:
-                dates = list(df['odate'])
-                last_dt = self._dateconvert(dates[-1])
+                last_dt = self._dateconvert(txns[-1]['odate'])
                 if last_dt < start_date:
-                    keep_txns = []
-                    for item in txns:
-                        if self._dateconvert(item['odate']) >= start_date:
-                            keep_txns.append(item)
+                    keep_txns = [t for t in txns if self._dateconvert(t['odate']) >= start_date]
                     all_txns.extend(keep_txns)
                     break
             if not txns:
@@ -668,9 +664,9 @@ def main():
         cmdline.error('--keyring can only be used if the `keyring` '
                       'library is installed.')
 
-    try: # python 2.x
+    try:  # python 2.x
         from __builtin__ import raw_input as input
-    except ImportError: # python 3
+    except ImportError:  # python 3
         from builtins import input
     except NameError:
         pass

@@ -1,3 +1,8 @@
+1.22
+---
+- more robustly match content types (thanks @jbms!)
+- eliminate an unnecessary use of pandas (thanks @jbms!)
+
 1.21
 ---
 - import fix for python3
