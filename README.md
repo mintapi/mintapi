@@ -1,52 +1,54 @@
-mintapi
-=======
+# mintapi
 
 a screen-scraping API for Mint.com. [![Build Status](https://travis-ci.org/mrooney/mintapi.svg?branch=master)](https://travis-ci.org/mrooney/mintapi)
 
-Installation
-===
+## Installation
 Ensure you have Python 2 or 3 and pip (`easy_install pip`) and then:
 
-    pip install mintapi
+```shell
+pip install mintapi
+```
 
 If you do not want to manually find and provide your Mint session cookies, as described below, then please also install `selenium` and `chromedriver`:
+```shell
+pip install selenium
+brew install chromedriver # or sudo apt-get install chromium-chromedriver on Ubuntu/Debian
+```
 
-    pip install selenium
-    brew install chromedriver # or sudo apt-get install chromium-chromedriver on Ubuntu/Debian
+## Usage
 
-Usage
-===
+### from Python
 
-from Python
----
 From python, instantiate the Mint class (from the mintapi package) and you can
 make calls to retrieve account/budget information.  We recommend using the
 `keyring` library for persisting credentials.
 
-    import mintapi
-    # ius_session and thx_guid are optional, and will be automatically extracted if possible (see above for installing selenium/chromedriver)
-    mint = mintapi.Mint(email, password, ius_session, thx_guid)
+```python
+  import mintapi
+  # ius_session and thx_guid are optional, and will be automatically extracted if possible (see above for installing selenium/chromedriver)
+  mint = mintapi.Mint(email, password, ius_session, thx_guid)
 
-    # Get basic account information
-    mint.get_accounts()
+  # Get basic account information
+  mint.get_accounts()
 
-    # Get extended account detail at the expense of speed - requires an
-    # additional API call for each account
-    mint.get_accounts(True)
+  # Get extended account detail at the expense of speed - requires an
+  # additional API call for each account
+  mint.get_accounts(True)
 
-    # Get budget information
-    mint.get_budgets()
+  # Get budget information
+  mint.get_budgets()
 
-    # Get transactions
-    mint.get_transactions() # as pandas dataframe
-    mint.get_transactions_csv(self, include_investment=False) # as raw csv data
-    mint.get_transactions_json(self, include_investment=False, skip_duplicates=False):
+  # Get transactions
+  mint.get_transactions() # as pandas dataframe
+  mint.get_transactions_csv(self, include_investment=False) # as raw csv data
+  mint.get_transactions_json(self, include_investment=False, skip_duplicates=False):
 
-    # Get net worth
-    mint.get_net_worth()
+  # Get net worth
+  mint.get_net_worth()
 
-    # Initiate an account refresh
-    mint.initiate_account_refresh()
+  # Initiate an account refresh
+  mint.initiate_account_refresh()
+```
 
 You will notice the login step requires an ius_session and thx_guid.  These are session
 cookies that must persists. If you choose not to install selenium and chromedriver, you must obtain these values by searching your browser's cookies.
@@ -59,6 +61,7 @@ from anywhere
 ---
 Run it as a sub-process from your favorite language; `pip install mintapi` creates a binary in your $PATH. From the command-line, the output is JSON:
 
+```shell
     usage: mintapi [-h] [--accounts] [--budgets] [--net-worth]
               [--extended-accounts] [--transactions] [--extended-transactions]
               [--start-date [START_DATE]] [--include-investment]
@@ -106,7 +109,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       },
       ...
     ]
-
+```
 
 If you need to avoid using pip or setup.py, you can also clone/download
 this repository and run: ``python mintapi/api.py``
