@@ -747,9 +747,6 @@ def main():
             data.to_csv(options.filename, index=False)
         elif options.filename.endswith('.json'):
             data.to_json(options.filename, orient='records')
-        elif options.filename.endswith('.jsonandcsv'):
-            data.to_json(os.path.splitext(options.filename)[0]+'.json', orient='records')
-            data.to_csv(os.path.splitext(options.filename)[0]+'.csv', orient='records')
         else:
             raise ValueError('file extension must be either .csv, .json, or .jsonandcsv')
     else:
