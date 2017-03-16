@@ -518,7 +518,7 @@ class Mint(requests.Session):
 
         return categories
 
-    def get_budgets(self):  # {{{
+    def get_budgets(self, hist=None):  # {{{
         # Issue request for budget utilization
         today = date.today()
         this_month = date(today.year, today.month, 1)
@@ -533,14 +533,14 @@ class Mint(requests.Session):
             headers=self.json_headers
         ).text)
 
-        if hist is not None: # version proofing api
+        if hist is not None:  # version proofing api
             def mos_to_yrmo(mos_frm_zero):
-                date_yr_mo = datetime(year=int(mos_frm_zero/12), month=mos_frm_zero%12 + 1, day = 1).strftime("%Y%m")
+                date_yr_mo = datetime(year=int(mos_frm_zero / 12), month=mos_frm_zero % 12 + 1, day=1).strftime("%Y%m")
                 return date_yr_mo
 
             # Error checking 'hist' argument
             if isinstance(hist, str) or hist > 12:
-                hist = 12 # MINT_ROOT_URL only calls last 12 months of budget data
+                hist = 12  # MINT_ROOT_URL only calls last 12 months of budget data
             elif hist < 1:
                 hist = 1
 
