@@ -535,7 +535,9 @@ class Mint(requests.Session):
 
         if hist is not None:  # version proofing api
             def mos_to_yrmo(mos_frm_zero):
-                date_yr_mo = datetime(year=int(mos_frm_zero / 12), month=mos_frm_zero % 12 + 1, day=1).strftime("%Y%m")
+                date_yr_mo = datetime(year=int(mos_frm_zero / 12),
+                                      month=mos_frm_zero % 12 + 1,
+                                      day=1).strftime("%Y%m")
                 return date_yr_mo
 
             # Error checking 'hist' argument
@@ -554,9 +556,23 @@ class Mint(requests.Session):
             budgets = {}
             for months in range(bgt_cur_mo, min_mo_hist, -1):
                 budgets[mos_to_yrmo(months)] = {}
-                budgets[mos_to_yrmo(months)]["income"] = response["data"]["income"][str(months)]['bu']
-                budgets[mos_to_yrmo(months)]["spending"] = response["data"]["spending"][str(months)]['bu']
+                budgets[mos_to_yrmo(months)]["income"] = response["data"][
+                                                "income"][str(months)]['bu']
+                budgets[mos_to_yrmo(months)]["spending"] = response["data"][
+                                                "spending"][str(months)]['bu']
 
+            # Get categories
+            categories = self.get_categories()
+            
+            # Fill in the return structure
+            for month in budgets.keys():
+                for direction in budgets[month]:
+                    for budget in budgets[month][direction]:
+                        budget['cat'] = self.get_category_from_id(
+                            budget['cat'],
+                            categories
+                        )
+    
         else:
             # Get categories
             categories = self.get_categories()
