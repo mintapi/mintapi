@@ -535,10 +535,9 @@ class Mint(requests.Session):
 
         if hist is not None:  # version proofing api
             def mos_to_yrmo(mos_frm_zero):
-                date_yr_mo = datetime(year=int(mos_frm_zero / 12),
-                                      month=mos_frm_zero % 12 + 1,
-                                      day=1).strftime("%Y%m")
-                return date_yr_mo
+                return datetime(year=int(mos_frm_zero / 12),
+                                month=mos_frm_zero % 12 + 1,
+                                day=1).strftime("%Y%m")
 
             # Error checking 'hist' argument
             if isinstance(hist, str) or hist > 12:
@@ -556,14 +555,14 @@ class Mint(requests.Session):
             budgets = {}
             for months in range(bgt_cur_mo, min_mo_hist, -1):
                 budgets[mos_to_yrmo(months)] = {}
-                budgets[mos_to_yrmo(months)]["income"] = response["data"][
-                                                "income"][str(months)]['bu']
-                budgets[mos_to_yrmo(months)]["spending"] = response["data"][
-                                                "spending"][str(months)]['bu']
+                budgets[mos_to_yrmo(months)][
+                    "income"] = response["data"]["income"][str(months)]['bu']
+                budgets[mos_to_yrmo(months)][
+                    "spending"] = response["data"]["spending"][str(months)]['bu']
 
             # Get categories
             categories = self.get_categories()
-            
+
             # Fill in the return structure
             for month in budgets.keys():
                 for direction in budgets[month]:
@@ -572,7 +571,7 @@ class Mint(requests.Session):
                             budget['cat'],
                             categories
                         )
-    
+
         else:
             # Get categories
             categories = self.get_categories()
@@ -671,6 +670,8 @@ def main():
                          ' (default if nothing else is specified)')
     cmdline.add_argument('--budgets', action='store_true', dest='budgets',
                          default=False, help='Retrieve budget information')
+    cmdline.add_argument('--budget_hist', action='store_true', dest='budget_hist',
+                         default=None, help='Retrieve 12-month budget history information')
     cmdline.add_argument('--net-worth', action='store_true', dest='net_worth',
                          default=False, help='Retrieve net worth information')
     cmdline.add_argument('--extended-accounts', action='store_true',
@@ -760,6 +761,11 @@ def main():
     elif options.budgets:
         try:
             data = mint.get_budgets()
+        except:
+            data = None
+    elif options.budget_hist:
+        try:
+            data = mint.get_budgets(hist=12)
         except:
             data = None
     elif options.accounts:
