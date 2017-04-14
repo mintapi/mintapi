@@ -512,8 +512,6 @@ class Mint(requests.Session):
         # Build category list
         categories = {}
         for category in response['allCategories']:
-            if category['parentId'] == 0:
-                continue
             categories[category['id']] = category
 
         return categories
