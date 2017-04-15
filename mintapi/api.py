@@ -575,6 +575,26 @@ class Mint(requests.Session):
         data = {'token': self.token}
         self.post('{}/refreshFILogins.xevent'.format(MINT_ROOT_URL), data=data, headers=self.json_headers)
 
+    def refresh_accounts(self, max_wait_time=60, refresh_every=10):
+        """Initiate an account refresh and wait for the refresh to finish.
+        Returns number of accounts in error, or -1 if timed out."""
+        self.initiate_account_refresh()
+        waited = 0
+        while True:
+            result = self.request_and_check(
+                'https://wwws.mint.com/userStatus.xevent?rnd=' +
+                str(random.randint(0, 10**14)),
+                headers=self.json_headers,
+                expected_content_type='application/json')
+            data = json.loads(result.text)
+            if data['isRefreshing'] is False:
+                return data['errorCount']
+            elif waited > max_wait_time/refresh_every:
+                return -1
+            else:
+                waited += 1
+                time.sleep(refresh_every)
+
 
 def get_accounts(email, password, get_detail=False, ius_session=None):
     mint = Mint.create(email, password, ius_session=ius_session)
@@ -637,23 +657,35 @@ def main():
                          'implies --accounts)')
     cmdline.add_argument('--transactions', '-t', action='store_true',
                          default=False, help='Retrieve transactions')
-    cmdline.add_argument('--extended-transactions', action='store_true', default=False,
-                         help='Retrieve transactions with extra information and arguments')
+    cmdline.add_argument('--extended-transactions', action='store_true',
+                         default=False,
+                         help='Retrieve transactions with extra '
+                         'information and arguments')
     cmdline.add_argument('--start-date', nargs='?', default=None,
-                         help='Earliest date for transactions to be retrieved from. Used with --extended-transactions. Format: mm/dd/yy')
-    cmdline.add_argument('--include-investment', action='store_true', default=False,
+                         help='Earliest date for transactions to be '
+                         'retrieved from. Used with --extended-transactions. '
+                         'Format: mm/dd/yy')
+    cmdline.add_argument('--include-investment', action='store_true',
+                         default=False,
                          help='Used with --extended-transactions')
-    cmdline.add_argument('--skip-duplicates', action='store_true', default=False,
+    cmdline.add_argument('--skip-duplicates', action='store_true',
+                         default=False,
                          help='Used with --extended-transactions')
-# Displayed to the user as a postive switch, but processed back here as a negative
+# Displayed to the user as a postive switch,
+# but processed back here as a negative
     cmdline.add_argument('--show-pending', action='store_false', default=True,
-                         help='Exclude pending transactions from being retrieved. Used with --extended-transactions')
+                         help='Exclude pending transactions from being '
+                         'retrieved. Used with --extended-transactions')
     cmdline.add_argument('--filename', '-f', help='write results to file. can '
                          'be {csv,json} format. default is to write to '
                          'stdout.')
     cmdline.add_argument('--keyring', action='store_true',
                          help='Use OS keyring for storing password '
                          'information')
+    cmdline.add_argument('--wait-for-account-refresh', action='store_true',
+                         default=False, help='Initiate account refresh on '
+                         'Mint.com and wait for refresh to finish before '
+                         'executing other commands')
     cmdline.add_argument('--session', help='ius_session cookie')
     cmdline.add_argument('--thx_guid', help='thx_guid cookie')
 
@@ -681,7 +713,11 @@ def main():
     if keyring and not password:
         # If the keyring module is installed and we don't yet have
         # a password, try prompting for it
-        password = keyring.get_password('mintapi', email)
+        try:
+            password = keyring.get_password('mintapi', email)
+        except:
+            print("Cannot access system keyring")
+            options.keyring = False
 
     if not password:
         # If we still don't have a password, prompt for it
@@ -694,11 +730,17 @@ def main():
     if options.accounts_ext:
         options.accounts = True
 
-    if not any([options.accounts, options.budgets, options.transactions, options.extended_transactions,
+    if not any([options.accounts,
+                options.budgets,
+                options.transactions,
+                options.extended_transactions,
                 options.net_worth]):
         options.accounts = True
 
     mint = Mint.create(email, password, ius_session=options.session, thx_guid=options.thx_guid)
+
+    if options.wait_for_account_refresh:
+        mint.refresh_accounts()
 
     data = None
     if options.accounts and options.budgets:
@@ -731,10 +773,11 @@ def main():
         data = mint.get_transactions(include_investment=options.include_investment)
     elif options.extended_transactions:
         data = mint.get_detailed_transactions(
-            start_date=options.start_date,
-            include_investment=options.include_investment,
-            remove_pending=options.show_pending,
-            skip_duplicates=options.skip_duplicates)
+                start_date=options.start_date,
+                include_investment=options.include_investment,
+                remove_pending=options.show_pending,
+                skip_duplicates=options.skip_duplicates
+        )
     elif options.net_worth:
         data = mint.get_net_worth()
 
