@@ -1,3 +1,7 @@
+1.24
+---
+- fix "Unknown" categories when categories in budgets (thanks @drunnells!)
+
 1.23
 ---
 - mintapi raises MintException instead of Exception for better exception
