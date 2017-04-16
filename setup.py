@@ -1,5 +1,6 @@
 # new version to pypi => python setup.py sdist upload
 import os
+from pip.req import parse_requirements
 from setuptools import setup
 
 try:
@@ -10,6 +11,9 @@ except ImportError:
     read_md = lambda f: open(f, 'r').read()
 
 readme = os.path.join(os.path.dirname(__file__), 'README.md')
+requirements = parse_requirements('requirements.txt')
+required_packages = [str(item.req) for item in requirements]
+
 setup(
     name='mintapi',
     description='a screen-scraping API for Mint.com',
@@ -20,7 +24,7 @@ setup(
     author='Michael Rooney',
     author_email='mrooney.mintapi@rowk.com',
     url='https://github.com/mrooney/mintapi',
-    install_requires=['requests', 'xmltodict'],
+    install_requires=required_packages,
     entry_points=dict(
         console_scripts=[
             'mintapi = mintapi.api:main',
