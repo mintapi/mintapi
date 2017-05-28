@@ -129,8 +129,6 @@ class Mint(requests.Session):
         except RuntimeError:
             raise MintException('Failed to load Mint login page')
 
-        data = {'username': email, 'password': password}
-
         # Extract ius_token/thx_guid using browser if not provided manually
         if not ius_session:
             session_cookies = self.get_session_cookies(**data)
@@ -753,7 +751,7 @@ def main():
         elif options.filename.endswith('.json'):
             data.to_json(options.filename, orient='records')
         else:
-            raise ValueError('file extension must be either .csv, .json, or .jsonandcsv')
+            raise ValueError('file extension must be either .csv or .json')
     else:
         if options.filename is None:
             print(json.dumps(data, indent=2))
