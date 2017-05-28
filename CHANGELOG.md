@@ -1,3 +1,12 @@
+1.24
+---
+- fix "Unknown" categories when categories in budgets (thanks @drunnells!)
+
+1.23
+---
+- mintapi raises MintException instead of Exception for better exception
+  handling when used as a library (thanks @titilambert!)
+
 1.22
 ---
 - more robustly match content types (thanks @jbms!)
