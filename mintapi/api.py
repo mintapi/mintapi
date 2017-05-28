@@ -129,6 +129,8 @@ class Mint(requests.Session):
         except RuntimeError:
             raise MintException('Failed to load Mint login page')
 
+        data = {'username': email, 'password': password}
+
         # Extract ius_token/thx_guid using browser if not provided manually
         if not ius_session:
             session_cookies = self.get_session_cookies(**data)
@@ -140,8 +142,6 @@ class Mint(requests.Session):
         self.cookies.update(session_cookies)
 
         self.get('https://pf.intuit.com/fp/tags?js=0&org_id=v60nf4oj&session_id=' + self.cookies['ius_session'])
-
-        data = {'username': email, 'password': password}
 
         response = self.post('{}/access_client/sign_in'.format(MINT_ACCOUNTS_URL),
                              json=data, headers=self.json_headers).text
