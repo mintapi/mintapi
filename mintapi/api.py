@@ -592,7 +592,7 @@ ISO8601_FMT = '%Y-%m-%dT%H:%M:%SZ'
 EXCEL_FMT = '%Y-%m-%d %H:%M:%S'
 
 
-def make_accounts_presentable(accounts, presentable_format = EXCEL_FMT):
+def make_accounts_presentable(accounts, presentable_format=EXCEL_FMT):
     for account in accounts:
         for k, v in account.items():
             if isinstance(v, datetime):
