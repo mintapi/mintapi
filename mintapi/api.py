@@ -587,11 +587,16 @@ def get_net_worth(email, password):
     return mint.get_net_worth(account_data)
 
 
-def make_accounts_presentable(accounts):
+DATE_FMT = '%Y-%m-%d'
+ISO8601_FMT = '%Y-%m-%dT%H:%M:%SZ'
+EXCEL_FMT = '%Y-%m-%d %H:%M:%S'
+
+
+def make_accounts_presentable(accounts, presentable_format=EXCEL_FMT):
     for account in accounts:
         for k, v in account.items():
             if isinstance(v, datetime):
-                account[k] = repr(v)
+                account[k] = v.strftime(presentable_format)
     return accounts
 
 
