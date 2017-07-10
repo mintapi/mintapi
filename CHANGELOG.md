@@ -1,3 +1,7 @@
+1.25
+---
+- use Excel-compatible datetime formatting and allow customizing (thanks @felciano!)
+
 1.24
 ---
 - fix "Unknown" categories when categories in budgets (thanks @drunnells!)
