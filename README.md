@@ -40,8 +40,8 @@ make calls to retrieve account/budget information.  We recommend using the
 
   # Get transactions
   mint.get_transactions() # as pandas dataframe
-  mint.get_transactions_csv(self, include_investment=False) # as raw csv data
-  mint.get_transactions_json(self, include_investment=False, skip_duplicates=False):
+  mint.get_transactions_csv(include_investment=False) # as raw csv data
+  mint.get_transactions_json(include_investment=False, skip_duplicates=False)
 
   # Get net worth
   mint.get_net_worth()
