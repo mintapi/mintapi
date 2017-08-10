@@ -180,7 +180,7 @@ class Mint(requests.Session):
                                "the chromedriver selenium plugin. Please ensure "
                                "that the `selenium` and `chromedriver` packages "
                                "are installed.\n\nThe original error message was: " +
-                               (e.args[0] if len(e.args) > 0 else 'No error message found.'))
+                               (str(e.args[0]) if len(e.args) > 0 else 'No error message found.'))
 
         driver.get("https://www.mint.com")
         driver.implicitly_wait(20)  # seconds
