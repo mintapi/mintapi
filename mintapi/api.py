@@ -194,13 +194,26 @@ class Mint(requests.Session):
         while not driver.current_url.startswith('https://mint.intuit.com/overview.event'):
             time.sleep(1)
 
-        try:
-            return {
-                'ius_session': driver.get_cookie('ius_session')['value'],
-                'thx_guid': driver.get_cookie('thx_guid')['value']
-            }
-        finally:
-            driver.close()
+        # get ius_session cookie by going to accounts.intuit.com
+        driver.get("http://accounts.intuit.com")
+        ius_session = driver.get_cookie('ius_session')['value']
+
+        if ius_session is None:
+            raise MintException('ius_session cookie not provided, and could not be retrieved automatically.')
+
+        # get thx_guid cookie by going to pf.intuit.com
+        driver.get('https://pf.intuit.com/fp/tags?js=0&org_id=v60nf4oj&session_id=' + str(ius_session))
+        thx_guid = driver.get_cookie('thx_guid')['value']
+
+        if thx_guid is None:
+            raise MintException('thx_guid cookie not provided, and could not be retrieved automatically.')
+
+        driver.close()
+
+        return {
+            'ius_session': ius_session,
+            'thx_guid': thx_guid
+        }
 
     def get_accounts(self, get_detail=False):  # {{{
         # Issue service request.
