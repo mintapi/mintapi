@@ -600,7 +600,6 @@ def get_net_worth(email, password):
     return mint.get_net_worth(account_data)
 
 
-
 def make_accounts_presentable(accounts, presentable_format='EXCEL'):
     formatter = {
         'DATE': '%Y-%m-%d',
