@@ -343,14 +343,14 @@ class Mint(requests.Session):
                 expected_content_type='text/json|application/json')
             data = json.loads(result.text)
             txns = data['set'][0].get('data', [])
+            if not txns:
+                break
             if start_date:
                 last_dt = self._dateconvert(txns[-1]['odate'])
                 if last_dt < start_date:
                     keep_txns = [t for t in txns if self._dateconvert(t['odate']) >= start_date]
                     all_txns.extend(keep_txns)
                     break
-            if not txns:
-                break
             all_txns.extend(txns)
             offset += len(txns)
         return all_txns
