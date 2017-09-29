@@ -587,7 +587,6 @@ def get_net_worth(email, password):
     return mint.get_net_worth(account_data)
 
 
-
 def make_accounts_presentable(accounts, presentable_format='EXCEL'):
     formatter = {
         'DATE': '%Y-%m-%d',
@@ -717,7 +716,7 @@ def main():
         # any leading whitespace.
         if options.raw_session_cookies.lower().startswith('cookie:'):
             raw_cookies = options.raw_session_cookies[7:]
-        sc.load()
+        sc.load(raw_cookies)
         session_cookies = dict([(k, morsel.value) for k, morsel in sc.items()])
 
     mint = Mint.create(email, password, session_cookies=session_cookies)
