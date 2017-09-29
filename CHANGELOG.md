@@ -1,3 +1,7 @@
+1.28
+---
+- fix get_transactions_json when start_date predates all transactions (thanks @jprouty!)
+
 1.27
 ---
 - fix NoneType error when getting cookies via chromedriver (thanks @dherg!)
