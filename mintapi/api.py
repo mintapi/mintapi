@@ -135,7 +135,7 @@ class Mint(requests.Session):
 
         data = {'username': email, 'password': password}
 
-        # Extract ius_token/thx_guid using browser if not provided manually
+        # Extract session_cookies using browser if not provided manually.
         if not session_cookies:
             session_cookies = self.get_session_cookies(**data)
         self.cookies.update(session_cookies)
@@ -576,8 +576,8 @@ class Mint(requests.Session):
         self.post('{}/refreshFILogins.xevent'.format(MINT_ROOT_URL), data=data, headers=self.json_headers)
 
 
-def get_accounts(email, password, get_detail=False, ius_session=None):
-    mint = Mint.create(email, password, ius_session=ius_session)
+def get_accounts(email, password, get_detail=False, session_cookies=None):
+    mint = Mint.create(email, password, session_cookies)
     return mint.get_accounts(get_detail=get_detail)
 
 

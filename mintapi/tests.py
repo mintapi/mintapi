@@ -50,7 +50,9 @@ class MintApiTests(unittest.TestCase):
         mintapi.api.Mint = self._Mint
 
     def test_accounts(self):
-        accounts = mintapi.get_accounts('foo', 'bar', ius_session='baz')
+        accounts = mintapi.get_accounts('foo', 'bar', session_cookies={
+            'ius_session': 'baz',
+        })
 
         self.assertFalse('lastUpdatedInDate' in accounts)
         self.assertNotEqual(accounts, accounts_example)
