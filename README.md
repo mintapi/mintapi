@@ -52,7 +52,12 @@ make calls to retrieve account/budget information.  We recommend using the
 
 You will notice the login step requires an ius_session and thx_guid.  These are session
 cookies that must persist. If you choose not to install selenium and chromedriver, you must obtain these values by searching your browser's cookies.
-In Chrome, for example, visit chrome://settings/cookies and type intuit (*not* mint).  Alternatively, you
+
+For example: In Chrome v61: 
+  - **ius_session**: visit chrome://settings/cookies/detail?site=accounts.intuit.com 
+  - **thx_guid**: visit chrome://settings/cookies/detail?site=pf.intuit.com
+
+Alternatively, you
 can login to Mint manually with your browser in inspect mode and poke around in the network tab.
 Providing these two cookies eliminates the need to 2-step authenticate.  Mint requires this with
 all new browsers attempting to connect.
