@@ -1,29 +1,16 @@
+from datetime import date, datetime, timedelta
 import json
 import random
-import time
 import re
+import time
+import xmltodict
 
 try:
     from StringIO import StringIO  # Python 2
 except ImportError:
     from io import BytesIO as StringIO  # Python 3
 
-from datetime import date, datetime, timedelta
-
-import requests
-
-from requests.adapters import HTTPAdapter
-try:
-        from requests.packages.urllib3.poolmanager import PoolManager
-except:
-        from urllib3.poolmanager import PoolManager
-
-try:
-    from Cookie import SimpleCookie  # Python 2
-except ImportError:
-    from http.cookies import SimpleCookie  # Python 3
-
-import xmltodict
+from seleniumrequests import Chrome
 
 try:
     import pandas as pd
@@ -40,6 +27,49 @@ def assert_pd():
         )
 
 
+def json_date_to_datetime(self, dateraw):
+    cy = datetime.isocalendar(date.today())[0]
+    try:
+        newdate = datetime.strptime(dateraw + str(cy), '%b %d%Y')
+    except:
+        newdate = datetime.strptime(dateraw, '%m/%d/%y')
+    return newdate
+
+
+def reverse_credit_amount(self, row):
+    amount = float(row['amount'][1:].replace(',', ''))
+    return amount if row['isDebit'] else -amount
+
+
+def get_web_driver(self, email, password):
+    driver = Chrome()
+
+    driver.get("https://www.mint.com")
+    driver.implicitly_wait(20)  # seconds
+    driver.find_element_by_link_text("Log In").click()
+
+    driver.find_element_by_id("ius-userid").send_keys(username)
+    driver.find_element_by_id("ius-password").send_keys(password)
+    driver.find_element_by_id("ius-sign-in-submit-btn").submit()
+
+    # Wait until logged in, just in case we need to deal with MFA.
+    while not driver.current_url.startswith('https://mint.intuit.com/overview.event'):
+        time.sleep(1)
+
+    # Wait until the overview page has actually loaded.
+    driver.implicitly_wait(20)  # seconds
+    driver.find_element_by_id("transaction")
+
+    return driver
+
+IGNORE_FLOAT_REGEX = re.compile(r"[$,%]")
+def parse_float(str_number):
+    try:
+        return float(IGNORE_FLOAT_REGEX.sub(str_number, ''))
+    except ValueError:
+        return None
+
+    
 DATE_FIELDS = [
     'addAccountDate',
     'closeDate',
@@ -47,52 +77,54 @@ DATE_FIELDS = [
     'lastUpdated',
 ]
 
+def convert_account_dates_to_datetime(account):
+    for df in DATE_FIELDS:
+        if df in account:
+            # Convert from javascript timestamp to unix timestamp
+            # http://stackoverflow.com/a/9744811/5026
+            try:
+                ts = account[df] / 1e3
+            except TypeError:
+                # returned data is not a number, don't parse
+                continue
+            account[df + 'InDate'] = datetime.fromtimestamp(ts)
+
+
 MINT_ROOT_URL = 'https://mint.intuit.com'
 MINT_ACCOUNTS_URL = 'https://accounts.intuit.com'
 
+JSON_HEADER = {'accept': 'application/json'}
 
 class MintException(Exception):
     pass
 
 
-class MintHTTPSAdapter(HTTPAdapter):
-    def init_poolmanager(self, connections, maxsize, **kwargs):
-        self.poolmanager = PoolManager(num_pools=connections,
-                                       maxsize=maxsize, **kwargs)
-
-
-class Mint(requests.Session):
-    json_headers = {'accept': 'application/json'}
+class Mint():
     request_id = 42  # magic number? random number?
     token = None
+    driver = None
 
-    def __init__(self, email=None, password=None, session_cookies=None):
-        requests.Session.__init__(self)
-        self.headers.update({'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9) AppleWebKit/537.71 (KHTML, like Gecko) Version/7.0 Safari/537.71'})
-        self.mount('https://', MintHTTPSAdapter())
+    def __init__(self, email=None, password=None)
         if email and password:
-            self.login_and_get_token(email, password, session_cookies)
+            self.login_and_get_token(email, password)
 
     @classmethod
-    def create(cls, email, password, session_cookies=None):  # {{{
-        mint = Mint()
-        mint.login_and_get_token(email, password, session_cookies)
-        return mint
+    def create(cls, email, password)
+        return Mint(email, password)
 
     @classmethod
     def get_rnd(cls):  # {{{
         return (str(int(time.mktime(datetime.now().timetuple()))) +
                 str(random.randrange(999)).zfill(3))
 
-    @classmethod
-    def parse_float(cls, string):  # {{{
-        for bad_char in ['$', ',', '%']:
-            string = string.replace(bad_char, '')
+    def close(self):
+        """Logs out and quits the current web driver/selenium session."""
+        if not self.driver:
+            return
+        self.driver.implicitly_wait(1)
+        self.driver.find_element_by_link_text("Log Out").click()
 
-        try:
-            return float(string)
-        except ValueError:
-            return None
+        self.driver.quit()
 
     def request_and_check(self, url, method='get',
                           expected_content_type=None, **kwargs):
@@ -108,8 +140,8 @@ class Mint(requests.Session):
         Raises:
           RuntimeError if status_code does not match.
         """
-        assert (method == 'get' or method == 'post')
-        result = getattr(self, method)(url, **kwargs)
+        assert method in ['get', 'post']
+        result = self.driver.request(method, url, **kwargs)
         if result.status_code != requests.codes.ok:
             raise RuntimeError('Error requesting %r, status = %d' %
                                (url, result.status_code))
@@ -121,90 +153,31 @@ class Mint(requests.Session):
                     (url, content_type, expected_content_type))
         return result
 
-    def login_and_get_token(self, email, password, session_cookies=None):  # {{{
-        # 0: Check to see if we're already logged in.
-        if self.token is not None:
+    def get(self, url, **kwargs):
+        return self.driver.request('GET', url, **kwargs)
+
+    def post(self, url, **kwargs):
+        return self.driver.request('POST', url, **kwargs)
+    
+    def login_and_get_token(self, email, password)
+        if self.token and self.driver:
             return
 
-        # 1: Login.
-        login_url = '{}/login.event'.format(MINT_ROOT_URL)
-        try:
-            self.request_and_check(login_url)
-        except RuntimeError:
-            raise MintException('Failed to load Mint login page')
+        self.driver = get_web_driver(email, password)
+        self.token = get_token()
 
-        data = {'username': email, 'password': password}
+    def get_token(self):
+        value_json = driver.find_element_by_name('javascript-user').get_attribute('value')
+        return json.loads(value_json)['token']
 
-        # Extract session_cookies using browser if not provided manually.
-        if not session_cookies:
-            session_cookies = self.get_session_cookies(**data)
-        self.cookies.update(session_cookies)
-
-        self.get('https://pf.intuit.com/fp/tags?js=0&org_id=v60nf4oj&session_id=' + self.cookies['ius_session'])
-
-        response = self.post('{}/access_client/sign_in'.format(MINT_ACCOUNTS_URL),
-                             json=data, headers=self.json_headers).text
-
-        json_response = json.loads(response)
-        if json_response.get('action') == 'CHALLENGE':
-            raise MintException('Challenge required, please log in to Mint.com manually and complete the captcha.')
-
-        if json_response.get('responseCode') == 'INVALID_CREDENTIALS':
-            raise MintException('Username/Password is incorrect.  Please verify and try again.')
-
-        data = {'clientType': 'Mint', 'authid': json_response['iamTicket']['userId']}
-        self.post('{}/getUserPod.xevent'.format(MINT_ROOT_URL),
-                  data=data, headers=self.json_headers)
-
-        data = {'task': 'L',
-                'browser': 'firefox', 'browserVersion': '27', 'os': 'linux'}
-        response = self.post('{}/loginUserSubmit.xevent'.format(MINT_ROOT_URL),
-                             data=data, headers=self.json_headers).text
-
-        if 'token' not in response:
-            raise MintException('Mint.com login failed[1]')
-
-        response = json.loads(response)
-        if not response['sUser']['token']:
-            raise MintException('Mint.com login failed[2]')
-
-        # 2: Grab token.
-        self.token = response['sUser']['token']
-
-    def get_session_cookies(self, username, password):
-        try:
-            from selenium import webdriver
-            driver = webdriver.Chrome()
-        except Exception as e:
-            raise RuntimeError("ius_session not specified, and was unable to load "
-                               "the chromedriver selenium plugin. Please ensure "
-                               "that the `selenium` and `chromedriver` packages "
-                               "are installed.\n\nThe original error message was: " +
-                               (str(e.args[0]) if len(e.args) > 0 else 'No error message found.'))
-
-        driver.get("https://www.mint.com")
-        driver.implicitly_wait(20)  # seconds
-        driver.find_element_by_link_text("Log In").click()
-
-        driver.find_element_by_id("ius-userid").send_keys(username)
-        driver.find_element_by_id("ius-password").send_keys(password)
-        driver.find_element_by_id("ius-sign-in-submit-btn").submit()
-
-        # Wait until logged in, just in case we need to deal with MFA.
-        while not driver.current_url.startswith('https://mint.intuit.com/overview.event'):
-            time.sleep(1)
-
-        # Get session cookies by going to accounts.intuit.com
-        driver.get("http://accounts.intuit.com")
-
-        cookies = dict([(d['name'], d['value']) for d in driver.get_cookies()])
-        driver.close()
-
-        return cookies
-
+    def get_request_id_str(self):
+        req_id = self.request_id
+        self.request_id += 1
+        return str(req_id)
+            
     def get_accounts(self, get_detail=False):  # {{{
         # Issue service request.
-        req_id = str(self.request_id)
+        req_id = self.get_request_id_str()
 
         input = {
             'args': {
@@ -228,9 +201,11 @@ class Mint(requests.Session):
 
         data = {'input': json.dumps([input])}
         account_data_url = '{}/bundledServiceController.xevent?legacy=false&token={}'.format(MINT_ROOT_URL, self.token)
-        response = self.post(account_data_url, data=data,
-                             headers=self.json_headers).text
-        self.request_id = self.request_id + 1
+        response = self.post(
+            account_data_url,
+            data=data,
+            headers=JSON_HEADER
+        ).text
         if req_id not in response:
             raise MintException('Could not parse account data: ' + response)
 
@@ -238,26 +213,17 @@ class Mint(requests.Session):
         response = json.loads(response)
         accounts = response['response'][req_id]['response']
 
-        # Return datetime objects for dates
         for account in accounts:
-            for df in DATE_FIELDS:
-                if df in account:
-                    # Convert from javascript timestamp to unix timestamp
-                    # http://stackoverflow.com/a/9744811/5026
-                    try:
-                        ts = account[df] / 1e3
-                    except TypeError:
-                        # returned data is not a number, don't parse
-                        continue
-                    account[df + 'InDate'] = datetime.fromtimestamp(ts)
+            convert_account_dates_to_datetime(account)
+            
         if get_detail:
             accounts = self.populate_extended_account_detail(accounts)
+
         return accounts
 
     def set_user_property(self, name, value):
         url = '{}/bundledServiceController.xevent?legacy=false&token={}'.format(MINT_ROOT_URL, self.token)
-        req_id = str(self.request_id)
-        self.request_id += 1
+        req_id = self.get_request_id_str()
         result = self.post(
             url,
             data={'input': json.dumps([{'args': {'propertyName': name,
@@ -265,26 +231,13 @@ class Mint(requests.Session):
                                         'service': 'MintUserService',
                                         'task': 'setUserProperty',
                                         'id': req_id}])},
-            headers=self.json_headers)
+            headers=JSON_HEADER)
         if result.status_code != 200:
             raise MintException('Received HTTP error %d' % result.status_code)
         response = result.text
         if req_id not in response:
             raise MintException("Could not parse response to set_user_property")
 
-    def _dateconvert(self, dateraw):
-        # Converts dates from json data
-        cy = datetime.isocalendar(date.today())[0]
-        try:
-            newdate = datetime.strptime(dateraw + str(cy), '%b %d%Y')
-        except:
-            newdate = datetime.strptime(dateraw, '%m/%d/%y')
-        return newdate
-
-    def _debit_credit(self, row):
-        # Reverses credit balances
-        dic = {False: -1, True: 1}
-        return float(row['amount'][1:].replace(',', '')) * dic[row['isDebit']]
 
     def get_transactions_json(self, include_investment=False,
                               skip_duplicates=False, start_date=None):
@@ -326,16 +279,16 @@ class Mint(requests.Session):
                         'accountId=0&task=transactions' if include_investment
                         else 'task=transactions,txnfilters&filterType=cash'))
             result = self.request_and_check(
-                url, headers=self.json_headers,
+                url, headers=JSON_HEADER,
                 expected_content_type='text/json|application/json')
             data = json.loads(result.text)
             txns = data['set'][0].get('data', [])
             if not txns:
                 break
             if start_date:
-                last_dt = self._dateconvert(txns[-1]['odate'])
+                last_dt = json_date_to_datetime(txns[-1]['odate'])
                 if last_dt < start_date:
-                    keep_txns = [t for t in txns if self._dateconvert(t['odate']) >= start_date]
+                    keep_txns = [t for t in txns if json_date_to_datetime(t['odate']) >= start_date]
                     all_txns.extend(keep_txns)
                     break
             all_txns.extend(txns)
@@ -371,7 +324,7 @@ class Mint(requests.Session):
             df = df[~df.isPending]
             df.reset_index(drop=True, inplace=True)
 
-        df.amount = df.apply(self._debit_credit, axis=1)
+        df.amount = df.apply(reverse_credit_amount, axis=1)
 
         return df
 
@@ -399,24 +352,14 @@ class Mint(requests.Session):
             account_data = self.get_accounts()
 
         # account types in this list will be subtracted
-        negative_accounts = ['loan', 'loans', 'credit']
-        try:
-            net_worth = long()
-        except NameError:
-            net_worth = 0
-
-        # iterate over accounts and add or subtract account balances
-        for account in [a for a in account_data if a['isActive']]:
-            current_balance = account['currentBalance']
-            if account['accountType'] in negative_accounts:
-                net_worth -= current_balance
-            else:
-                net_worth += current_balance
-        return net_worth
+        invert = set(['loan', 'loans', 'credit'])
+        return = sum([
+            -a['currentBalance'] if a['accountType'] in invert else a['currentBalance']
+            for a in account_data if a['isActive']
+        ])
 
     def get_transactions(self, include_investment=False):
-        """Returns the transaction data as a Pandas DataFrame.
-        """
+        """Returns the transaction data as a Pandas DataFrame."""
         assert_pd()
         s = StringIO(self.get_transactions_csv(include_investment=include_investment))
         s.seek(0)
@@ -431,16 +374,22 @@ class Mint(requests.Session):
         # doing this stupid one-call-per-account to listTransactions.xevent
         # and parsing the HTML snippet :(
         for account in accounts:
-            headers = self.json_headers
-            headers['Referer'] = ('{}/transaction.event?'.format(MINT_ROOT_URL) +
-                                  'accountId=' + str(account['id']))
+            headers = dict(JSON_HEADER)
+            headers['Referer'] = '{}/transaction.event?accountId={}'.format(
+                MINT_ROOT_URL, account['id'])
 
-            list_txn_url = ('{}/listTransaction.xevent?'.format(MINT_ROOT_URL) +
-                            'accountId=' + str(account['id']) + '&queryNew=&' +
-                            'offset=0&comparableType=8&acctChanged=T&rnd=' +
-                            Mint.get_rnd())
+            list_txn_url = '{}/listTransaction.xevent'.format(MINT_ROOT_URL)
+            params = {
+                'accountId': str(account['id']),
+                'queryNew': '',
+                'offset': 0,
+                'comparableType': 8,
+                'acctChanged': 'T',
+                'rnd': Mint.get_rnd(),
+            }
 
-            response = json.loads(self.get(list_txn_url, headers=headers).text)
+            response = json.loads(self.get(
+                list_txn_url, params=params, headers=headers).text)
             xml = '<div>' + response['accountHeader'] + '</div>'
             xml = xml.replace('&#8211;', '-')
             xml = xmltodict.parse(xml)
@@ -485,7 +434,7 @@ class Mint(requests.Session):
 
     def get_categories(self):  # {{{
         # Get category metadata.
-        req_id = str(self.request_id)
+        req_id = self.get_request_id_str()
         data = {
             'input': json.dumps([{
                 'args': {
@@ -499,10 +448,8 @@ class Mint(requests.Session):
             }])
         }
 
-        cat_url = '{}/bundledServiceController.xevent?legacy=false&token={}'.format(MINT_ROOT_URL, self.token)
-        response = self.post(cat_url, data=data,
-                             headers=self.json_headers).text
-        self.request_id = self.request_id + 1
+        cat_url = '{}/bundledServiceController.xevent?legacy=false&token={}'.format(MINT_ROOT_URL, self.token)      
+        response = self.post(cat_url, data=data, headers=JSON_HEADER).text
         if req_id not in response:
             raise MintException('Could not parse category data: "' +
                                 response + '"')
@@ -517,7 +464,6 @@ class Mint(requests.Session):
         return categories
 
     def get_budgets(self):  # {{{
-
         # Get categories
         categories = self.get_categories()
 
@@ -529,11 +475,13 @@ class Mint(requests.Session):
                       '/01/' + str(this_month.year))
         last_year = (str(last_year.month).zfill(2) +
                      '/01/' + str(last_year.year))
-        response = json.loads(self.get(
-            MINT_ROOT_URL + '/getBudget.xevent?startDate=' + last_year +
-            '&endDate=' + this_month + '&rnd=' + Mint.get_rnd(),
-            headers=self.json_headers
-        ).text)
+        url = "{}/getBudget.xevent".format(MINT_ROOT_URL)
+        params = {
+            'startDate': last_year,
+            'endDate': this_month,
+            'rnd': Mint.get_rnd(),
+        }
+        response = json.loads(self.get(url, params, headers=JSON_HEADER)).text
 
         # Make the skeleton return structure
         budgets = {
@@ -571,9 +519,10 @@ class Mint(requests.Session):
         return 'Unknown'
 
     def initiate_account_refresh(self):
-        # Submit refresh request.
-        data = {'token': self.token}
-        self.post('{}/refreshFILogins.xevent'.format(MINT_ROOT_URL), data=data, headers=self.json_headers)
+        self.post(
+            '{}/refreshFILogins.xevent'.format(MINT_ROOT_URL),
+            data={'token': self.token},
+            headers=JSON_HEADER)
 
 
 def get_accounts(email, password, get_detail=False, session_cookies=None):
@@ -705,21 +654,7 @@ def main():
                 options.net_worth]):
         options.accounts = True
 
-    session_cookies = None
-    if options.raw_session_cookies:
-        sc = SimpleCookie()
-        raw_cookies = options.raw_session_cookies
-        # When copy and pasting from chrome, there is no space between "cookie"
-        # and "param1", e.g. "cookie:param1=value;". This causes the parser in
-        # the SimpleCookie library to choke. Instead, simply strip the optional
-        # prefix 'cookie:', and SimpleCookie will handle it alright, including
-        # any leading whitespace.
-        if options.raw_session_cookies.lower().startswith('cookie:'):
-            raw_cookies = options.raw_session_cookies[7:]
-        sc.load(raw_cookies)
-        session_cookies = dict([(k, morsel.value) for k, morsel in sc.items()])
-
-    mint = Mint.create(email, password, session_cookies=session_cookies)
+    mint = Mint.create(email, password)
 
     data = None
     if options.accounts and options.budgets:
