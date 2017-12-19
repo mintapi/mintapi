@@ -33,7 +33,7 @@ def json_date_to_datetime(self, dateraw):
     cy = datetime.isocalendar(date.today())[0]
     try:
         newdate = datetime.strptime(dateraw + str(cy), '%b %d%Y')
-    except e:
+    except:
         newdate = datetime.strptime(dateraw, '%m/%d/%y')
     return newdate
 
@@ -133,7 +133,7 @@ class Mint():
         try:
             self.driver.implicitly_wait(1)
             self.driver.find_element_by_id('link-logout').click()
-        except e:
+        except:
             pass
 
         self.driver.quit()
@@ -277,7 +277,7 @@ class Mint():
         # Converts the start date into datetime format - must be mm/dd/yy
         try:
             start_date = datetime.strptime(start_date, '%m/%d/%y')
-        except e:
+        except:
             start_date = None
         all_txns = []
         offset = 0
@@ -736,26 +736,26 @@ def main():
             accounts = make_accounts_presentable(
                 mint.get_accounts(get_detail=options.accounts_ext)
             )
-        except e:
+        except:
             accounts = None
 
         try:
             budgets = mint.get_budgets()
-        except e:
+        except:
             budgets = None
 
         data = {'accounts': accounts, 'budgets': budgets}
     elif options.budgets:
         try:
             data = mint.get_budgets()
-        except e:
+        except:
             data = None
     elif options.accounts:
         try:
             data = make_accounts_presentable(mint.get_accounts(
                 get_detail=options.accounts_ext)
             )
-        except e:
+        except:
             data = None
     elif options.transactions:
         data = mint.get_transactions(
