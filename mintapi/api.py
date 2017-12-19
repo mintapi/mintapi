@@ -1,9 +1,10 @@
+import atexit
 from datetime import date, datetime, timedelta
 import json
 import random
 import re
+import requests
 import time
-import xmltodict
 
 try:
     from StringIO import StringIO  # Python 2
@@ -11,6 +12,7 @@ except ImportError:
     from io import BytesIO as StringIO  # Python 3
 
 from seleniumrequests import Chrome
+import xmltodict
 
 try:
     import pandas as pd
@@ -41,14 +43,14 @@ def reverse_credit_amount(self, row):
     return amount if row['isDebit'] else -amount
 
 
-def get_web_driver(self, email, password):
+def get_web_driver(email, password):
     driver = Chrome()
 
     driver.get("https://www.mint.com")
     driver.implicitly_wait(20)  # seconds
     driver.find_element_by_link_text("Log In").click()
 
-    driver.find_element_by_id("ius-userid").send_keys(username)
+    driver.find_element_by_id("ius-userid").send_keys(email)
     driver.find_element_by_id("ius-password").send_keys(password)
     driver.find_element_by_id("ius-sign-in-submit-btn").submit()
 
@@ -104,12 +106,12 @@ class Mint():
     token = None
     driver = None
 
-    def __init__(self, email=None, password=None)
+    def __init__(self, email=None, password=None):
         if email and password:
             self.login_and_get_token(email, password)
 
     @classmethod
-    def create(cls, email, password)
+    def create(cls, email, password):
         return Mint(email, password)
 
     @classmethod
@@ -122,9 +124,12 @@ class Mint():
         if not self.driver:
             return
         self.driver.implicitly_wait(1)
-        self.driver.find_element_by_link_text("Log Out").click()
-
+#        self.driver.find_element_by_link_text("Log Out").click()
+#        self.driver.find_element_by_id("").send_keys(email)
+    
+        
         self.driver.quit()
+        self.driver = None
 
     def request_and_check(self, url, method='get',
                           expected_content_type=None, **kwargs):
@@ -159,15 +164,15 @@ class Mint():
     def post(self, url, **kwargs):
         return self.driver.request('POST', url, **kwargs)
     
-    def login_and_get_token(self, email, password)
+    def login_and_get_token(self, email, password):
         if self.token and self.driver:
             return
 
         self.driver = get_web_driver(email, password)
-        self.token = get_token()
+        self.token = self.get_token()
 
     def get_token(self):
-        value_json = driver.find_element_by_name('javascript-user').get_attribute('value')
+        value_json = self.driver.find_element_by_name('javascript-user').get_attribute('value')
         return json.loads(value_json)['token']
 
     def get_request_id_str(self):
@@ -343,7 +348,6 @@ class Mint():
         result = self.request_and_check(
             '{}/transactionDownload.event'.format(MINT_ROOT_URL) +
             ('?accountId=0' if include_investment else ''),
-            headers=self.headers,
             expected_content_type='text/csv')
         return result.content
 
@@ -353,7 +357,7 @@ class Mint():
 
         # account types in this list will be subtracted
         invert = set(['loan', 'loans', 'credit'])
-        return = sum([
+        return sum([
             -a['currentBalance'] if a['accountType'] in invert else a['currentBalance']
             for a in account_data if a['isActive']
         ])
@@ -655,7 +659,8 @@ def main():
         options.accounts = True
 
     mint = Mint.create(email, password)
-
+    atexit.register(mint.close)  # Ensure everything is torn down.
+    
     data = None
     if options.accounts and options.budgets:
         try:
