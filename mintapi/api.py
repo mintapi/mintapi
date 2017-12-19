@@ -33,7 +33,7 @@ def json_date_to_datetime(self, dateraw):
     cy = datetime.isocalendar(date.today())[0]
     try:
         newdate = datetime.strptime(dateraw + str(cy), '%b %d%Y')
-    except:
+    except e:
         newdate = datetime.strptime(dateraw, '%m/%d/%y')
     return newdate
 
@@ -55,7 +55,8 @@ def get_web_driver(email, password):
     driver.find_element_by_id("ius-sign-in-submit-btn").submit()
 
     # Wait until logged in, just in case we need to deal with MFA.
-    while not driver.current_url.startswith('https://mint.intuit.com/overview.event'):
+    while not driver.current_url.startswith(
+            'https://mint.intuit.com/overview.event'):
         time.sleep(1)
 
     # Wait until the overview page has actually loaded.
@@ -64,20 +65,24 @@ def get_web_driver(email, password):
 
     return driver
 
+
 IGNORE_FLOAT_REGEX = re.compile(r"[$,%]")
+
+
 def parse_float(str_number):
     try:
         return float(IGNORE_FLOAT_REGEX.sub(str_number, ''))
     except ValueError:
         return None
 
-    
+
 DATE_FIELDS = [
     'addAccountDate',
     'closeDate',
     'fiLastUpdated',
     'lastUpdated',
 ]
+
 
 def convert_account_dates_to_datetime(account):
     for df in DATE_FIELDS:
@@ -96,6 +101,7 @@ MINT_ROOT_URL = 'https://mint.intuit.com'
 MINT_ACCOUNTS_URL = 'https://accounts.intuit.com'
 
 JSON_HEADER = {'accept': 'application/json'}
+
 
 class MintException(Exception):
     pass
@@ -123,11 +129,13 @@ class Mint():
         """Logs out and quits the current web driver/selenium session."""
         if not self.driver:
             return
-        self.driver.implicitly_wait(1)
-#        self.driver.find_element_by_link_text("Log Out").click()
-#        self.driver.find_element_by_id("").send_keys(email)
-    
-        
+
+        try:
+            self.driver.implicitly_wait(1)
+            self.driver.find_element_by_id('link-logout').click()
+        except e:
+            pass
+
         self.driver.quit()
         self.driver = None
 
@@ -163,7 +171,7 @@ class Mint():
 
     def post(self, url, **kwargs):
         return self.driver.request('POST', url, **kwargs)
-    
+
     def login_and_get_token(self, email, password):
         if self.token and self.driver:
             return
@@ -172,14 +180,15 @@ class Mint():
         self.token = self.get_token()
 
     def get_token(self):
-        value_json = self.driver.find_element_by_name('javascript-user').get_attribute('value')
+        value_json = self.driver.find_element_by_name(
+            'javascript-user').get_attribute('value')
         return json.loads(value_json)['token']
 
     def get_request_id_str(self):
         req_id = self.request_id
         self.request_id += 1
         return str(req_id)
-            
+
     def get_accounts(self, get_detail=False):  # {{{
         # Issue service request.
         req_id = self.get_request_id_str()
@@ -205,7 +214,9 @@ class Mint():
         }
 
         data = {'input': json.dumps([input])}
-        account_data_url = '{}/bundledServiceController.xevent?legacy=false&token={}'.format(MINT_ROOT_URL, self.token)
+        account_data_url = (
+            '{}/bundledServiceController.xevent?legacy=false&token={}'.format(
+                MINT_ROOT_URL, self.token))
         response = self.post(
             account_data_url,
             data=data,
@@ -220,14 +231,16 @@ class Mint():
 
         for account in accounts:
             convert_account_dates_to_datetime(account)
-            
+
         if get_detail:
             accounts = self.populate_extended_account_detail(accounts)
 
         return accounts
 
     def set_user_property(self, name, value):
-        url = '{}/bundledServiceController.xevent?legacy=false&token={}'.format(MINT_ROOT_URL, self.token)
+        url = (
+            '{}/bundledServiceController.xevent?legacy=false&token={}'.format(
+                MINT_ROOT_URL, self.token))
         req_id = self.get_request_id_str()
         result = self.post(
             url,
@@ -241,8 +254,8 @@ class Mint():
             raise MintException('Received HTTP error %d' % result.status_code)
         response = result.text
         if req_id not in response:
-            raise MintException("Could not parse response to set_user_property")
-
+            raise MintException(
+                'Could not parse response to set_user_property')
 
     def get_transactions_json(self, include_investment=False,
                               skip_duplicates=False, start_date=None):
@@ -258,12 +271,13 @@ class Mint():
         """
 
         # Warning: This is a global property for the user that we are changing.
-        self.set_user_property('hide_duplicates', 'T' if skip_duplicates else 'F')
+        self.set_user_property(
+            'hide_duplicates', 'T' if skip_duplicates else 'F')
 
         # Converts the start date into datetime format - must be mm/dd/yy
         try:
             start_date = datetime.strptime(start_date, '%m/%d/%y')
-        except:
+        except e:
             start_date = None
         all_txns = []
         offset = 0
@@ -293,7 +307,9 @@ class Mint():
             if start_date:
                 last_dt = json_date_to_datetime(txns[-1]['odate'])
                 if last_dt < start_date:
-                    keep_txns = [t for t in txns if json_date_to_datetime(t['odate']) >= start_date]
+                    keep_txns = [
+                        t for t in txns
+                        if json_date_to_datetime(t['odate']) >= start_date]
                     all_txns.extend(keep_txns)
                     break
             all_txns.extend(txns)
@@ -358,14 +374,16 @@ class Mint():
         # account types in this list will be subtracted
         invert = set(['loan', 'loans', 'credit'])
         return sum([
-            -a['currentBalance'] if a['accountType'] in invert else a['currentBalance']
+            -a['currentBalance']
+            if a['accountType'] in invert else a['currentBalance']
             for a in account_data if a['isActive']
         ])
 
     def get_transactions(self, include_investment=False):
         """Returns the transaction data as a Pandas DataFrame."""
         assert_pd()
-        s = StringIO(self.get_transactions_csv(include_investment=include_investment))
+        s = StringIO(self.get_transactions_csv(
+            include_investment=include_investment))
         s.seek(0)
         df = pd.read_csv(s, parse_dates=['Date'])
         df.columns = [c.lower().replace(' ', '_') for c in df.columns]
@@ -452,7 +470,9 @@ class Mint():
             }])
         }
 
-        cat_url = '{}/bundledServiceController.xevent?legacy=false&token={}'.format(MINT_ROOT_URL, self.token)      
+        cat_url = (
+            '{}/bundledServiceController.xevent?legacy=false&token={}'.format(
+                MINT_ROOT_URL, self.token))
         response = self.post(cat_url, data=data, headers=JSON_HEADER).text
         if req_id not in response:
             raise MintException('Could not parse category data: "' +
@@ -579,43 +599,92 @@ def main():
 
     # Parse command-line arguments {{{
     cmdline = argparse.ArgumentParser()
-    cmdline.add_argument('email', nargs='?', default=None,
-                         help='The e-mail address for your Mint.com account')
-    cmdline.add_argument('password', nargs='?', default=None,
-                         help='The password for your Mint.com account')
-    cmdline.add_argument('--accounts', action='store_true', dest='accounts',
-                         default=False, help='Retrieve account information'
-                         ' (default if nothing else is specified)')
-    cmdline.add_argument('--budgets', action='store_true', dest='budgets',
-                         default=False, help='Retrieve budget information')
-    cmdline.add_argument('--net-worth', action='store_true', dest='net_worth',
-                         default=False, help='Retrieve net worth information')
-    cmdline.add_argument('--extended-accounts', action='store_true',
-                         dest='accounts_ext', default=False,
-                         help='Retrieve extended account information (slower, '
-                         'implies --accounts)')
-    cmdline.add_argument('--transactions', '-t', action='store_true',
-                         default=False, help='Retrieve transactions')
-    cmdline.add_argument('--extended-transactions', action='store_true', default=False,
-                         help='Retrieve transactions with extra information and arguments')
-    cmdline.add_argument('--start-date', nargs='?', default=None,
-                         help='Earliest date for transactions to be retrieved from. Used with --extended-transactions. Format: mm/dd/yy')
-    cmdline.add_argument('--include-investment', action='store_true', default=False,
-                         help='Used with --extended-transactions')
-    cmdline.add_argument('--skip-duplicates', action='store_true', default=False,
-                         help='Used with --extended-transactions')
-# Displayed to the user as a postive switch, but processed back here as a negative
-    cmdline.add_argument('--show-pending', action='store_false', default=True,
-                         help='Exclude pending transactions from being retrieved. Used with --extended-transactions')
-    cmdline.add_argument('--filename', '-f', help='write results to file. can '
-                         'be {csv,json} format. default is to write to '
-                         'stdout.')
-    cmdline.add_argument('--keyring', action='store_true',
-                         help='Use OS keyring for storing password '
-                         'information')
-    cmdline.add_argument('--raw_session_cookies',
-                         help='The "cookie: param=value; param2=value2;" from '
-                         'a browser session.')
+    cmdline.add_argument(
+        'email',
+        nargs='?',
+        default=None,
+        help='The e-mail address for your Mint.com account')
+    cmdline.add_argument(
+        'password',
+        nargs='?',
+        default=None,
+        help='The password for your Mint.com account')
+
+    cmdline.add_argument(
+        '--accounts',
+        action='store_true',
+        dest='accounts',
+        default=False,
+        help='Retrieve account information'
+        ' (default if nothing else is specified)')
+    cmdline.add_argument(
+        '--budgets',
+        action='store_true',
+        dest='budgets',
+        default=False,
+        help='Retrieve budget information')
+    cmdline.add_argument(
+        '--net-worth',
+        action='store_true',
+        dest='net_worth',
+        default=False,
+        help='Retrieve net worth information')
+    cmdline.add_argument(
+        '--extended-accounts',
+        action='store_true',
+        dest='accounts_ext',
+        default=False,
+        help='Retrieve extended account information (slower, '
+        'implies --accounts)')
+    cmdline.add_argument(
+        '--transactions',
+        '-t',
+        action='store_true',
+        default=False,
+        help='Retrieve transactions')
+    cmdline.add_argument(
+        '--extended-transactions',
+        action='store_true',
+        default=False,
+        help='Retrieve transactions with extra information and arguments')
+    cmdline.add_argument(
+        '--start-date',
+        nargs='?',
+        default=None,
+        help='Earliest date for transactions to be retrieved from. '
+        'Used with --extended-transactions. Format: mm/dd/yy')
+    cmdline.add_argument(
+        '--include-investment',
+        action='store_true',
+        default=False,
+        help='Used with --extended-transactions')
+    cmdline.add_argument(
+        '--skip-duplicates',
+        action='store_true',
+        default=False,
+        help='Used with --extended-transactions')
+    # Displayed to the user as a postive switch, but processed back
+    # here as a negative
+    cmdline.add_argument(
+        '--show-pending',
+        action='store_false',
+        default=True,
+        help='Exclude pending transactions from being retrieved. '
+        'Used with --extended-transactions')
+    cmdline.add_argument(
+        '--filename', '-f',
+        help='write results to file. can '
+        'be {csv,json} format. default is to write to '
+        'stdout.')
+    cmdline.add_argument(
+        '--keyring',
+        action='store_true',
+        help='Use OS keyring for storing password '
+        'information')
+    cmdline.add_argument(
+        '--raw_session_cookies',
+        help='The "cookie: param=value; param2=value2;" from '
+        'a browser session.')
 
     options = cmdline.parse_args()
 
@@ -654,42 +723,43 @@ def main():
     if options.accounts_ext:
         options.accounts = True
 
-    if not any([options.accounts, options.budgets, options.transactions, options.extended_transactions,
-                options.net_worth]):
+    if not any([options.accounts, options.budgets, options.transactions,
+                options.extended_transactions, options.net_worth]):
         options.accounts = True
 
     mint = Mint.create(email, password)
     atexit.register(mint.close)  # Ensure everything is torn down.
-    
+
     data = None
     if options.accounts and options.budgets:
         try:
             accounts = make_accounts_presentable(
                 mint.get_accounts(get_detail=options.accounts_ext)
             )
-        except:
+        except e:
             accounts = None
 
         try:
             budgets = mint.get_budgets()
-        except:
+        except e:
             budgets = None
 
         data = {'accounts': accounts, 'budgets': budgets}
     elif options.budgets:
         try:
             data = mint.get_budgets()
-        except:
+        except e:
             data = None
     elif options.accounts:
         try:
             data = make_accounts_presentable(mint.get_accounts(
                 get_detail=options.accounts_ext)
             )
-        except:
+        except e:
             data = None
     elif options.transactions:
-        data = mint.get_transactions(include_investment=options.include_investment)
+        data = mint.get_transactions(
+            include_investment=options.include_investment)
     elif options.extended_transactions:
         data = mint.get_detailed_transactions(
             start_date=options.start_date,
