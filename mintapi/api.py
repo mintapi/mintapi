@@ -29,7 +29,7 @@ def assert_pd():
         )
 
 
-def json_date_to_datetime(self, dateraw):
+def json_date_to_datetime(dateraw):
     cy = datetime.isocalendar(date.today())[0]
     try:
         newdate = datetime.strptime(dateraw + str(cy), '%b %d%Y')
@@ -38,7 +38,7 @@ def json_date_to_datetime(self, dateraw):
     return newdate
 
 
-def reverse_credit_amount(self, row):
+def reverse_credit_amount(row):
     amount = float(row['amount'][1:].replace(',', ''))
     return amount if row['isDebit'] else -amount
 
