@@ -118,3 +118,15 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
 
 If you need to avoid using pip or setup.py, you can also clone/download
 this repository and run: ``python mintapi/api.py``
+
+### from Docker
+
+Build local docker image
+```
+docker build -t local/mintapi .
+```
+
+Run in docker
+```
+docker run -it -u appuser  --cap-add=ALL local/mintapi bash --login -c "./mintapi.sh --accounts"
+```
