@@ -2,7 +2,7 @@ import copy
 import datetime
 import json
 import unittest
-from unittest.mock import patch, Mock
+from unittest.mock import patch
 
 import mintapi
 import mintapi.api
@@ -24,7 +24,7 @@ class MintApiTests(unittest.TestCase):
 
         accounts_json = json.dumps({'response': {'42': {'response': accounts_example}}})
         mock_driver.return_value.request.return_value.text = accounts_json
-        
+
         accounts = mintapi.get_accounts('foo', 'bar')
 
         self.assertFalse('lastUpdatedInDate' in accounts)
