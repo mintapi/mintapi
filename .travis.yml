@@ -4,8 +4,9 @@ python:
   - "3.4"
 # command to install dependencies
 install:
-    - python setup.py install
+    - sudo apt-get install chromium-chromedriver
     - pip install nose flake8 pep8-naming 
+    - python setup.py install
 before-script:
     - flake8 --ignore=E501 mintapi # pep8 flake ignoring long lines
 # command to run tests
