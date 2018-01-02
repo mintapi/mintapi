@@ -3,9 +3,9 @@ python:
   - "2.7"
   - "3.4"
 # command to install dependencies
-install: 
+install:
     - python setup.py install
-    - pip install nose flake8 pep8-naming selenium-requests
+    - pip install nose flake8 pep8-naming 
 before-script:
     - flake8 --ignore=E501 mintapi # pep8 flake ignoring long lines
 # command to run tests
