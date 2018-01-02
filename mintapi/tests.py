@@ -2,7 +2,11 @@ import copy
 import datetime
 import json
 import unittest
-from unittest.mock import patch
+
+try:
+    from mock import patch  # Python 2
+except ImportError:
+    from unittest.mock import patch  # Python 3
 
 import mintapi
 import mintapi.api
