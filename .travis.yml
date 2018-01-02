@@ -6,5 +6,7 @@ python:
 install: 
     - python setup.py install
     - pip install nose flake8 pep8-naming
-script:
+before-script:
     - flake8 --ignore=E501 mintapi # pep8 flake ignoring long lines
+# command to run tests
+script: nosetests
