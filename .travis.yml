@@ -5,7 +5,7 @@ python:
 # command to install dependencies
 install: 
     - python setup.py install
-    - pip install nose flake8 pep8-naming selenium-requests
+    - pip install nose flake8 mock pep8-naming selenium-requests
 before-script:
     - flake8 --ignore=E501 mintapi # pep8 flake ignoring long lines
 # command to run tests
