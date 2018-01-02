@@ -549,8 +549,8 @@ class Mint():
             headers=JSON_HEADER)
 
 
-def get_accounts(email, password, get_detail=False, session_cookies=None):
-    mint = Mint.create(email, password, session_cookies)
+def get_accounts(email, password, get_detail=False):
+    mint = Mint.create(email, password)
     return mint.get_accounts(get_detail=get_detail)
 
 
@@ -681,10 +681,6 @@ def main():
         action='store_true',
         help='Use OS keyring for storing password '
         'information')
-    cmdline.add_argument(
-        '--raw_session_cookies',
-        help='The "cookie: param=value; param2=value2;" from '
-        'a browser session.')
 
     options = cmdline.parse_args()
 
