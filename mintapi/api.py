@@ -339,7 +339,7 @@ class Mint():
         result = self.get_transactions_json(include_investment,
                                             skip_duplicates, start_date)
         df = pd.DataFrame(result)
-        df['odate'] = df['odate'].apply(self._dateconvert)
+        df['odate'] = df['odate'].apply(json_date_to_datetime)
 
         if remove_pending:
             df = df[~df.isPending]
