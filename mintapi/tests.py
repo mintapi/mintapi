@@ -3,6 +3,11 @@ import datetime
 import json
 import unittest
 
+try:
+    from mock import patch  # Python 2
+except ImportError:
+    from unittest.mock import patch  # Python 3
+
 import mintapi
 import mintapi.api
 
@@ -15,42 +20,16 @@ accounts_example = [{
 }]
 
 
-class MockResponse:
-    def __init__(self, text, status_code=200):
-        self.text = text
-        self.status_code = status_code
-
-
-class MockSession(mintapi.api.Mint):
-    def mount(self, *args, **kwargs):
-        pass
-
-    def get(self, path, data=None, headers=None):
-        return MockResponse('')
-
-    def post(self, path, data=None, headers=None, **kwargs):
-        if 'sign_in' in path:
-            text = {'iamTicket': {'userId': 1}}
-        elif 'loginUserSubmit.xevent' in path:
-            text = {'sUser': {'token': 1}}
-        elif 'getUserPod' in path:
-            text = {'userPN': 6}
-        elif 'bundledServiceController' in path:
-            data = json.loads(data['input'])[0]
-            text = {'response': {data['id']: {'response': accounts_example}}}
-        return MockResponse(json.dumps(text))
-
-
 class MintApiTests(unittest.TestCase):
-    def setUp(self):  # noqa
-        self._Mint = mintapi.api.Mint
-        mintapi.api.Mint = MockSession
+    @patch.object(mintapi.api, 'get_web_driver')
+    def test_accounts(self, mock_driver):
+        token_json = json.dumps({'token': '123'})
+        mock_driver.return_value.find_element_by_name.return_value.get_attribute.return_value = token_json
 
-    def tearDown(self):  # noqa
-        mintapi.api.Mint = self._Mint
+        accounts_json = json.dumps({'response': {'42': {'response': accounts_example}}})
+        mock_driver.return_value.request.return_value.text = accounts_json
 
-    def test_accounts(self):
-        accounts = mintapi.get_accounts('foo', 'bar', ius_session='baz')
+        accounts = mintapi.get_accounts('foo', 'bar')
 
         self.assertFalse('lastUpdatedInDate' in accounts)
         self.assertNotEqual(accounts, accounts_example)

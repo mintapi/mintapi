@@ -25,8 +25,7 @@ make calls to retrieve account/budget information.  We recommend using the
 
 ```python
   import mintapi
-  # ius_session and thx_guid are optional, and will be automatically extracted if possible (see above for installing selenium/chromedriver)
-  mint = mintapi.Mint(email, password, ius_session, thx_guid)
+  mint = mintapi.Mint(email, password)
 
   # Get basic account information
   mint.get_accounts()
@@ -50,19 +49,6 @@ make calls to retrieve account/budget information.  We recommend using the
   mint.initiate_account_refresh()
 ```
 
-You will notice the login step requires an ius_session and thx_guid.  These are session
-cookies that must persist. If you choose not to install selenium and chromedriver, you must obtain these values by searching your browser's cookies.
-
-For example: In Chrome v61: 
-  - **ius_session**: visit chrome://settings/cookies/detail?site=accounts.intuit.com 
-  - **thx_guid**: visit chrome://settings/cookies/detail?site=pf.intuit.com
-
-Alternatively, you
-can login to Mint manually with your browser in inspect mode and poke around in the network tab.
-Providing these two cookies eliminates the need to 2-step authenticate.  Mint requires this with
-all new browsers attempting to connect.
-
-from anywhere
 ---
 Run it as a sub-process from your favorite language; `pip install mintapi` creates a binary in your $PATH. From the command-line, the output is JSON:
 
@@ -101,8 +87,6 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                             write results to file. can be {csv,json} format.
                             default is to write to stdout.
       --keyring             Use OS keyring for storing password information
-      --session SESSION     ius_session cookie
-      --thx_guid THX_GUID   thx_guid cookie
     >>> mintapi --keyring email@example.com
     [
       {
