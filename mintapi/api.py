@@ -5,6 +5,7 @@ import random
 import re
 import requests
 import time
+from selenium import webdriver
 
 try:
     from StringIO import StringIO  # Python 2
@@ -43,8 +44,11 @@ def reverse_credit_amount(row):
     return amount if row['isDebit'] else -amount
 
 
-def get_web_driver(email, password):
-    driver = Chrome()
+def get_web_driver(email, password, headless=False):
+    driver_options = webdriver.ChromeOptions()
+    if headless:
+        driver_options.add_argument("headless")
+    driver = Chrome(chrome_options=driver_options)
 
     driver.get("https://www.mint.com")
     driver.implicitly_wait(20)  # seconds
@@ -112,9 +116,9 @@ class Mint():
     token = None
     driver = None
 
-    def __init__(self, email=None, password=None):
+    def __init__(self, email=None, password=None, headless=False):
         if email and password:
-            self.login_and_get_token(email, password)
+            self.login_and_get_token(email, password, headless)
 
     @classmethod
     def create(cls, email, password):
@@ -172,11 +176,11 @@ class Mint():
     def post(self, url, **kwargs):
         return self.driver.request('POST', url, **kwargs)
 
-    def login_and_get_token(self, email, password):
+    def login_and_get_token(self, email, password, headless=False):
         if self.token and self.driver:
             return
 
-        self.driver = get_web_driver(email, password)
+        self.driver = get_web_driver(email, password, headless)
         self.token = self.get_token()
 
     def get_token(self):
@@ -430,27 +434,27 @@ class Mint():
             xml = xml['tr'][1]['td']
 
             if table_type == 'account-table-bank':
-                account['availableMoney'] = Mint.parse_float(xml[1]['#text'])
-                account['totalFees'] = Mint.parse_float(xml[3]['a']['#text'])
-                if (account['interestRate'] is None):
-                    account['interestRate'] = (
-                        Mint.parse_float(xml[2]['#text']) / 100.0
-                    )
-            elif table_type == 'account-table-credit':
-                account['availableMoney'] = Mint.parse_float(xml[1]['#text'])
-                account['totalCredit'] = Mint.parse_float(xml[2]['#text'])
-                account['totalFees'] = Mint.parse_float(xml[4]['a']['#text'])
+                account['availableMoney'] = parse_float(xml[1]['#text'])
+                account['totalFees'] = parse_float(xml[3]['a']['#text'])
                 if account['interestRate'] is None:
-                    account['interestRate'] = (
-                        Mint.parse_float(xml[3]['#text']) / 100.0
-                    )
+                    try:
+                        account['interestRate'] = parse_float(xml[2]['#text']) / 100.0
+                    except TypeError:
+                        account['interestRate'] = 0
+            elif table_type == 'account-table-credit':
+                account['availableMoney'] = parse_float(xml[1]['#text'])
+                account['totalCredit'] = parse_float(xml[2]['#text'])
+                account['totalFees'] = parse_float(xml[4]['a']['#text'])
+                if account['interestRate'] is None:
+                    try:
+                        account['interestRate'] = parse_float(xml[3]['#text']) / 100.0
+                    except TypeError:
+                        account['interestRate'] = 0;
             elif table_type == 'account-table-loan':
-                account['nextPaymentAmount'] = (
-                    Mint.parse_float(xml[1]['#text'])
-                )
+                account['nextPaymentAmount'] = parse_float(xml[1]['#text'])
                 account['nextPaymentDate'] = xml[2].get('#text', None)
             elif table_type == 'account-type-investment':
-                account['totalFees'] = Mint.parse_float(xml[2]['a']['#text'])
+                account['totalFees'] = parse_float(xml[2]['a']['#text'])
 
         return accounts
 
