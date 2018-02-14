@@ -53,7 +53,7 @@ make calls to retrieve account/budget information.  We recommend using the
 Run it as a sub-process from your favorite language; `pip install mintapi` creates a binary in your $PATH. From the command-line, the output is JSON:
 
 ```shell
-    usage: mintapi [-h] [--accounts] [--budgets] [--net-worth]
+    usage: mintapi [-h] [--accounts] [--budgets] [--net-worth] [--headless]
               [--extended-accounts] [--transactions] [--extended-transactions]
               [--start-date [START_DATE]] [--include-investment]
               [--skip-duplicates] [--show-pending] [--filename FILENAME]
@@ -66,6 +66,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
 
     optional arguments:
       -h, --help            show this help message and exit
+      --headless            Run browser in headless mode
       --accounts            Retrieve account information (default if nothing else
                             is specified)
       --budgets             Retrieve budget information

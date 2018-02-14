@@ -121,8 +121,8 @@ class Mint():
             self.login_and_get_token(email, password, headless)
 
     @classmethod
-    def create(cls, email, password):
-        return Mint(email, password)
+    def create(cls, email, password, headless=False):
+        return Mint(email, password, headless)
 
     @classmethod
     def get_rnd(cls):  # {{{
@@ -553,13 +553,13 @@ class Mint():
             headers=JSON_HEADER)
 
 
-def get_accounts(email, password, get_detail=False):
-    mint = Mint.create(email, password)
+def get_accounts(email, password, get_detail=False, headless=False):
+    mint = Mint.create(email, password, headless)
     return mint.get_accounts(get_detail=get_detail)
 
 
-def get_net_worth(email, password):
-    mint = Mint.create(email, password)
+def get_net_worth(email, password, headless=False):
+    mint = Mint.create(email, password, headless)
     account_data = mint.get_accounts()
     return mint.get_net_worth(account_data)
 
@@ -582,13 +582,13 @@ def print_accounts(accounts):
     print(json.dumps(make_accounts_presentable(accounts), indent=2))
 
 
-def get_budgets(email, password):
-    mint = Mint.create(email, password)
+def get_budgets(email, password, headless=False):
+    mint = Mint.create(email, password, headless)
     return mint.get_budgets()
 
 
-def initiate_account_refresh(email, password):
-    mint = Mint.create(email, password)
+def initiate_account_refresh(email, password, headless=False):
+    mint = Mint.create(email, password, headless)
     return mint.initiate_account_refresh()
 
 
@@ -613,7 +613,12 @@ def main():
         nargs='?',
         default=None,
         help='The password for your Mint.com account')
-
+    cmdline.add_argument(
+        '--headless',
+        action='store_true',
+        dest='headless',
+        default=False,
+        help='Run browser in headless mode')
     cmdline.add_argument(
         '--accounts',
         action='store_true',
@@ -727,7 +732,7 @@ def main():
                 options.extended_transactions, options.net_worth]):
         options.accounts = True
 
-    mint = Mint.create(email, password)
+    mint = Mint.create(email, password, options.headless)
     atexit.register(mint.close)  # Ensure everything is torn down.
 
     data = None
