@@ -1,3 +1,7 @@
+1.29
+---
+- use seleniumrequests to perform all requests (thanks @jprouty!)
+
 1.28
 ---
 - fix get_transactions_json when start_date predates all transactions (thanks @jprouty!)
