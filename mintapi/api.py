@@ -107,7 +107,7 @@ class MintException(Exception):
     pass
 
 
-class Mint():
+class Mint(object):
     request_id = 42  # magic number? random number?
     token = None
     driver = None
