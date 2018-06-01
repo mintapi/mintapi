@@ -505,7 +505,7 @@ class Mint(object):
             'endDate': this_month,
             'rnd': Mint.get_rnd(),
         }
-        response = json.loads(self.get(url, params, headers=JSON_HEADER)).text
+        response = json.loads(self.get(url, params=params, headers=JSON_HEADER).text)
 
         # Make the skeleton return structure
         budgets = {
