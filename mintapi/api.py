@@ -1,16 +1,21 @@
 import atexit
+from builtins import input
 from datetime import date, datetime, timedelta
 import json
 import random
 import re
 import requests
 import time
+import warnings
 
 try:
     from StringIO import StringIO  # Python 2
 except ImportError:
     from io import BytesIO as StringIO  # Python 3
 
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
+from selenium.webdriver import ChromeOptions
+from selenium.webdriver.support.ui import WebDriverWait
 from seleniumrequests import Chrome
 import xmltodict
 
@@ -43,8 +48,18 @@ def reverse_credit_amount(row):
     return amount if row['isDebit'] else -amount
 
 
-def get_web_driver(email, password):
-    driver = Chrome()
+def get_web_driver(email, password, headless=False, mfa_method=None,
+                   mfa_input_callback=None, wait_for_sync=True):
+    assert mfa_method in (None, 'sms', 'email'), "Acceptable MFA methods are 'sms' and 'email'."
+
+    if headless and mfa_method is None:
+        warnings.warn("Using headless mode without specifying an MFA method"
+                      "is unlikely to lead to a successful login.")
+
+    options = ChromeOptions()
+    if headless:
+        options.add_argument('headless')
+    driver = Chrome(chrome_options=options)
 
     driver.get("https://www.mint.com")
     driver.implicitly_wait(20)  # seconds
@@ -59,9 +74,44 @@ def get_web_driver(email, password):
             'https://mint.intuit.com/overview.event'):
         time.sleep(1)
 
-    # Wait until the overview page has actually loaded.
-    driver.implicitly_wait(20)  # seconds
-    driver.find_element_by_id("transaction")
+        # Attempt to handle MFA process if mfa_method is specified.
+        if mfa_method is not None:
+            driver.implicitly_wait(1)  # seconds
+            try:
+                driver.find_element_by_id('ius-mfa-options-form')
+                try:
+                    mfa_method_option = driver.find_element_by_id('ius-mfa-option-{}'.format(mfa_method))
+                    mfa_method_option.click()
+                    mfa_method_submit = driver.find_element_by_id("ius-mfa-options-submit-btn")
+                    mfa_method_submit.click()
+
+                    mfa_code = (mfa_input_callback or input)("Please enter your 6-digit MFA code: ")
+                    mfa_code_input = driver.find_element_by_id("ius-mfa-confirm-code")
+                    mfa_code_input.send_keys(mfa_code)
+
+                    mfa_code_submit = driver.find_element_by_id("ius-mfa-otp-submit-btn")
+                    mfa_code_submit.click()
+                except Exception:  # if anything goes wrong for any reason, give up on MFA
+                    mfa_method = None
+                    warnings.warn("Giving up on handling MFA. Please complete "
+                                  "the MFA process manually in the browser.")
+            except NoSuchElementException:
+                pass
+            finally:
+                driver.implicitly_wait(20)  # seconds
+
+    # Wait until the overview page has actually loaded, and if wait_for_sync==True, sync has completed.
+    if wait_for_sync:
+        status_message = driver.find_element_by_css_selector(".SummaryView .message")
+        try:
+            WebDriverWait(driver, 5 * 60).until(
+                lambda x: status_message.get_attribute('innerHTML') == "Account refresh completed."
+            )
+        except TimeoutException:
+            warnings.warn("Mint sync apparently incomplete after 5 minutes. Data "
+                          "retrieved may not be current.")
+    else:
+        driver.find_element_by_id("transaction")
 
     return driver
 
@@ -112,13 +162,17 @@ class Mint(object):
     token = None
     driver = None
 
-    def __init__(self, email=None, password=None):
+    def __init__(self, email=None, password=None, mfa_method=None,
+                 mfa_input_callback=None, headless=False):
         if email and password:
-            self.login_and_get_token(email, password)
+            self.login_and_get_token(email, password,
+                                     mfa_method=mfa_method,
+                                     mfa_input_callback=mfa_input_callback,
+                                     headless=headless)
 
     @classmethod
-    def create(cls, email, password):
-        return Mint(email, password)
+    def create(cls, email, password, **opts):
+        return Mint(email, password, **opts)
 
     @classmethod
     def get_rnd(cls):  # {{{
@@ -172,11 +226,15 @@ class Mint(object):
     def post(self, url, **kwargs):
         return self.driver.request('POST', url, **kwargs)
 
-    def login_and_get_token(self, email, password):
+    def login_and_get_token(self, email, password, mfa_method=None,
+                            mfa_input_callback=None, headless=False):
         if self.token and self.driver:
             return
 
-        self.driver = get_web_driver(email, password)
+        self.driver = get_web_driver(email, password,
+                                     mfa_method=mfa_method,
+                                     mfa_input_callback=mfa_input_callback,
+                                     headless=headless)
         self.token = self.get_token()
 
     def get_token(self):
@@ -681,6 +739,15 @@ def main():
         action='store_true',
         help='Use OS keyring for storing password '
         'information')
+    cmdline.add_argument(
+        '--headless',
+        action='store_true',
+        help='Whether to execute chromedriver with no visible window.')
+    cmdline.add_argument(
+        '--mfa-method',
+        default=None,
+        choices=['sms','email'],
+        help='The MFA method to automate.')
 
     options = cmdline.parse_args()
 
@@ -723,7 +790,9 @@ def main():
                 options.extended_transactions, options.net_worth]):
         options.accounts = True
 
-    mint = Mint.create(email, password)
+    mint = Mint.create(email, password,
+                       mfa_method=options.mfa_method,
+                       headless=options.headless)
     atexit.register(mint.close)  # Ensure everything is torn down.
 
     data = None
