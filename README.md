@@ -9,7 +9,7 @@ Ensure you have Python 2 or 3 and pip (`easy_install pip`) and then:
 pip install mintapi
 ```
 
-If you do not want to manually find and provide your Mint session cookies, as described below, then please also install `selenium` and `chromedriver`:
+If you do not want to manually find and provide your Mint session cookies, as described below, then please also install `selenium` and `chromedriver` (version 59+ if you want to use headless mode):
 ```shell
 pip install selenium
 brew install chromedriver # or sudo apt-get install chromium-chromedriver on Ubuntu/Debian
@@ -25,7 +25,18 @@ make calls to retrieve account/budget information.  We recommend using the
 
 ```python
   import mintapi
-  mint = mintapi.Mint(email, password)
+  mint = mintapi.Mint(
+    'your_email@web.com',  # Email used to log in to Mint
+    'password',  # Your password used to log in to mint
+    # Optional parameters
+    mfa_method='sms',  # Can be None (default), 'sms' or 'email'.  If specified, mintapi
+                       # will attempt to manage the two-factor authentication
+    headless=False,  # Whether the chromedriver should work without opening a
+                     # visible window (useful for server-side deployments)
+    mfa_input_callback=None  # A callback accepting a single argument (the prompt)
+                             # which returns the user-inputted 2FA code. By default
+                             # the default Python `input` function is used.
+  )
 
   # Get basic account information
   mint.get_accounts()
@@ -54,11 +65,12 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
 
 ```shell
     usage: mintapi [-h] [--accounts] [--budgets] [--net-worth]
-              [--extended-accounts] [--transactions] [--extended-transactions]
-              [--start-date [START_DATE]] [--include-investment]
-              [--skip-duplicates] [--show-pending] [--filename FILENAME]
-              [--keyring] [--session SESSION] [--thx_guid THX_GUID]
-              [email] [password]
+                   [--extended-accounts] [--transactions]
+                   [--extended-transactions] [--start-date [START_DATE]]
+                   [--include-investment] [--skip-duplicates] [--show-pending]
+                   [--filename FILENAME] [--keyring] [--headless]
+                   [--mfa-method {sms,email}]
+                   [email] [password]
 
     positional arguments:
       email                 The e-mail address for your Mint.com account
@@ -87,6 +99,10 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                             write results to file. can be {csv,json} format.
                             default is to write to stdout.
       --keyring             Use OS keyring for storing password information
+      --headless            Whether to execute chromedriver with no visible
+                            window.
+      --mfa-method {sms,email}
+                            The MFA method to automate.
     >>> mintapi --keyring email@example.com
     [
       {

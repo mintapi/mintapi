@@ -1,16 +1,25 @@
 import atexit
 from datetime import date, datetime, timedelta
+import io
 import json
+import os
+import os.path
 import random
 import re
 import requests
+from sys import platform as _platform
 import time
+import warnings
+import zipfile
 
 try:
     from StringIO import StringIO  # Python 2
 except ImportError:
     from io import BytesIO as StringIO  # Python 3
 
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
+from selenium.webdriver import ChromeOptions
+from selenium.webdriver.support.ui import WebDriverWait
 from seleniumrequests import Chrome
 import xmltodict
 
@@ -43,9 +52,45 @@ def reverse_credit_amount(row):
     return amount if row['isDebit'] else -amount
 
 
-def get_web_driver(email, password):
-    driver = Chrome()
+CHROME_DRIVER_VERSION = 2.41
 
+
+def get_web_driver(email, password, headless=False, mfa_method=None,
+                   mfa_input_callback=None, wait_for_sync=True):
+    if headless and mfa_method is None:
+        warnings.warn("Using headless mode without specifying an MFA method"
+                      "is unlikely to lead to a successful login. Defaulting --mfa-method=sms")
+        mfa_method = "sms"
+
+    zip_type = ""
+    executable_path = os.getcwd()
+    if _platform == "linux" or _platform == "linux2":
+        zip_type = 'linux'
+        executable_path += "/chromedriver"
+    elif _platform == "darwin":
+        zip_type = 'mac'
+        executable_path += "/chromedriver"
+    elif _platform == "win32" or _platform == "win64":
+        zip_type = 'win'
+        executable_path += "/chromedriver.exe"
+
+    if not os.path.exists(executable_path):
+        zip_file_url = 'https://chromedriver.storage.googleapis.com/%s/chromedriver_%s64.zip' % (CHROME_DRIVER_VERSION,
+                                                                                                 zip_type)
+        request = requests.get(zip_file_url)
+        zip_file = zipfile.ZipFile(io.BytesIO(request.content))
+        zip_file.extractall()
+        os.chmod(executable_path, 0o755)
+
+    chrome_options = ChromeOptions()
+    if headless:
+        chrome_options.add_argument('headless')
+        chrome_options.add_argument('no-sandbox')
+        chrome_options.add_argument('disable-dev-shm-usage')
+        chrome_options.add_argument('disable-gpu')
+        # chrome_options.add_argument("--window-size=1920x1080")
+
+    driver = Chrome(chrome_options=chrome_options, executable_path="%s" % executable_path)
     driver.get("https://www.mint.com")
     driver.implicitly_wait(20)  # seconds
     driver.find_element_by_link_text("Log In").click()
@@ -59,9 +104,42 @@ def get_web_driver(email, password):
             'https://mint.intuit.com/overview.event'):
         time.sleep(1)
 
-    # Wait until the overview page has actually loaded.
-    driver.implicitly_wait(20)  # seconds
-    driver.find_element_by_id("transaction")
+        driver.implicitly_wait(1)  # seconds
+        try:
+            driver.find_element_by_id('ius-mfa-options-form')
+            try:
+                mfa_method_option = driver.find_element_by_id('ius-mfa-option-{}'.format(mfa_method))
+                mfa_method_option.click()
+                mfa_method_submit = driver.find_element_by_id("ius-mfa-options-submit-btn")
+                mfa_method_submit.click()
+
+                mfa_code = (mfa_input_callback or input)("Please enter your 6-digit MFA code: ")
+                mfa_code_input = driver.find_element_by_id("ius-mfa-confirm-code")
+                mfa_code_input.send_keys(mfa_code)
+
+                mfa_code_submit = driver.find_element_by_id("ius-mfa-otp-submit-btn")
+                mfa_code_submit.click()
+            except Exception:  # if anything goes wrong for any reason, give up on MFA
+                mfa_method = None
+                warnings.warn("Giving up on handling MFA. Please complete "
+                              "the MFA process manually in the browser.")
+        except NoSuchElementException:
+            pass
+        finally:
+            driver.implicitly_wait(20)  # seconds
+
+    # Wait until the overview page has actually loaded, and if wait_for_sync==True, sync has completed.
+    if wait_for_sync:
+        status_message = driver.find_element_by_css_selector(".SummaryView .message")
+        try:
+            WebDriverWait(driver, 5 * 60).until(
+                lambda x: status_message.get_attribute('innerHTML') == "Account refresh completed."
+            )
+        except TimeoutException:
+            warnings.warn("Mint sync apparently incomplete after 5 minutes. Data "
+                          "retrieved may not be current.")
+    else:
+        driver.find_element_by_id("transaction")
 
     return driver
 
@@ -112,13 +190,17 @@ class Mint(object):
     token = None
     driver = None
 
-    def __init__(self, email=None, password=None):
+    def __init__(self, email=None, password=None, mfa_method=None,
+                 mfa_input_callback=None, headless=False):
         if email and password:
-            self.login_and_get_token(email, password)
+            self.login_and_get_token(email, password,
+                                     mfa_method=mfa_method,
+                                     mfa_input_callback=mfa_input_callback,
+                                     headless=headless)
 
     @classmethod
-    def create(cls, email, password):
-        return Mint(email, password)
+    def create(cls, email, password, **opts):
+        return Mint(email, password, **opts)
 
     @classmethod
     def get_rnd(cls):  # {{{
@@ -172,11 +254,15 @@ class Mint(object):
     def post(self, url, **kwargs):
         return self.driver.request('POST', url, **kwargs)
 
-    def login_and_get_token(self, email, password):
+    def login_and_get_token(self, email, password, mfa_method=None,
+                            mfa_input_callback=None, headless=False):
         if self.token and self.driver:
             return
 
-        self.driver = get_web_driver(email, password)
+        self.driver = get_web_driver(email, password,
+                                     mfa_method=mfa_method,
+                                     mfa_input_callback=mfa_input_callback,
+                                     headless=headless)
         self.token = self.get_token()
 
     def get_token(self):
@@ -292,11 +378,11 @@ class Mint(object):
                 '/getJsonData.xevent?' +
                 'queryNew=&offset={offset}&comparableType=8&' +
                 'rnd={rnd}&{query_options}').format(
-                    offset=offset,
-                    rnd=Mint.get_rnd(),
-                    query_options=(
-                        'accountId=0&task=transactions' if include_investment
-                        else 'task=transactions,txnfilters&filterType=cash'))
+                offset=offset,
+                rnd=Mint.get_rnd(),
+                query_options=(
+                    'accountId=0&task=transactions' if include_investment
+                    else 'task=transactions,txnfilters&filterType=cash'))
             result = self.request_and_check(
                 url, headers=JSON_HEADER,
                 expected_content_type='text/json|application/json')
@@ -616,7 +702,7 @@ def main():
         dest='accounts',
         default=False,
         help='Retrieve account information'
-        ' (default if nothing else is specified)')
+        '(default if nothing else is specified)')
     cmdline.add_argument(
         '--budgets',
         action='store_true',
@@ -681,6 +767,15 @@ def main():
         action='store_true',
         help='Use OS keyring for storing password '
         'information')
+    cmdline.add_argument(
+        '--headless',
+        action='store_true',
+        help='Whether to execute chromedriver with no visible window.')
+    cmdline.add_argument(
+        '--mfa-method',
+        default='sms',
+        choices=['sms', 'email'],
+        help='The MFA method to automate.')
 
     options = cmdline.parse_args()
 
@@ -723,7 +818,9 @@ def main():
                 options.extended_transactions, options.net_worth]):
         options.accounts = True
 
-    mint = Mint.create(email, password)
+    mint = Mint.create(email, password,
+                       mfa_method=options.mfa_method,
+                       headless=options.headless)
     atexit.register(mint.close)  # Ensure everything is torn down.
 
     data = None
