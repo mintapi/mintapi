@@ -1,3 +1,8 @@
+1.30
+---
+- chromedriver now supports --headless option (thanks @matthewwardrop/@eschizoid)
+- chromedriver now supports --mfa-method to automate triggering sms/email (thanks @matthewwardrop/@eschizoid)
+
 1.29
 ---
 - use seleniumrequests to perform all requests (thanks @jprouty!)
