@@ -1,3 +1,7 @@
+1.31
+---
+- fix for headless chromedriver not working on Windows (github#151) 
+
 1.30
 ---
 - chromedriver now supports --headless option (thanks @matthewwardrop/@eschizoid)
