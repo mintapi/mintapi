@@ -12,7 +12,7 @@ pip install mintapi
 If you do not want to manually find and provide your Mint session cookies, as described below, then please also install `selenium` and `chromedriver` (version 59+ if you want to use headless mode):
 ```shell
 pip install selenium
-brew install chromedriver # or sudo apt-get install chromium-chromedriver on Ubuntu/Debian
+brew cask install chromedriver # or sudo apt-get install chromium-chromedriver on Ubuntu/Debian
 ```
 
 ## Usage
