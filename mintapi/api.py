@@ -63,16 +63,16 @@ def get_web_driver(email, password, headless=False, mfa_method=None,
         mfa_method = "sms"
 
     zip_type = ""
-    executable_path = os.getcwd()
+    executable_path = os.getcwd() + os.path.sep
     if _platform == "linux" or _platform == "linux2":
         zip_type = 'linux'
-        executable_path += "/chromedriver"
+        executable_path += "chromedriver"
     elif _platform == "darwin":
         zip_type = 'mac'
-        executable_path += "/chromedriver"
+        executable_path += "chromedriver"
     elif _platform == "win32" or _platform == "win64":
         zip_type = 'win'
-        executable_path += "/chromedriver.exe"
+        executable_path += "chromedriver.exe"
 
     if not os.path.exists(executable_path):
         zip_file_url = 'https://chromedriver.storage.googleapis.com/%s/chromedriver_%s64.zip' % (CHROME_DRIVER_VERSION,
