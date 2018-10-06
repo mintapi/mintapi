@@ -133,7 +133,7 @@ def get_web_driver(email, password, headless=False, mfa_method=None,
         status_message = driver.find_element_by_css_selector(".SummaryView .message")
         try:
             WebDriverWait(driver, 5 * 60).until(
-                lambda x: status_message.get_attribute('innerHTML') == "Account refresh completed."
+                lambda x: "Account refresh complete" in status_message.get_attribute('innerHTML')
             )
         except TimeoutException:
             warnings.warn("Mint sync apparently incomplete after 5 minutes. Data "
