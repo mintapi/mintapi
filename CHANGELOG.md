@@ -1,6 +1,10 @@
+1.32
+---
+- don't let "accounts need attention" block closing after a successful refresh (github#156)
+
 1.31
 ---
-- fix for headless chromedriver not working on Windows (github#151) 
+- fix for headless chromedriver not working on Windows (github#151)
 
 1.30
 ---
