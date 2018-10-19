@@ -1,3 +1,8 @@
+1.33
+---
+- fix chromedriver download on win64 (github#158)
+- fix usages of parse_float (github#157)
+
 1.32
 ---
 - don't let "accounts need attention" block closing after a successful refresh (github#156)

@@ -79,7 +79,7 @@ def get_web_driver(email, password, headless=False, mfa_method=None,
     if not os.path.exists(executable_path):
         zip_file_url = CHROME_DRIVER_BASE_URL % (CHROME_DRIVER_VERSION, zip_type)
         request = requests.get(zip_file_url)
-        
+
         if request.status_code != 200:
             raise RuntimeError('Error finding chromedriver at %r, status = %d' %
                                (zip_file_url, request.status_code))
@@ -522,27 +522,27 @@ class Mint(object):
             xml = xml['tr'][1]['td']
 
             if table_type == 'account-table-bank':
-                account['availableMoney'] = Mint.parse_float(xml[1]['#text'])
-                account['totalFees'] = Mint.parse_float(xml[3]['a']['#text'])
+                account['availableMoney'] = parse_float(xml[1]['#text'])
+                account['totalFees'] = parse_float(xml[3]['a']['#text'])
                 if (account['interestRate'] is None):
                     account['interestRate'] = (
-                        Mint.parse_float(xml[2]['#text']) / 100.0
+                        parse_float(xml[2]['#text']) / 100.0
                     )
             elif table_type == 'account-table-credit':
-                account['availableMoney'] = Mint.parse_float(xml[1]['#text'])
-                account['totalCredit'] = Mint.parse_float(xml[2]['#text'])
-                account['totalFees'] = Mint.parse_float(xml[4]['a']['#text'])
+                account['availableMoney'] = parse_float(xml[1]['#text'])
+                account['totalCredit'] = parse_float(xml[2]['#text'])
+                account['totalFees'] = parse_float(xml[4]['a']['#text'])
                 if account['interestRate'] is None:
                     account['interestRate'] = (
-                        Mint.parse_float(xml[3]['#text']) / 100.0
+                        parse_float(xml[3]['#text']) / 100.0
                     )
             elif table_type == 'account-table-loan':
                 account['nextPaymentAmount'] = (
-                    Mint.parse_float(xml[1]['#text'])
+                    parse_float(xml[1]['#text'])
                 )
                 account['nextPaymentDate'] = xml[2].get('#text', None)
             elif table_type == 'account-type-investment':
-                account['totalFees'] = Mint.parse_float(xml[2]['a']['#text'])
+                account['totalFees'] = parse_float(xml[2]['a']['#text'])
 
         return accounts
 
