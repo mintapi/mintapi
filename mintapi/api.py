@@ -155,7 +155,7 @@ IGNORE_FLOAT_REGEX = re.compile(r"[$,%]")
 
 def parse_float(str_number):
     try:
-        return float(IGNORE_FLOAT_REGEX.sub(str_number, ''))
+        return float(IGNORE_FLOAT_REGEX.sub('', str_number))
     except ValueError:
         return None
 

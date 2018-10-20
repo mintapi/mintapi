@@ -51,3 +51,14 @@ class MintApiTests(unittest.TestCase):
             zip_file_url = mintapi.api.CHROME_DRIVER_BASE_URL % (mintapi.api.CHROME_DRIVER_VERSION, zip_type)
             request = requests.get(zip_file_url)
             self.assertEqual(request.status_code, 200)
+
+    def test_parse_float(self):
+
+        answer = mintapi.api.parse_float('10%')
+        self.assertEquals(answer, float(10))
+
+        answer = mintapi.api.parse_float('$10')
+        self.assertEquals(answer, float(10))
+
+        answer = mintapi.api.parse_float('0.00%')
+        self.assertEquals(answer, float(0))
