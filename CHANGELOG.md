@@ -1,3 +1,7 @@
+1.34
+---
+- correctly fix usages of parse_float (github#159)
+
 1.33
 ---
 - fix chromedriver download on win64 (github#158)
