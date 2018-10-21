@@ -7,13 +7,12 @@ Ensure you have Python 2 or 3 and pip (`easy_install pip`) and then:
 
 ```shell
 pip install mintapi
-```
-
-If you do not want to manually find and provide your Mint session cookies, as described below, then please also install `selenium` and `chromedriver` (version 59+ if you want to use headless mode):
-```shell
-pip install selenium
 brew cask install chromedriver # or sudo apt-get install chromium-chromedriver on Ubuntu/Debian
 ```
+
+Note that chromedriver must be version 59+ if you want to use headless mode.
+
+```shell
 
 ## Usage
 
@@ -33,9 +32,13 @@ make calls to retrieve account/budget information.  We recommend using the
                        # if mintapi detects an MFA request, it will trigger the requested method and prompt on the command line.
     headless=False,  # Whether the chromedriver should work without opening a
                      # visible window (useful for server-side deployments)
-    mfa_input_callback=None  # A callback accepting a single argument (the prompt)
-                             # which returns the user-inputted 2FA code. By default
-                             # the default Python `input` function is used.
+    mfa_input_callback=None,  # A callback accepting a single argument (the prompt)
+                              # which returns the user-inputted 2FA code. By default
+                              # the default Python `input` function is used.
+    session_path=None, # Directory that the Chrome persistent session will be written/read from.
+                       # To avoid the 2FA code being asked for multiple times, you can either set
+                       # this parameter or log in by hand in Chrome under the same user this runs
+                       # as.
   )
 
   # Get basic account information
@@ -64,8 +67,8 @@ make calls to retrieve account/budget information.  We recommend using the
 Run it as a sub-process from your favorite language; `pip install mintapi` creates a binary in your $PATH. From the command-line, the output is JSON:
 
 ```shell
-    usage: mintapi [-h] [--accounts] [--budgets] [--net-worth]
-                   [--extended-accounts] [--transactions]
+    usage: mintapi [-h] [--session-path [SESSION_PATH]] [--accounts]
+                   [--budgets] [--net-worth] [--extended-accounts] [--transactions]
                    [--extended-transactions] [--start-date [START_DATE]]
                    [--include-investment] [--skip-duplicates] [--show-pending]
                    [--filename FILENAME] [--keyring] [--headless]
@@ -80,6 +83,10 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       -h, --help            show this help message and exit
       --accounts            Retrieve account information (default if nothing else
                             is specified)
+      --session-path [SESSION_PATH]
+                            Directory to save browser session, including cookies. Used to prevent repeated
+                            MFA prompts. Defaults to $HOME/.mintapi/session. Set to None to use a temporary
+                            profile.
       --budgets             Retrieve budget information
       --net-worth           Retrieve net worth information
       --extended-accounts   Retrieve extended account information (slower, implies

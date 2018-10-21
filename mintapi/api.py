@@ -63,7 +63,8 @@ CHROME_ZIP_TYPES = {
 }
 
 def get_web_driver(email, password, headless=False, mfa_method=None,
-                   mfa_input_callback=None, wait_for_sync=True):
+                   mfa_input_callback=None, wait_for_sync=True,
+                   session_path=None):
     if headless and mfa_method is None:
         warnings.warn("Using headless mode without specifying an MFA method"
                       "is unlikely to lead to a successful login. Defaulting --mfa-method=sms")
@@ -95,12 +96,20 @@ def get_web_driver(email, password, headless=False, mfa_method=None,
         chrome_options.add_argument('disable-dev-shm-usage')
         chrome_options.add_argument('disable-gpu')
         # chrome_options.add_argument("--window-size=1920x1080")
+    if session_path is not None:
+        chrome_options.add_argument("user-data-dir=%s" % session_path)
 
     driver = Chrome(chrome_options=chrome_options, executable_path="%s" % executable_path)
     driver.get("https://www.mint.com")
     driver.implicitly_wait(20)  # seconds
-    driver.find_element_by_link_text("Log In").click()
-
+    try:
+        element = driver.find_element_by_link_text("Log In")
+    except NoSuchElementException:
+        # when user has cookies, a slightly different front page appears
+        driver.implicitly_wait(0)  # seconds
+        element = driver.find_element_by_link_text("LOG IN")
+        driver.implicitly_wait(20)  # seconds
+    element.click()
     driver.find_element_by_id("ius-userid").send_keys(email)
     driver.find_element_by_id("ius-password").send_keys(password)
     driver.find_element_by_id("ius-sign-in-submit-btn").submit()
@@ -197,12 +206,13 @@ class Mint(object):
     driver = None
 
     def __init__(self, email=None, password=None, mfa_method=None,
-                 mfa_input_callback=None, headless=False):
+                 mfa_input_callback=None, headless=False, session_path=None):
         if email and password:
             self.login_and_get_token(email, password,
                                      mfa_method=mfa_method,
                                      mfa_input_callback=mfa_input_callback,
-                                     headless=headless)
+                                     headless=headless,
+                                     session_path=session_path)
 
     @classmethod
     def create(cls, email, password, **opts):
@@ -261,14 +271,16 @@ class Mint(object):
         return self.driver.request('POST', url, **kwargs)
 
     def login_and_get_token(self, email, password, mfa_method=None,
-                            mfa_input_callback=None, headless=False):
+                            mfa_input_callback=None, headless=False,
+                            session_path=None):
         if self.token and self.driver:
             return
 
         self.driver = get_web_driver(email, password,
                                      mfa_method=mfa_method,
                                      mfa_input_callback=mfa_input_callback,
-                                     headless=headless)
+                                     headless=headless,
+                                     session_path=session_path)
         self.token = self.get_token()
 
     def get_token(self):
@@ -702,6 +714,16 @@ def main():
         default=None,
         help='The password for your Mint.com account')
 
+    home = os.path.expanduser("~")
+    default_session_path = os.path.join(home, '.mintapi', 'session')
+    cmdline.add_argument(
+        '--session-path',
+        nargs='?',
+        default=default_session_path,
+        help='Directory to save browser session, including cookies. '
+        'Used to prevent repeated MFA prompts. Defaults to '
+        '$HOME/.mintapi/session.  Set to None to use '
+        'a temporary profile.')
     cmdline.add_argument(
         '--accounts',
         action='store_true',
@@ -824,8 +846,14 @@ def main():
                 options.extended_transactions, options.net_worth]):
         options.accounts = True
 
+    if options.session_path == 'None':
+        session_path = None
+    else:
+        session_path = options.session_path
+
     mint = Mint.create(email, password,
                        mfa_method=options.mfa_method,
+                       session_path=session_path,
                        headless=options.headless)
     atexit.register(mint.close)  # Ensure everything is torn down.
 
