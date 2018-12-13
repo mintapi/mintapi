@@ -10,11 +10,24 @@ pip install mintapi
 brew cask install chromedriver # or sudo apt-get install chromium-chromedriver on Ubuntu/Debian
 ```
 
-Note that chromedriver must be version 59+ if you want to use headless mode.
+Note that chromedriver must be version 59+ if you want to use headless mode. If not installing via pip,
+make sure to install the `install_requires` dependencies from setup.py yourself.
 
 ```shell
 
 ## Usage
+
+### from the command line
+
+From the command line, the most automated invocation will be:
+
+    python mintapi/api.py --keyring --headless you@example.com
+
+This will store your credentials securely in your system keyring, and use a
+headless (invisible) browser to log in and grab the account data. If this triggers
+an MFA prompt, you'll be prompted on the command line for your code, which by default
+goes to SMS unless you specify `--mfa-method=email`. This will also persist a browser
+session in $HOME/.mintapi/session to avoid an MFA in the future, unless you specify `--session-path=None`.
 
 ### from Python
 
