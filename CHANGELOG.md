@@ -1,3 +1,7 @@
+1.35
+---
+- by default, persist a browser session to avoid regular MFA requests (github#160)
+
 1.34
 ---
 - correctly fix usages of parse_float (github#159)
