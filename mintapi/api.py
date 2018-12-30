@@ -652,6 +652,9 @@ class Mint(object):
             data={'token': self.token},
             headers=JSON_HEADER)
 
+    def get_credit_score(self):
+        credit_score = self.driver.find_element_by_class_name('score-number').text
+        return credit_score
 
 def get_accounts(email, password, get_detail=False):
     mint = Mint.create(email, password)
@@ -686,11 +689,13 @@ def get_budgets(email, password):
     mint = Mint.create(email, password)
     return mint.get_budgets()
 
+def get_credit_score(email, password):
+    mint = Mint.create(email, password)
+    return mint.get_credit_score()
 
 def initiate_account_refresh(email, password):
     mint = Mint.create(email, password)
     return mint.initiate_account_refresh()
-
 
 def main():
     import getpass
@@ -743,6 +748,12 @@ def main():
         dest='net_worth',
         default=False,
         help='Retrieve net worth information')
+    cmdline.add_argument(
+        '--credit-score',
+        action='store_true',
+        dest='credit_score',
+        default=False,
+        help='Retrieve credit score')
     cmdline.add_argument(
         '--extended-accounts',
         action='store_true',
@@ -843,7 +854,7 @@ def main():
         options.accounts = True
 
     if not any([options.accounts, options.budgets, options.transactions,
-                options.extended_transactions, options.net_worth]):
+                options.extended_transactions, options.net_worth, options.credit_score]):
         options.accounts = True
 
     if options.session_path == 'None':
@@ -895,6 +906,8 @@ def main():
             skip_duplicates=options.skip_duplicates)
     elif options.net_worth:
         data = mint.get_net_worth()
+    elif options.credit_score:
+        data = mint.get_credit_score()
 
     # output the data
     if options.transactions or options.extended_transactions:
