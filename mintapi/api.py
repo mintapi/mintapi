@@ -654,7 +654,10 @@ class Mint(object):
 
     def get_credit_score(self):
         credit_score = self.driver.find_element_by_class_name('score-number').text
-        return credit_score
+        if credit_score.isdigit():
+            return int(credit_score)
+        else:
+            return "No credit score provided."
 
 def get_accounts(email, password, get_detail=False):
     mint = Mint.create(email, password)
