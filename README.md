@@ -69,6 +69,12 @@ make calls to retrieve account/budget information.  We recommend using the
   mint.get_transactions_csv(include_investment=False) # as raw csv data
   mint.get_transactions_json(include_investment=False, skip_duplicates=False)
 
+  # Get transactions for a specific account
+  accounts = mint.get_accounts(True)
+  for account in accounts:
+    mint.get_transactions_csv(id=account["id"])
+    mint.get_transactions_json(id=account["id"])
+
   # Get net worth
   mint.get_net_worth()
 
