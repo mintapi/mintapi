@@ -362,7 +362,7 @@ class Mint(object):
                 'Could not parse response to set_user_property')
 
     def get_transactions_json(self, include_investment=False,
-                              skip_duplicates=False, start_date=None, id=0):
+                              skip_duplicates=False, start_date=None):
         """Returns the raw JSON transaction data as downloaded from Mint.  The JSON
         transaction data includes some additional information missing from the
         CSV data, such as whether the transaction is pending or completed, but
@@ -399,7 +399,7 @@ class Mint(object):
                 offset=offset,
                 rnd=Mint.get_rnd(),
                 query_options=(
-                    'accountId=' + str(id) + '&task=transactions' if include_investment
+                    'accountId=0&task=transactions' if include_investment
                     else 'task=transactions,txnfilters&filterType=cash'))
             result = self.request_and_check(
                 url, headers=JSON_HEADER,
@@ -453,7 +453,7 @@ class Mint(object):
 
         return df
 
-    def get_transactions_csv(self, include_investment=False, acct=0):
+    def get_transactions_csv(self, include_investment=False):
         """Returns the raw CSV transaction data as downloaded from Mint.
 
         If include_investment == True, also includes transactions that Mint
@@ -467,7 +467,7 @@ class Mint(object):
         # default.
         result = self.request_and_check(
             '{}/transactionDownload.event'.format(MINT_ROOT_URL) +
-            ('?accountId=' + str(acct) if include_investment else ''),
+            ('?accountId=0' if include_investment else ''),
             expected_content_type='text/csv')
         return result.content
 
