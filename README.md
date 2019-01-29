@@ -71,6 +71,9 @@ make calls to retrieve account/budget information.  We recommend using the
 
   # Get net worth
   mint.get_net_worth()
+  
+  # Get credit score
+  mint.get_credit_score()
 
   # Initiate an account refresh
   mint.initiate_account_refresh()
@@ -82,7 +85,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
 ```shell
     usage: mintapi [-h] [--session-path [SESSION_PATH]] [--accounts]
                    [--budgets] [--net-worth] [--extended-accounts] [--transactions]
-                   [--extended-transactions] [--start-date [START_DATE]]
+                   [--extended-transactions] [--credit-score] [--start-date [START_DATE]]
                    [--include-investment] [--skip-duplicates] [--show-pending]
                    [--filename FILENAME] [--keyring] [--headless]
                    [--mfa-method {sms,email}]
@@ -101,6 +104,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                             MFA prompts. Defaults to $HOME/.mintapi/session. Set to None to use a temporary
                             profile.
       --budgets             Retrieve budget information
+      --credit-score        Retrieve credit score
       --net-worth           Retrieve net worth information
       --extended-accounts   Retrieve extended account information (slower, implies
                             --accounts)
