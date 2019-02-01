@@ -29,7 +29,8 @@ an MFA prompt, you'll be prompted on the command line for your code, which by de
 goes to SMS unless you specify `--mfa-method=email`. This will also persist a browser
 session in $HOME/.mintapi/session to avoid an MFA in the future, unless you specify `--session-path=None`.
 
-If mfa-method is email and your email host provides IMAP access, you can specify your IMAP login details.  This will automate the retrieval of the MFA code from your email and entering it into Mint.
+If mfa-method is email and your email host provides IMAP access, you can specify your IMAP login details.
+This will automate the retrieval of the MFA code from your email and entering it into Mint.
 
 ### from Python
 
@@ -44,7 +45,8 @@ make calls to retrieve account/budget information.  We recommend using the
     'password',  # Your password used to log in to mint
     # Optional parameters
     mfa_method='sms',  # Can be 'sms' (default) or 'email'.
-                       # if mintapi detects an MFA request, it will trigger the requested method and prompt on the command line.
+                       # if mintapi detects an MFA request, it will trigger the requested method
+                       # and prompt on the command line.
     headless=False,  # Whether the chromedriver should work without opening a
                      # visible window (useful for server-side deployments)
     mfa_input_callback=None,  # A callback accepting a single argument (the prompt)
