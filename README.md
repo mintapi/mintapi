@@ -29,6 +29,8 @@ an MFA prompt, you'll be prompted on the command line for your code, which by de
 goes to SMS unless you specify `--mfa-method=email`. This will also persist a browser
 session in $HOME/.mintapi/session to avoid an MFA in the future, unless you specify `--session-path=None`.
 
+If mfa-method is email and your email host provides IMAP access, you can specify your IMAP login details.  This will automate the retrieval of the MFA code from your email and entering it into Mint.
+
 ### from Python
 
 From python, instantiate the Mint class (from the mintapi package) and you can
@@ -52,6 +54,10 @@ make calls to retrieve account/budget information.  We recommend using the
                        # To avoid the 2FA code being asked for multiple times, you can either set
                        # this parameter or log in by hand in Chrome under the same user this runs
                        # as.
+    imap_account=None, # account name used to log in to your IMAP server
+    imap_password=None, # account password used to log in to your IMAP server
+    imap_server=None,  # IMAP server host name
+    imap_folder='INBOX',  # IMAP folder that receives MFA email
   )
 
   # Get basic account information
@@ -108,8 +114,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                             profile.
       --budgets             Retrieve budget information
       --net-worth           Retrieve net worth information
-      --extended-accounts   Retrieve extended account information (slower, implies
-                            --accounts)
+      --extended-accounts   Retrieve extended account information (slower, implies --accounts)
       --transactions, -t    Retrieve transactions
       --extended-transactions
                             Retrieve transactions with extra information and
@@ -129,6 +134,13 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                             window.
       --mfa-method {sms,email}
                             The MFA method to automate.
+      --imap-account IMAP_ACCOUNT
+      --imap-password IMAP_PASSWORD
+      --imap-server IMAP_SERVER_HOSTNAME
+      --imap-folder IMAP_FOLDER
+                            Default is INBOX
+      --imap-test           Test access to IMAP server
+
     >>> mintapi --keyring email@example.com
     [
       {

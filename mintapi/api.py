@@ -11,6 +11,10 @@ from sys import platform as _platform
 import time
 import warnings
 import zipfile
+import imaplib
+import email
+import email.header
+import sys	# DEBUG
 
 try:
     from StringIO import StringIO  # Python 2
@@ -52,6 +56,110 @@ def reverse_credit_amount(row):
     return amount if row['isDebit'] else -amount
 
 
+def get_email_code(imap_account, imap_password, imap_server, imap_folder, debug=0, delete=1):
+    code = None
+    M = imaplib.IMAP4_SSL(imap_server)
+
+    try:
+        rv, data = M.login(imap_account, imap_password)
+    except imaplib.IMAP4.error:
+        print ("ERROR: email login failed")
+        return '';
+
+    code = ''
+    for c in range(20):
+        time.sleep(10)
+        rv, data = M.select(imap_folder)
+        if rv != 'OK':
+            print("ERROR: Unable to open mailbox ", rv)
+            return '';
+
+        rv, data = M.search(None, "ALL")
+        if rv != 'OK':
+            print("ERROR: Email search failed for", sys.argv[1])
+            return '';
+
+        count = 0;
+        for num in data[0].split()[::-1]:
+            count = count + 1;
+            if count > 3:
+                break
+            rv, data = M.fetch(num, '(RFC822)')
+            if rv != 'OK':
+                print("ERROR: ERROR getting message", num)
+                sys.exit(1)
+
+            msg = email.message_from_bytes(data[0][1])
+
+            x = email.header.make_header(email.header.decode_header(msg['Subject']))
+            subject = str(x)
+            if debug:
+                print("DEBUG: SUBJECT:", subject)
+
+            x = email.header.make_header(email.header.decode_header(msg['From']))
+            frm = str(x)
+            if debug:
+                print("DEBUG: FROM:", frm)
+
+            if not re.search('do_not_reply@intuit.com', frm, re.IGNORECASE):
+                continue
+
+
+            if not re.search('Your Mint Account', subject, re.IGNORECASE):
+                continue
+
+            date_tuple = email.utils.parsedate_tz(msg['Date'])
+            if date_tuple:
+                local_date = datetime.fromtimestamp(email.utils.mktime_tz(date_tuple))
+            else:
+                print("ERROR: FAIL0")
+
+            diff = datetime.now() - local_date
+
+            if debug:
+                print("DEBUG: AGE:", diff.seconds)
+
+            if diff.seconds > 180:
+                continue
+
+            if debug:
+                print("DEBUG: EMAIL HEADER OK")
+
+            body = str(msg)
+
+            p = re.search('Verification code:<.*?(\d\d\d\d\d\d)$', body, re.S|re.M)
+            if p:
+                code = p.group(1)
+            else:
+                print("FAIL1")
+
+            if debug:
+                print("DEBUG: CODE FROM EMAIL:", code)
+
+            if code != '':
+                break
+
+        if debug:
+            print("DEBUG: CODE FROM EMAIL 2:", code)
+            sys.stdout.flush()
+
+        if code != '':
+            if debug:
+                print("DEBUG: CODE FROM EMAIL 3:", code)
+                sys.stdout.flush()
+
+            if delete > 0 and count > 0:
+                M.store(num, '+FLAGS', '\\Deleted')
+
+            if delete > 0:
+                M.expunge()
+
+            break
+
+    M.logout()
+    return code
+
+
 CHROME_DRIVER_VERSION = 2.41
 CHROME_DRIVER_BASE_URL = 'https://chromedriver.storage.googleapis.com/%s/chromedriver_%s.zip'
 CHROME_ZIP_TYPES = {
@@ -64,7 +172,8 @@ CHROME_ZIP_TYPES = {
 
 def get_web_driver(email, password, headless=False, mfa_method=None,
                    mfa_input_callback=None, wait_for_sync=True,
-                   session_path=None):
+                   session_path=None, imap_account=None, imap_password=None,
+                   imap_server=None, imap_folder="INBOX"):
     if headless and mfa_method is None:
         warnings.warn("Using headless mode without specifying an MFA method"
                       "is unlikely to lead to a successful login. Defaulting --mfa-method=sms")
@@ -128,7 +237,10 @@ def get_web_driver(email, password, headless=False, mfa_method=None,
                 mfa_method_submit = driver.find_element_by_id("ius-mfa-options-submit-btn")
                 mfa_method_submit.click()
 
-                mfa_code = (mfa_input_callback or input)("Please enter your 6-digit MFA code: ")
+                if mfa_method == 'email' and imap_account:
+                    mfa_code = get_email_code(imap_account, imap_password, imap_server, imap_folder=imap_folder)
+                else:
+                    mfa_code = (mfa_input_callback or input)("Please enter your 6-digit MFA code: ")
                 mfa_code_input = driver.find_element_by_id("ius-mfa-confirm-code")
                 mfa_code_input.send_keys(mfa_code)
 
@@ -206,13 +318,19 @@ class Mint(object):
     driver = None
 
     def __init__(self, email=None, password=None, mfa_method=None,
-                 mfa_input_callback=None, headless=False, session_path=None):
+                 mfa_input_callback=None, headless=False, session_path=None,
+                 imap_account=None, imap_password=None, imap_server=None, 
+                 imap_folder="INBOX"):
         if email and password:
             self.login_and_get_token(email, password,
                                      mfa_method=mfa_method,
                                      mfa_input_callback=mfa_input_callback,
                                      headless=headless,
-                                     session_path=session_path)
+                                     session_path=session_path,
+                                     imap_account=imap_account,
+                                     imap_password=imap_password,
+                                     imap_server=imap_server, 
+                                     imap_folder=imap_folder)
 
     @classmethod
     def create(cls, email, password, **opts):
@@ -272,7 +390,10 @@ class Mint(object):
 
     def login_and_get_token(self, email, password, mfa_method=None,
                             mfa_input_callback=None, headless=False,
-                            session_path=None):
+                            session_path=None, imap_account=None,
+                            imap_password=None,
+                            imap_server=None, 
+                            imap_folder=None):
         if self.token and self.driver:
             return
 
@@ -280,7 +401,11 @@ class Mint(object):
                                      mfa_method=mfa_method,
                                      mfa_input_callback=mfa_input_callback,
                                      headless=headless,
-                                     session_path=session_path)
+                                     session_path=session_path,
+                                     imap_account=imap_account,
+                                     imap_password=imap_password,
+                                     imap_server=imap_server, 
+                                     imap_folder=imap_folder)
         self.token = self.get_token()
 
     def get_token(self):
@@ -653,7 +778,6 @@ class Mint(object):
             data={'token': self.token},
             headers=JSON_HEADER)
 
-
 def get_accounts(email, password, get_detail=False):
     mint = Mint.create(email, password)
     return mint.get_accounts(get_detail=get_detail)
@@ -805,6 +929,26 @@ def main():
         default='sms',
         choices=['sms', 'email'],
         help='The MFA method to automate.')
+    cmdline.add_argument(
+        '--imap-account',
+        default=None,
+        help='IMAP login account')
+    cmdline.add_argument(
+        '--imap-password',
+        default=None,
+        help='IMAP login password')
+    cmdline.add_argument(
+        '--imap-server',
+        default=None,
+        help='IMAP server')
+    cmdline.add_argument(
+        '--imap-folder',
+        default="INBOX",
+        help='IMAP folder')
+    cmdline.add_argument(
+        '--imap-test',
+        action='store_true',
+        help='Test imap login and retrieval.')
 
     options = cmdline.parse_args()
 
@@ -855,8 +999,18 @@ def main():
     mint = Mint.create(email, password,
                        mfa_method=options.mfa_method,
                        session_path=session_path,
-                       headless=options.headless)
+                       headless=options.headless,
+                       imap_account=options.imap_account,
+                       imap_password=options.imap_password,
+                       imap_server=options.imap_server,
+                       imap_folder=options.imap_folder,
+                       )
     atexit.register(mint.close)  # Ensure everything is torn down.
+
+    if options.imap_test:
+        mfa_code = mint.get_email_code(options.imap_account, options.imap_password, options.imap_server, imap_folder=options.imap_folder, debug=1, delete=0)
+        print("MFA CODE:", mfa_code)
+        sys.exit()
 
     data = None
     if options.accounts and options.budgets:
