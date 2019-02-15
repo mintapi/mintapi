@@ -76,7 +76,7 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, debug=
 
         rv, data = M.search(None, "ALL")
         if rv != 'OK':
-            print("ERROR: Email search failed for", sys.argv[1])
+            print("ERROR: Email search failed")
             return '';
 
         count = 0;
