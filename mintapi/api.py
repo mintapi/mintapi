@@ -219,6 +219,7 @@ def get_web_driver(email, password, headless=False, mfa_method=None,
         element = driver.find_element_by_link_text("LOG IN")
         driver.implicitly_wait(20)  # seconds
     element.click()
+    time.sleep(1)
     driver.find_element_by_id("ius-userid").send_keys(email)
     driver.find_element_by_id("ius-password").send_keys(password)
     driver.find_element_by_id("ius-sign-in-submit-btn").submit()
@@ -1023,7 +1024,7 @@ def main():
     atexit.register(mint.close)  # Ensure everything is torn down.
 
     if options.imap_test:
-        mfa_code = mint.get_email_code(options.imap_account, options.imap_password, options.imap_server, imap_folder=options.imap_folder, debug=1, delete=0)
+        mfa_code = get_email_code(options.imap_account, options.imap_password, options.imap_server, imap_folder=options.imap_folder, debug=1, delete=0)
         print("MFA CODE:", mfa_code)
         sys.exit()
 
