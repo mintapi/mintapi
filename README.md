@@ -13,8 +13,6 @@ brew cask install chromedriver # or sudo apt-get install chromium-chromedriver o
 Note that chromedriver must be version 59+ if you want to use headless mode. If not installing via pip,
 make sure to install the `install_requires` dependencies from setup.py yourself.
 
-```shell
-
 ## Usage
 
 ### from the command line
