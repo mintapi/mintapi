@@ -83,7 +83,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
 ```shell
     usage: mintapi [-h] [--session-path [SESSION_PATH]] [--accounts]
                    [--budgets] [--net-worth] [--extended-accounts] [--transactions]
-                   [--extended-transactions] [--credit-score] [--start-date [START_DATE]]
+                   [--extended-transactions] [--credit-score] [--credit-report] [--start-date [START_DATE]]
                    [--include-investment] [--skip-duplicates] [--show-pending]
                    [--filename FILENAME] [--keyring] [--headless]
                    [--mfa-method {sms,email}]
@@ -103,6 +103,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                             profile.
       --budgets             Retrieve budget information
       --credit-score        Retrieve credit score
+      --credit-report       Retrieve full credit report & history
       --net-worth           Retrieve net worth information
       --extended-accounts   Retrieve extended account information (slower, implies
                             --accounts)

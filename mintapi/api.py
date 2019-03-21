@@ -192,6 +192,7 @@ def convert_account_dates_to_datetime(account):
 
 MINT_ROOT_URL = 'https://mint.intuit.com'
 MINT_ACCOUNTS_URL = 'https://accounts.intuit.com'
+MINT_CREDIT_URL = 'https://credit.finance.intuit.com'
 
 JSON_HEADER = {'accept': 'application/json'}
 
@@ -659,6 +660,69 @@ class Mint(object):
         else:
             return "No credit score provided."
 
+    def get_credit_report(self, limit=2):
+        # Get the browser API key, build auth header
+        key_var = 'window.MintConfig.browserAuthAPIKey'
+        api_key = self.driver.execute_script('return ' + key_var)
+        credit_auth = 'Intuit_APIKey intuit_apikey=' + api_key
+        credit_auth += ', intuit_apikey_version=1.0'
+        credit_header = {'authorization': credit_auth}
+        credit_header.update(JSON_HEADER)
+
+        # Get credit reports. The UI shows 2 by default, but more are available!
+        # At least 8, but could be all the TransUnion reports Mint has
+        # How the "bands" are defined, and other metadata, is available at a
+        # /v1/creditscoreproviders/3 endpoint (3 = TransUnion)
+        credit_report = dict()
+        response = self.get(
+            '{}/v1/creditreports?limit={}'.format(MINT_CREDIT_URL, limit),
+            headers=credit_header)
+        credit_report['reports'] = response.json()
+
+        # Get full list of credit inquiries
+        response = self.get(
+            '{}/v1/creditreports/0/inquiries'.format(MINT_CREDIT_URL),
+            headers=credit_header)
+        credit_report['inquiries'] = response.json()
+
+        # Get full list of credit accounts
+        response = self.get(
+            '{}/v1/creditreports/0/tradelines'.format(MINT_CREDIT_URL),
+            headers=credit_header)
+        credit_report['accounts'] = response.json()
+
+        # Get credit utilization history (~3 months, by account)
+        response = self.get(
+            '{}/v1/creditreports/creditutilizationhistory'.format(MINT_CREDIT_URL),
+            headers=credit_header)
+        credit_report['utilization'] = self.process_utilization(response.json())
+
+        return credit_report
+
+    def process_utilization(self, data):
+        # Function to clean up the credit utilization history data
+        utilization = []
+        utilization.extend(self.flatten_utilization(data['cumulative']))
+        for trade in data['tradelines']:
+            utilization.extend(self.flatten_utilization(trade))
+        return utilization
+
+    def flatten_utilization(self, data):
+        # The utilization history data has a nested format, grouped by year
+        # and then by month. Let's flatten that into a list of dates.
+        utilization = []
+        name = data.get('creditorName', 'Total')
+        for y in data['creditUtilization']:
+            year = y['year']
+            for m in y['months']:
+                date = datetime.strptime('01 '+m['name']+' '+year, '%d %B %Y')
+                utilization.append({
+                    'name': name,
+                    'date': date.strftime('%Y-%m-%d'),
+                    'utilization': m['creditUtilization']
+                    })
+        return utilization
+
 def get_accounts(email, password, get_detail=False):
     mint = Mint.create(email, password)
     return mint.get_accounts(get_detail=get_detail)
@@ -695,6 +759,10 @@ def get_budgets(email, password):
 def get_credit_score(email, password):
     mint = Mint.create(email, password)
     return mint.get_credit_score()
+
+def get_credit_report(email, password):
+    mint = Mint.create(email, password)
+    return mint.get_credit_report()
 
 def initiate_account_refresh(email, password):
     mint = Mint.create(email, password)
@@ -757,6 +825,12 @@ def main():
         dest='credit_score',
         default=False,
         help='Retrieve credit score')
+    cmdline.add_argument(
+        '--credit-report',
+        action='store_true',
+        dest='credit_report',
+        default=False,
+        help='Retrieve full credit report')
     cmdline.add_argument(
         '--extended-accounts',
         action='store_true',
@@ -857,7 +931,8 @@ def main():
         options.accounts = True
 
     if not any([options.accounts, options.budgets, options.transactions,
-                options.extended_transactions, options.net_worth, options.credit_score]):
+                options.extended_transactions, options.net_worth, options.credit_score,
+                options.credit_report]):
         options.accounts = True
 
     if options.session_path == 'None':
@@ -911,6 +986,8 @@ def main():
         data = mint.get_net_worth()
     elif options.credit_score:
         data = mint.get_credit_score()
+    elif options.credit_report:
+        data = mint.get_credit_report()
 
     # output the data
     if options.transactions or options.extended_transactions:
