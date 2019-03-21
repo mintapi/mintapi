@@ -14,7 +14,7 @@ setup(
     name='mintapi',
     description='a screen-scraping API for Mint.com',
     long_description=read_md(readme) if os.path.exists(readme) else '',
-    version='1.37',
+    version='1.38',
     packages=['mintapi'],
     license='The MIT License',
     author='Michael Rooney',

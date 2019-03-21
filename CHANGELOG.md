@@ -1,3 +1,7 @@
+1.38
+---
+- add ability to retrieve mfa code from email via IMAP (github#166)
+
 1.37
 ---
 - full credit report functionality (github#169)
