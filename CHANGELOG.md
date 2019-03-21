@@ -1,3 +1,11 @@
+1.37
+---
+- full credit report functionality (github#169)
+
+1.36
+---
+- add ability to get credit score (github#163)
+
 1.35
 ---
 - by default, persist a browser session to avoid regular MFA requests (github#160)
