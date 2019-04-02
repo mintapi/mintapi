@@ -229,6 +229,13 @@ def get_web_driver(email, password, headless=False, mfa_method=None,
             'https://mint.intuit.com/overview.event'):
         time.sleep(1)
 
+        # bypass "Let's add your current mobile number" interstitial page
+        try:
+            skip_for_now = driver.find_element_by_id('ius-verified-user-update-btn-skip')
+            skip_for_now.click()
+        except:
+             pass
+
         driver.implicitly_wait(1)  # seconds
         try:
             driver.find_element_by_id('ius-mfa-options-form')
