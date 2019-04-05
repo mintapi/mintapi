@@ -350,6 +350,15 @@ class Mint(object):
         return (str(int(time.mktime(datetime.now().timetuple()))) +
                 str(random.randrange(999)).zfill(3))
 
+    def _get_api_key_header(self):
+        key_var = 'window.MintConfig.browserAuthAPIKey'
+        api_key = self.driver.execute_script('return ' + key_var)
+        auth = 'Intuit_APIKey intuit_apikey=' + api_key
+        auth += ', intuit_apikey_version=1.0'
+        header = {'authorization': auth}
+        header.update(JSON_HEADER)
+        return header
+
     def close(self):
         """Logs out and quits the current web driver/selenium session."""
         if not self.driver:
@@ -426,6 +435,12 @@ class Mint(object):
         req_id = self.request_id
         self.request_id += 1
         return str(req_id)
+
+    def get_bills(self):
+        return self.get(
+            '{}/bps/v2/payer/bills'.format(MINT_ROOT_URL),
+            headers=self._get_api_key_header()
+        ).json()['bills']
 
     def get_accounts(self, get_detail=False):  # {{{
         # Issue service request.
@@ -796,12 +811,7 @@ class Mint(object):
 
     def get_credit_report(self, limit=2):
         # Get the browser API key, build auth header
-        key_var = 'window.MintConfig.browserAuthAPIKey'
-        api_key = self.driver.execute_script('return ' + key_var)
-        credit_auth = 'Intuit_APIKey intuit_apikey=' + api_key
-        credit_auth += ', intuit_apikey_version=1.0'
-        credit_header = {'authorization': credit_auth}
-        credit_header.update(JSON_HEADER)
+        credit_header = self._get_api_key_header()
 
         # Get credit reports. The UI shows 2 by default, but more are available!
         # At least 8, but could be all the TransUnion reports Mint has
