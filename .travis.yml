@@ -7,6 +7,7 @@ install:
     - sudo apt-get install chromium-chromedriver
     - pip install nose flake8 pep8-naming selenium # Selenium required, otherwise setup.py fails on selenium-requests for some odd reason.
     - python setup.py install
-script: flake8 --ignore=E501 mintapi # pep8 flake ignoring long lines
+before_script:
+    - flake8 --ignore=E501 mintapi # pep8 flake ignoring long lines
 # command to run tests
 script: nosetests
