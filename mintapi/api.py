@@ -225,7 +225,6 @@ def get_web_driver(email, password, headless=False, mfa_method=None,
     element.click()
     time.sleep(1)
     email_input = driver.find_element_by_id("ius-userid")
-    # email_input = driver.findElement(By.id("ius-userid"))
     # It's possible that the user clicked "remember me" at some point, causing
     # the email to already be present. If anything is in the input, clear it
     # and use the provided email, just to be safe.
@@ -551,7 +550,7 @@ class Mint(object):
         # Converts the start date into datetime format - must be mm/dd/yy
         try:
             start_date = datetime.strptime(start_date, '%m/%d/%y')
-        except ValueError:
+        except (TypeError, ValueError):
             start_date = None
         all_txns = []
         offset = 0
@@ -777,8 +776,8 @@ class Mint(object):
         eleven_months_ago = (first_of_this_month - timedelta(days=330)).replace(day=1)
         url = "{}/getBudget.xevent".format(MINT_ROOT_URL)
         params = {
-            'startDate': eleven_months_ago.strptime('%m/%d/%Y'),
-            'endDate': first_of_this_month.strptime('%m/%d/%Y'),
+            'startDate': eleven_months_ago.strftime('%m/%d/%Y'),
+            'endDate': first_of_this_month.strftime('%m/%d/%Y'),
             'rnd': Mint.get_rnd(),
         }
         response = json.loads(self.get(url, params=params, headers=JSON_HEADER).text)
