@@ -35,6 +35,12 @@ try:
 except ImportError:
     pd = None
 
+# Temporary pep8 violation to test Travis
+try:
+    pass
+except:
+    pass
+
 
 def assert_pd():
     # Common function to check if pd is installed
