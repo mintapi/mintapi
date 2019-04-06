@@ -55,10 +55,10 @@ class MintApiTests(unittest.TestCase):
     def test_parse_float(self):
 
         answer = mintapi.api.parse_float('10%')
-        self.assertEquals(answer, float(10))
+        self.assertEqual(answer, float(10))
 
         answer = mintapi.api.parse_float('$10')
-        self.assertEquals(answer, float(10))
+        self.assertEqual(answer, float(10))
 
         answer = mintapi.api.parse_float('0.00%')
-        self.assertEquals(answer, float(0))
+        self.assertEqual(answer, float(0))
