@@ -24,7 +24,7 @@ except ImportError:
 from selenium.common.exceptions import ElementNotVisibleException, NoSuchElementException, StaleElementReferenceException, TimeoutException
 from selenium.webdriver import ChromeOptions
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.ui import WebDriverWait
 
 from seleniumrequests import Chrome
@@ -34,12 +34,6 @@ try:
     import pandas as pd
 except ImportError:
     pd = None
-
-# Temporary pep8 violation to test Travis
-try:
-    pass
-except:
-    pass
 
 
 def assert_pd():
@@ -67,10 +61,10 @@ def reverse_credit_amount(row):
 
 def get_email_code(imap_account, imap_password, imap_server, imap_folder, debug=0, delete=1):
     code = None
-    M = imaplib.IMAP4_SSL(imap_server)
+    imap_client = imaplib.IMAP4_SSL(imap_server)
 
     try:
-        rv, data = M.login(imap_account, imap_password)
+        rv, data = imap_client.login(imap_account, imap_password)
     except imaplib.IMAP4.error:
         print("ERROR: email login failed")
         return ''
@@ -78,12 +72,12 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, debug=
     code = ''
     for c in range(20):
         time.sleep(10)
-        rv, data = M.select(imap_folder)
+        rv, data = imap_client.select(imap_folder)
         if rv != 'OK':
             print("ERROR: Unable to open mailbox ", rv)
             return ''
 
-        rv, data = M.search(None, "ALL")
+        rv, data = imap_client.search(None, "ALL")
         if rv != 'OK':
             print("ERROR: Email search failed")
             return ''
@@ -93,7 +87,7 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, debug=
             count = count + 1
             if count > 3:
                 break
-            rv, data = M.fetch(num, '(RFC822)')
+            rv, data = imap_client.fetch(num, '(RFC822)')
             if rv != 'OK':
                 print("ERROR: ERROR getting message", num)
                 sys.exit(1)
@@ -158,14 +152,14 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, debug=
                 sys.stdout.flush()
 
             if delete > 0 and count > 0:
-                M.store(num, '+FLAGS', '\\Deleted')
+                imap_client.store(num, '+FLAGS', '\\Deleted')
 
             if delete > 0:
-                M.expunge()
+                imap_client.expunge()
 
             break
 
-    M.logout()
+    imap_client.logout()
     return code
 
 
@@ -288,7 +282,7 @@ def get_web_driver(email, password, headless=False, mfa_method=None,
             # Status message might not be present straight away. Seems to be due
             # to dynamic content (client side rendering).
             status_message = WebDriverWait(driver, 30).until(
-                EC.visibility_of_element_located(
+                expected_conditions.visibility_of_element_located(
                     (By.CSS_SELECTOR, ".SummaryView .message")))
             WebDriverWait(driver, 5 * 60).until(
                 lambda x: "Account refresh complete" in status_message.get_attribute('innerHTML')
