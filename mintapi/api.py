@@ -328,8 +328,8 @@ class Mint(object):
 
     def __init__(self, email=None, password=None, mfa_method=None,
                  mfa_input_callback=None, headless=False, session_path=None,
-                 imap_account=None, imap_password=None, imap_server=None, 
-                 imap_folder="INBOX"):
+                 imap_account=None, imap_password=None, imap_server=None,
+                 imap_folder="INBOX", wait_for_sync=True):
         if email and password:
             self.login_and_get_token(email, password,
                                      mfa_method=mfa_method,
@@ -338,8 +338,9 @@ class Mint(object):
                                      session_path=session_path,
                                      imap_account=imap_account,
                                      imap_password=imap_password,
-                                     imap_server=imap_server, 
-                                     imap_folder=imap_folder)
+                                     imap_server=imap_server,
+                                     imap_folder=imap_folder,
+                                     wait_for_sync=wait_for_sync)
 
     @classmethod
     def create(cls, email, password, **opts):
@@ -410,8 +411,9 @@ class Mint(object):
                             mfa_input_callback=None, headless=False,
                             session_path=None, imap_account=None,
                             imap_password=None,
-                            imap_server=None, 
-                            imap_folder=None):
+                            imap_server=None,
+                            imap_folder=None,
+                            wait_for_sync=True):
         if self.token and self.driver:
             return
 
@@ -422,8 +424,9 @@ class Mint(object):
                                      session_path=session_path,
                                      imap_account=imap_account,
                                      imap_password=imap_password,
-                                     imap_server=imap_server, 
-                                     imap_folder=imap_folder)
+                                     imap_server=imap_server,
+                                     imap_folder=imap_folder,
+                                     wait_for_sync=wait_for_sync)
         self.token = self.get_token()
 
     def get_token(self):
