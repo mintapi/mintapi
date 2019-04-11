@@ -14,16 +14,19 @@ import zipfile
 import imaplib
 import email
 import email.header
-import sys	# DEBUG
+import sys  # DEBUG
 
 try:
     from StringIO import StringIO  # Python 2
 except ImportError:
     from io import BytesIO as StringIO  # Python 3
 
-from selenium.common.exceptions import NoSuchElementException, TimeoutException
+from selenium.common.exceptions import ElementNotVisibleException, NoSuchElementException, StaleElementReferenceException, TimeoutException
 from selenium.webdriver import ChromeOptions
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.ui import WebDriverWait
+
 from seleniumrequests import Chrome
 import xmltodict
 
@@ -46,7 +49,7 @@ def json_date_to_datetime(dateraw):
     cy = datetime.isocalendar(date.today())[0]
     try:
         newdate = datetime.strptime(dateraw + str(cy), '%b %d%Y')
-    except:
+    except ValueError:
         newdate = datetime.strptime(dateraw, '%m/%d/%y')
     return newdate
 
@@ -58,33 +61,33 @@ def reverse_credit_amount(row):
 
 def get_email_code(imap_account, imap_password, imap_server, imap_folder, debug=0, delete=1):
     code = None
-    M = imaplib.IMAP4_SSL(imap_server)
+    imap_client = imaplib.IMAP4_SSL(imap_server)
 
     try:
-        rv, data = M.login(imap_account, imap_password)
+        rv, data = imap_client.login(imap_account, imap_password)
     except imaplib.IMAP4.error:
-        print ("ERROR: email login failed")
-        return '';
+        print("ERROR: email login failed")
+        return ''
 
     code = ''
     for c in range(20):
         time.sleep(10)
-        rv, data = M.select(imap_folder)
+        rv, data = imap_client.select(imap_folder)
         if rv != 'OK':
             print("ERROR: Unable to open mailbox ", rv)
-            return '';
+            return ''
 
-        rv, data = M.search(None, "ALL")
+        rv, data = imap_client.search(None, "ALL")
         if rv != 'OK':
             print("ERROR: Email search failed")
-            return '';
+            return ''
 
-        count = 0;
+        count = 0
         for num in data[0].split()[::-1]:
-            count = count + 1;
+            count = count + 1
             if count > 3:
                 break
-            rv, data = M.fetch(num, '(RFC822)')
+            rv, data = imap_client.fetch(num, '(RFC822)')
             if rv != 'OK':
                 print("ERROR: ERROR getting message", num)
                 sys.exit(1)
@@ -103,7 +106,6 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, debug=
 
             if not re.search('do_not_reply@intuit.com', frm, re.IGNORECASE):
                 continue
-
 
             if not re.search('Your Mint Account', subject, re.IGNORECASE):
                 continue
@@ -127,7 +129,8 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, debug=
 
             body = str(msg)
 
-            p = re.search('Verification code:<.*?(\d\d\d\d\d\d)$', body, re.S|re.M)
+            p = re.search(r'Verification code:<.*?(\d\d\d\d\d\d)$', body,
+                          re.S | re.M)
             if p:
                 code = p.group(1)
             else:
@@ -149,14 +152,14 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, debug=
                 sys.stdout.flush()
 
             if delete > 0 and count > 0:
-                M.store(num, '+FLAGS', '\\Deleted')
+                imap_client.store(num, '+FLAGS', '\\Deleted')
 
             if delete > 0:
-                M.expunge()
+                imap_client.expunge()
 
             break
 
-    M.logout()
+    imap_client.logout()
     return code
 
 
@@ -169,6 +172,7 @@ CHROME_ZIP_TYPES = {
     'win32': 'win32',
     'win64': 'win32'
 }
+
 
 def get_web_driver(email, password, headless=False, mfa_method=None,
                    mfa_input_callback=None, wait_for_sync=True,
@@ -220,21 +224,30 @@ def get_web_driver(email, password, headless=False, mfa_method=None,
         driver.implicitly_wait(20)  # seconds
     element.click()
     time.sleep(1)
-    driver.find_element_by_id("ius-userid").send_keys(email)
+    email_input = driver.find_element_by_id("ius-userid")
+    # It's possible that the user clicked "remember me" at some point, causing
+    # the email to already be present. If anything is in the input, clear it
+    # and use the provided email, just to be safe.
+    # email_input.setAttribute("value", "")
+    email_input.clear()
+    email_input.send_keys(email)
     driver.find_element_by_id("ius-password").send_keys(password)
     driver.find_element_by_id("ius-sign-in-submit-btn").submit()
 
     # Wait until logged in, just in case we need to deal with MFA.
     while not driver.current_url.startswith(
             'https://mint.intuit.com/overview.event'):
+        # An implicitly_wait is also necessary here to avoid getting stuck on
+        # find_element_by_id while the page is still in transition.
+        driver.implicitly_wait(1)
         time.sleep(1)
 
         # bypass "Let's add your current mobile number" interstitial page
         try:
             skip_for_now = driver.find_element_by_id('ius-verified-user-update-btn-skip')
             skip_for_now.click()
-        except:
-             pass
+        except (NoSuchElementException, StaleElementReferenceException, ElementNotVisibleException):
+            pass
 
         driver.implicitly_wait(1)  # seconds
         try:
@@ -265,12 +278,16 @@ def get_web_driver(email, password, headless=False, mfa_method=None,
 
     # Wait until the overview page has actually loaded, and if wait_for_sync==True, sync has completed.
     if wait_for_sync:
-        status_message = driver.find_element_by_css_selector(".SummaryView .message")
         try:
+            # Status message might not be present straight away. Seems to be due
+            # to dynamic content (client side rendering).
+            status_message = WebDriverWait(driver, 30).until(
+                expected_conditions.visibility_of_element_located(
+                    (By.CSS_SELECTOR, ".SummaryView .message")))
             WebDriverWait(driver, 5 * 60).until(
                 lambda x: "Account refresh complete" in status_message.get_attribute('innerHTML')
             )
-        except TimeoutException:
+        except (TimeoutException, StaleElementReferenceException):
             warnings.warn("Mint sync apparently incomplete after 5 minutes. Data "
                           "retrieved may not be current.")
     else:
@@ -328,8 +345,8 @@ class Mint(object):
 
     def __init__(self, email=None, password=None, mfa_method=None,
                  mfa_input_callback=None, headless=False, session_path=None,
-                 imap_account=None, imap_password=None, imap_server=None, 
-                 imap_folder="INBOX"):
+                 imap_account=None, imap_password=None, imap_server=None,
+                 imap_folder="INBOX", wait_for_sync=True):
         if email and password:
             self.login_and_get_token(email, password,
                                      mfa_method=mfa_method,
@@ -338,8 +355,9 @@ class Mint(object):
                                      session_path=session_path,
                                      imap_account=imap_account,
                                      imap_password=imap_password,
-                                     imap_server=imap_server, 
-                                     imap_folder=imap_folder)
+                                     imap_server=imap_server,
+                                     imap_folder=imap_folder,
+                                     wait_for_sync=wait_for_sync)
 
     @classmethod
     def create(cls, email, password, **opts):
@@ -347,8 +365,8 @@ class Mint(object):
 
     @classmethod
     def get_rnd(cls):  # {{{
-        return (str(int(time.mktime(datetime.now().timetuple()))) +
-                str(random.randrange(999)).zfill(3))
+        return (str(int(time.mktime(datetime.now().timetuple()))) + str(
+            random.randrange(999)).zfill(3))
 
     def _get_api_key_header(self):
         key_var = 'window.MintConfig.browserAuthAPIKey'
@@ -367,7 +385,7 @@ class Mint(object):
         try:
             self.driver.implicitly_wait(1)
             self.driver.find_element_by_id('link-logout').click()
-        except:
+        except NoSuchElementException:
             pass
 
         self.driver.quit()
@@ -410,8 +428,9 @@ class Mint(object):
                             mfa_input_callback=None, headless=False,
                             session_path=None, imap_account=None,
                             imap_password=None,
-                            imap_server=None, 
-                            imap_folder=None):
+                            imap_server=None,
+                            imap_folder=None,
+                            wait_for_sync=True):
         if self.token and self.driver:
             return
 
@@ -422,8 +441,9 @@ class Mint(object):
                                      session_path=session_path,
                                      imap_account=imap_account,
                                      imap_password=imap_password,
-                                     imap_server=imap_server, 
-                                     imap_folder=imap_folder)
+                                     imap_server=imap_server,
+                                     imap_folder=imap_folder,
+                                     wait_for_sync=wait_for_sync)
         self.token = self.get_token()
 
     def get_token(self):
@@ -530,29 +550,32 @@ class Mint(object):
         # Converts the start date into datetime format - must be mm/dd/yy
         try:
             start_date = datetime.strptime(start_date, '%m/%d/%y')
-        except:
+        except (TypeError, ValueError):
             start_date = None
         all_txns = []
         offset = 0
         # Mint only returns some of the transactions at once.  To get all of
         # them, we have to keep asking for more until we reach the end.
         while 1:
+            url = MINT_ROOT_URL + '/getJsonData.xevent'
+            params = {
+                'queryNew': '',
+                'offset': offset,
+                'comparableType': '8',
+                'rnd': Mint.get_rnd(),
+            }
             # Specifying accountId=0 causes Mint to return investment
             # transactions as well.  Otherwise they are skipped by
             # default.
-            url = (
-                MINT_ROOT_URL +
-                '/getJsonData.xevent?' +
-                'queryNew=&offset={offset}&comparableType=8&' +
-                'rnd={rnd}&{query_options}').format(
-                offset=offset,
-                rnd=Mint.get_rnd(),
-                query_options=(
-                    'accountId=' + str(id) + '&task=transactions' if include_investment
-                    else 'accountId=' + str(id) + '&task=transactions,txnfilters&filterType=cash' if id > 0
-                    else 'task=transactions,txnfilters&filterType=cash'))
+            if id > 0 or include_investment:
+                params['id'] = id
+            if include_investment:
+                params['task'] = 'transactions'
+            else:
+                params['task'] = 'transactions,txnfilters'
+                params['filterType'] = 'cash'
             result = self.request_and_check(
-                url, headers=JSON_HEADER,
+                url, headers=JSON_HEADER, params=params,
                 expected_content_type='text/json|application/json')
             data = json.loads(result.text)
             txns = data['set'][0].get('data', [])
@@ -615,9 +638,12 @@ class Mint(object):
         # Specifying accountId=0 causes Mint to return investment
         # transactions as well.  Otherwise they are skipped by
         # default.
+        params = None
+        if include_investment or acct > 0:
+            params = {'accountId': acct}
         result = self.request_and_check(
-            '{}/transactionDownload.event'.format(MINT_ROOT_URL) +
-            ('?accountId=' + str(acct) if include_investment or acct > 0 else ''),
+            '{}/transactionDownload.event'.format(MINT_ROOT_URL),
+            params=params,
             expected_content_type='text/csv')
         return result.content
 
@@ -729,8 +755,8 @@ class Mint(object):
                 MINT_ROOT_URL, self.token))
         response = self.post(cat_url, data=data, headers=JSON_HEADER).text
         if req_id not in response:
-            raise MintException('Could not parse category data: "' +
-                                response + '"')
+            raise MintException(
+                'Could not parse category data: "{}"'.format(response))
         response = json.loads(response)
         response = response['response'][req_id]['response']
 
@@ -746,17 +772,12 @@ class Mint(object):
         categories = self.get_categories()
 
         # Issue request for budget utilization
-        today = date.today()
-        this_month = date(today.year, today.month, 1)
-        last_year = this_month - timedelta(days=330)
-        this_month = (str(this_month.month).zfill(2) +
-                      '/01/' + str(this_month.year))
-        last_year = (str(last_year.month).zfill(2) +
-                     '/01/' + str(last_year.year))
+        first_of_this_month = date.today().replace(day=1)
+        eleven_months_ago = (first_of_this_month - timedelta(days=330)).replace(day=1)
         url = "{}/getBudget.xevent".format(MINT_ROOT_URL)
         params = {
-            'startDate': last_year,
-            'endDate': this_month,
+            'startDate': eleven_months_ago.strftime('%m/%d/%Y'),
+            'endDate': first_of_this_month.strftime('%m/%d/%Y'),
             'rnd': Mint.get_rnd(),
         }
         response = json.loads(self.get(url, params=params, headers=JSON_HEADER).text)
@@ -856,16 +877,18 @@ class Mint(object):
         # and then by month. Let's flatten that into a list of dates.
         utilization = []
         name = data.get('creditorName', 'Total')
-        for y in data['creditUtilization']:
-            year = y['year']
-            for m in y['months']:
-                date = datetime.strptime('01 '+m['name']+' '+year, '%d %B %Y')
+        for cu in data['creditUtilization']:
+            year = cu['year']
+            for cu_month in cu['months']:
+                date = datetime.strptime(cu_month['name'], '%B').replace(
+                    day=1, year=int(year))
                 utilization.append({
                     'name': name,
                     'date': date.strftime('%Y-%m-%d'),
-                    'utilization': m['creditUtilization']
-                    })
+                    'utilization': cu_month['creditUtilization']
+                })
         return utilization
+
 
 def get_accounts(email, password, get_detail=False):
     mint = Mint.create(email, password)
@@ -900,17 +923,21 @@ def get_budgets(email, password):
     mint = Mint.create(email, password)
     return mint.get_budgets()
 
+
 def get_credit_score(email, password):
     mint = Mint.create(email, password)
     return mint.get_credit_score()
+
 
 def get_credit_report(email, password):
     mint = Mint.create(email, password)
     return mint.get_credit_report()
 
+
 def initiate_account_refresh(email, password):
     mint = Mint.create(email, password)
     return mint.initiate_account_refresh()
+
 
 def main():
     import getpass
@@ -1056,6 +1083,13 @@ def main():
         '--imap-test',
         action='store_true',
         help='Test imap login and retrieval.')
+    cmdline.add_argument(
+        '--no_wait_for_sync',
+        action='store_true',
+        default=False,
+        help=('By default, mint api will wait for accounts to sync with the '
+              'backing financial institutions. If this flag is present, do '
+              'not wait for them to sync.'))
 
     options = cmdline.parse_args()
 
@@ -1112,6 +1146,7 @@ def main():
                        imap_password=options.imap_password,
                        imap_server=options.imap_server,
                        imap_folder=options.imap_folder,
+                       wait_for_sync=not options.no_wait_for_sync
                        )
     atexit.register(mint.close)  # Ensure everything is torn down.
 
@@ -1126,26 +1161,26 @@ def main():
             accounts = make_accounts_presentable(
                 mint.get_accounts(get_detail=options.accounts_ext)
             )
-        except:
+        except Exception:
             accounts = None
 
         try:
             budgets = mint.get_budgets()
-        except:
+        except Exception:
             budgets = None
 
         data = {'accounts': accounts, 'budgets': budgets}
     elif options.budgets:
         try:
             data = mint.get_budgets()
-        except:
+        except Exception:
             data = None
     elif options.accounts:
         try:
             data = make_accounts_presentable(mint.get_accounts(
                 get_detail=options.accounts_ext)
             )
-        except:
+        except Exception:
             data = None
     elif options.transactions:
         data = mint.get_transactions(
