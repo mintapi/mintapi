@@ -823,14 +823,16 @@ class Mint(object):
             data={'token': self.token},
             headers=JSON_HEADER)
 
-    def get_credit_score(self):
-        credit_score = self.driver.find_element_by_class_name('score-number').text
-        if credit_score.isdigit():
-            return int(credit_score)
-        else:
-            return "No credit score provided."
+    def get_credit_score(self, limit):
+        credit_report = self.get_credit_report(limit, details=False)
+        # Extract the scores as a list
+        scores = list()
+        for vendor in credit_report['reports']['vendorReports']:
+            for report in vendor['creditReportList']:
+                scores.append(int(report['creditScore']))
+        return scores
 
-    def get_credit_report(self, limit=2):
+    def get_credit_report(self, limit=2, details=True):
         # Get the browser API key, build auth header
         credit_header = self._get_api_key_header()
 
@@ -844,23 +846,26 @@ class Mint(object):
             headers=credit_header)
         credit_report['reports'] = response.json()
 
-        # Get full list of credit inquiries
-        response = self.get(
-            '{}/v1/creditreports/0/inquiries'.format(MINT_CREDIT_URL),
-            headers=credit_header)
-        credit_report['inquiries'] = response.json()
+        # If we want details, request the detailed sub-reports
+        if details:
+            # Get full list of credit inquiries
+            response = self.get(
+                '{}/v1/creditreports/0/inquiries'.format(MINT_CREDIT_URL),
+                headers=credit_header)
+            credit_report['inquiries'] = response.json()
 
-        # Get full list of credit accounts
-        response = self.get(
-            '{}/v1/creditreports/0/tradelines'.format(MINT_CREDIT_URL),
-            headers=credit_header)
-        credit_report['accounts'] = response.json()
+            # Get full list of credit accounts
+            response = self.get(
+                '{}/v1/creditreports/0/tradelines'.format(MINT_CREDIT_URL),
+                headers=credit_header)
+            credit_report['accounts'] = response.json()
 
-        # Get credit utilization history (~3 months, by account)
-        response = self.get(
-            '{}/v1/creditreports/creditutilizationhistory'.format(MINT_CREDIT_URL),
-            headers=credit_header)
-        credit_report['utilization'] = self.process_utilization(response.json())
+            # Get credit utilization history (~3 months, by account)
+            response = self.get(
+                '{}/v1/creditreports/creditutilizationhistory'.format(MINT_CREDIT_URL),
+                headers=credit_header)
+            clean_data = self.process_utilization(response.json())
+            credit_report['utilization'] = clean_data
 
         return credit_report
 
@@ -995,7 +1000,7 @@ def main():
         action='store_true',
         dest='credit_score',
         default=False,
-        help='Retrieve credit score')
+        help='Retrieve current credit score')
     cmdline.add_argument(
         '--credit-report',
         action='store_true',
@@ -1194,9 +1199,9 @@ def main():
     elif options.net_worth:
         data = mint.get_net_worth()
     elif options.credit_score:
-        data = mint.get_credit_score()
+        data = mint.get_credit_score(limit=1)
     elif options.credit_report:
-        data = mint.get_credit_report()
+        data = mint.get_credit_report(details=True)
 
     # output the data
     if options.transactions or options.extended_transactions:
