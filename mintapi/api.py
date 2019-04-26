@@ -823,14 +823,14 @@ class Mint(object):
             data={'token': self.token},
             headers=JSON_HEADER)
 
-    def get_credit_score(self, limit):
-        credit_report = self.get_credit_report(limit, details=False)
-        # Extract the scores as a list
-        scores = list()
-        for vendor in credit_report['reports']['vendorReports']:
-            for report in vendor['creditReportList']:
-                scores.append(int(report['creditScore']))
-        return scores
+    def get_credit_score(self):
+        # Request a single credit report, and extract the score
+        reports = self.get_credit_report(limit=1, details=False)
+        try:
+            vendor = report['reports']['vendorReports'][0]
+            return vendor['creditReportList'][0]['creditScore']
+        except (KeyError, IndexError):
+            raise Exception('No Credit Score Found')
 
     def get_credit_report(self, limit=2, details=True):
         # Get the browser API key, build auth header
@@ -1199,7 +1199,7 @@ def main():
     elif options.net_worth:
         data = mint.get_net_worth()
     elif options.credit_score:
-        data = mint.get_credit_score(limit=1)
+        data = mint.get_credit_score()
     elif options.credit_report:
         data = mint.get_credit_report(details=True)
 
