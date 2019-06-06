@@ -293,7 +293,11 @@ def get_web_driver(email, password, headless=False, mfa_method=None,
     else:
         driver.find_element_by_id("transaction")
 
-    return driver
+    if "attention" in status_message.text:
+        attention = status_message.text.split(".")[1].strip()
+    else:
+        attention = None
+    return attention, driver
 
 
 IGNORE_FLOAT_REGEX = re.compile(r"[$,%]")
@@ -342,6 +346,7 @@ class Mint(object):
     request_id = 42  # magic number? random number?
     token = None
     driver = None
+    attention = None
 
     def __init__(self, email=None, password=None, mfa_method=None,
                  mfa_input_callback=None, headless=False, session_path=None,
@@ -434,16 +439,16 @@ class Mint(object):
         if self.token and self.driver:
             return
 
-        self.driver = get_web_driver(email, password,
-                                     mfa_method=mfa_method,
-                                     mfa_input_callback=mfa_input_callback,
-                                     headless=headless,
-                                     session_path=session_path,
-                                     imap_account=imap_account,
-                                     imap_password=imap_password,
-                                     imap_server=imap_server,
-                                     imap_folder=imap_folder,
-                                     wait_for_sync=wait_for_sync)
+        self.attention, self.driver = get_web_driver(email, password,
+                                                     mfa_method=mfa_method,
+                                                     mfa_input_callback=mfa_input_callback,
+                                                     headless=headless,
+                                                     session_path=session_path,
+                                                     imap_account=imap_account,
+                                                     imap_password=imap_password,
+                                                     imap_server=imap_server,
+                                                     imap_folder=imap_folder,
+                                                     wait_for_sync=wait_for_sync)
         self.token = self.get_token()
 
     def get_token(self):
@@ -1095,6 +1100,10 @@ def main():
         help=('By default, mint api will wait for accounts to sync with the '
               'backing financial institutions. If this flag is present, do '
               'not wait for them to sync.'))
+    cmdline.add_argument(
+        '--attention',
+        action='store_true',
+        help='Display accounts that need attention (None if none).')
 
     options = cmdline.parse_args()
 
@@ -1160,48 +1169,36 @@ def main():
         print("MFA CODE:", mfa_code)
         sys.exit()
 
-    data = None
-    if options.accounts and options.budgets:
+    data = {}
+    if options.budgets:
         try:
-            accounts = make_accounts_presentable(
-                mint.get_accounts(get_detail=options.accounts_ext)
-            )
+            data["budgets"] = mint.get_budgets()
         except Exception:
-            accounts = None
-
+            data["budgets"] = None
+    if options.accounts:
         try:
-            budgets = mint.get_budgets()
-        except Exception:
-            budgets = None
-
-        data = {'accounts': accounts, 'budgets': budgets}
-    elif options.budgets:
-        try:
-            data = mint.get_budgets()
-        except Exception:
-            data = None
-    elif options.accounts:
-        try:
-            data = make_accounts_presentable(mint.get_accounts(
+            data["accounts"] = make_accounts_presentable(mint.get_accounts(
                 get_detail=options.accounts_ext)
             )
         except Exception:
-            data = None
-    elif options.transactions:
-        data = mint.get_transactions(
+            data["accounts"] = None
+    if options.transactions:
+        data["transactions"] = mint.get_transactions(
             include_investment=options.include_investment)
-    elif options.extended_transactions:
-        data = mint.get_detailed_transactions(
+    if options.extended_transactions:
+        data["extended_transactions"] = mint.get_detailed_transactions(
             start_date=options.start_date,
             include_investment=options.include_investment,
             remove_pending=options.show_pending,
             skip_duplicates=options.skip_duplicates)
-    elif options.net_worth:
-        data = mint.get_net_worth()
-    elif options.credit_score:
-        data = mint.get_credit_score()
-    elif options.credit_report:
-        data = mint.get_credit_report(details=True)
+    if options.net_worth:
+        data["net_worth"] = mint.get_net_worth()
+    if options.credit_score:
+        data["net_worth"] = mint.get_credit_score()
+    if options.credit_report:
+        data["credit_report"] = mint.get_credit_report(details=True)
+    if options.attention:
+        data["attention"] = mint.attention
 
     # output the data
     if options.transactions or options.extended_transactions:
