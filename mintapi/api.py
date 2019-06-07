@@ -572,7 +572,7 @@ class Mint(object):
             # transactions as well.  Otherwise they are skipped by
             # default.
             if id > 0 or include_investment:
-                params['id'] = id
+                params['accountId'] = id
             if include_investment:
                 params['task'] = 'transactions'
             else:
