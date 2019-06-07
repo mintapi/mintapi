@@ -176,7 +176,7 @@ CHROME_ZIP_TYPES = {
 
 def get_web_driver(email, password, headless=False, mfa_method=None,
                    mfa_input_callback=None, wait_for_sync=True,
-                   wait_for_sync_timeout=5*60,
+                   wait_for_sync_timeout=5 * 60,
                    session_path=None, imap_account=None, imap_password=None,
                    imap_server=None, imap_folder="INBOX"):
     if headless and mfa_method is None:
@@ -347,7 +347,7 @@ class Mint(object):
     def __init__(self, email=None, password=None, mfa_method=None,
                  mfa_input_callback=None, headless=False, session_path=None,
                  imap_account=None, imap_password=None, imap_server=None,
-                 imap_folder="INBOX", wait_for_sync=True, wait_for_sync_timeout=5*60):
+                 imap_folder="INBOX", wait_for_sync=True, wait_for_sync_timeout=5 * 60):
         if email and password:
             self.login_and_get_token(email, password,
                                      mfa_method=mfa_method,
@@ -433,7 +433,7 @@ class Mint(object):
                             imap_server=None,
                             imap_folder=None,
                             wait_for_sync=True,
-                            wait_for_sync_timeout=5*60):
+                            wait_for_sync_timeout=5 * 60):
         if self.token and self.driver:
             return
 
@@ -829,7 +829,7 @@ class Mint(object):
 
     def get_credit_score(self):
         # Request a single credit report, and extract the score
-        reports = self.get_credit_report(limit=1, details=False)
+        report = self.get_credit_report(limit=1, details=False)
         try:
             vendor = report['reports']['vendorReports'][0]
             return vendor['creditReportList'][0]['creditScore']
@@ -1102,7 +1102,7 @@ def main():
     cmdline.add_argument(
         '--wait_for_sync_timeout',
         type=int,
-        default=5*60,
+        default=5 * 60,
         help=('Number of seconds to wait for sync.  Default is 5 minutes'))
 
     options = cmdline.parse_args()
