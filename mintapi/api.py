@@ -277,6 +277,7 @@ def get_web_driver(email, password, headless=False, mfa_method=None,
             driver.implicitly_wait(20)  # seconds
 
     # Wait until the overview page has actually loaded, and if wait_for_sync==True, sync has completed.
+    status_message = None
     if wait_for_sync:
         try:
             # Status message might not be present straight away. Seems to be due
@@ -293,11 +294,10 @@ def get_web_driver(email, password, headless=False, mfa_method=None,
     else:
         driver.find_element_by_id("transaction")
 
-    if "attention" in status_message.text:
-        attention = status_message.text.split(".")[1].strip()
+    if status_message is None:
+        return None, driver
     else:
-        attention = None
-    return attention, driver
+        return status_message.text, driver
 
 
 IGNORE_FLOAT_REGEX = re.compile(r"[$,%]")
@@ -346,7 +346,7 @@ class Mint(object):
     request_id = 42  # magic number? random number?
     token = None
     driver = None
-    attention = None
+    status_message = None
 
     def __init__(self, email=None, password=None, mfa_method=None,
                  mfa_input_callback=None, headless=False, session_path=None,
@@ -439,16 +439,16 @@ class Mint(object):
         if self.token and self.driver:
             return
 
-        self.attention, self.driver = get_web_driver(email, password,
-                                                     mfa_method=mfa_method,
-                                                     mfa_input_callback=mfa_input_callback,
-                                                     headless=headless,
-                                                     session_path=session_path,
-                                                     imap_account=imap_account,
-                                                     imap_password=imap_password,
-                                                     imap_server=imap_server,
-                                                     imap_folder=imap_folder,
-                                                     wait_for_sync=wait_for_sync)
+        self.status_message, self.driver = get_web_driver(email, password,
+                                                          mfa_method=mfa_method,
+                                                          mfa_input_callback=mfa_input_callback,
+                                                          headless=headless,
+                                                          session_path=session_path,
+                                                          imap_account=imap_account,
+                                                          imap_password=imap_password,
+                                                          imap_server=imap_server,
+                                                          imap_folder=imap_folder,
+                                                          wait_for_sync=wait_for_sync)
         self.token = self.get_token()
 
     def get_token(self):
@@ -460,6 +460,16 @@ class Mint(object):
         req_id = self.request_id
         self.request_id += 1
         return str(req_id)
+
+    def get_attention(self):
+        attention = None
+        # noinspection PyBroadException
+        try:
+            if "attention" in self.status_message:
+                attention = self.status_message.split(".")[1].strip()
+        except Exception:
+            pass
+        return attention
 
     def get_bills(self):
         return self.get(
@@ -1198,7 +1208,7 @@ def main():
     if options.credit_report:
         data["credit_report"] = mint.get_credit_report(details=True)
     if options.attention:
-        data["attention"] = mint.attention
+        data["attention"] = mint.get_attention()
 
     # output the data
     if options.transactions or options.extended_transactions:
