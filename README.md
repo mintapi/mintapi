@@ -100,7 +100,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                    [--extended-transactions] [--credit-score] [--credit-report] [--start-date [START_DATE]]
                    [--include-investment] [--skip-duplicates] [--show-pending]
                    [--filename FILENAME] [--keyring] [--headless]
-                   [--mfa-method {sms,email}]
+                   [--mfa-method {sms,email}] [--attention]
                    [email] [password]
 
     positional arguments:
@@ -145,6 +145,8 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       --imap-folder IMAP_FOLDER
                             Default is INBOX
       --imap-test           Test access to IMAP server
+      --attention           Display accounts that need attention (None if none).
+
 
     >>> mintapi --keyring email@example.com
     [
