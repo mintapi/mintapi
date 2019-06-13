@@ -58,6 +58,8 @@ make calls to retrieve account/budget information.  We recommend using the
     imap_password=None, # account password used to log in to your IMAP server
     imap_server=None,  # IMAP server host name
     imap_folder='INBOX',  # IMAP folder that receives MFA email
+    no_wait_for_sync=False,  # do not wait for accounts to sync
+    wait_for_sync_timeout=300,  # number of seconds to wait for sync
   )
 
   # Get basic account information
@@ -145,6 +147,9 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       --imap-folder IMAP_FOLDER
                             Default is INBOX
       --imap-test           Test access to IMAP server
+      --no_wait_for_sync    Do not wait for accounts to sync
+      --wait_for_sync_timeout
+                            Number of seconds to wait for sync (default is 300)
 
     >>> mintapi --keyring email@example.com
     [
