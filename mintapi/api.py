@@ -466,7 +466,10 @@ class Mint(object):
         # noinspection PyBroadException
         try:
             if "attention" in self.status_message:
-                attention = self.status_message.split(".")[1].strip()
+                if "." in self.status_message:
+                    attention = self.status_message.split(".")[1].strip()
+                else:
+                    attention = self.status_message
         except Exception:
             pass
         return attention
