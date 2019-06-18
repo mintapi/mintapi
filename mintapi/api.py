@@ -467,9 +467,10 @@ class Mint(object):
         try:
             if "attention" in self.status_message:
                 if "." in self.status_message:
-                    attention = self.status_message.split(".")[1].strip()
-                else:
-                    attention = self.status_message
+                    if self.status_message[-1:] == ".":
+                        attention = self.status_message
+                    else:
+                        attention = self.status_message.split(".")[1].strip()
         except Exception:
             pass
         return attention
