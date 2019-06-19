@@ -102,7 +102,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                    [--extended-transactions] [--credit-score] [--credit-report] [--start-date [START_DATE]]
                    [--include-investment] [--skip-duplicates] [--show-pending]
                    [--filename FILENAME] [--keyring] [--headless]
-                   [--mfa-method {sms,email}]
+                   [--mfa-method {sms,email}] [--attention]
                    [email] [password]
 
     positional arguments:
@@ -150,6 +150,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       --no_wait_for_sync    Do not wait for accounts to sync
       --wait_for_sync_timeout
                             Number of seconds to wait for sync (default is 300)
+      --attention           Display accounts that need attention (None if none).
 
     >>> mintapi --keyring email@example.com
     [
