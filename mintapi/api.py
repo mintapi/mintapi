@@ -849,7 +849,7 @@ class Mint(object):
         report = self.get_credit_report(limit=1, details=False)
         try:
             vendor = report['reports']['vendorReports'][0]
-            return vendor['creditReportList'][0]['creditScore']
+            return int(vendor['creditReportList'][0]['creditScore'])
         except (KeyError, IndexError):
             raise Exception('No Credit Score Found')
 
