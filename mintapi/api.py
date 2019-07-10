@@ -116,13 +116,13 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, debug=
             else:
                 print("ERROR: FAIL0")
 
-            diff = datetime.now() - local_date
+            # diff = datetime.now() - local_date
 
-            if debug:
-                print("DEBUG: AGE:", diff.seconds)
+            # if debug:
+            #     print("DEBUG: AGE:", diff.seconds)
 
-            if diff.seconds > 180:
-                continue
+            # if diff.seconds > 180:
+            #     continue
 
             if debug:
                 print("DEBUG: EMAIL HEADER OK")
