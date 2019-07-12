@@ -145,8 +145,10 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       --imap-folder IMAP_FOLDER
                             Default is INBOX
       --imap-test           Test access to IMAP server
+      --no_wait_for_sync    Do not wait for accounts to sync
+      --wait_for_sync_timeout
+                            Number of seconds to wait for sync (default is 300)
       --attention           Display accounts that need attention (None if none).
-
 
     >>> mintapi --keyring email@example.com
     [

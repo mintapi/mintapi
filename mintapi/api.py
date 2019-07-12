@@ -176,6 +176,7 @@ CHROME_ZIP_TYPES = {
 
 def get_web_driver(email, password, headless=False, mfa_method=None,
                    mfa_input_callback=None, wait_for_sync=True,
+                   wait_for_sync_timeout=5 * 60,
                    session_path=None, imap_account=None, imap_password=None,
                    imap_server=None, imap_folder="INBOX"):
     if headless and mfa_method is None:
@@ -285,12 +286,12 @@ def get_web_driver(email, password, headless=False, mfa_method=None,
             status_message = WebDriverWait(driver, 30).until(
                 expected_conditions.visibility_of_element_located(
                     (By.CSS_SELECTOR, ".SummaryView .message")))
-            WebDriverWait(driver, 5 * 60).until(
+            WebDriverWait(driver, wait_for_sync_timeout).until(
                 lambda x: "Account refresh complete" in status_message.get_attribute('innerHTML')
             )
         except (TimeoutException, StaleElementReferenceException):
-            warnings.warn("Mint sync apparently incomplete after 5 minutes. Data "
-                          "retrieved may not be current.")
+            warnings.warn("Mint sync apparently incomplete after timeout. "
+                          "Data retrieved may not be current.")
     else:
         driver.find_element_by_id("transaction")
 
@@ -351,7 +352,7 @@ class Mint(object):
     def __init__(self, email=None, password=None, mfa_method=None,
                  mfa_input_callback=None, headless=False, session_path=None,
                  imap_account=None, imap_password=None, imap_server=None,
-                 imap_folder="INBOX", wait_for_sync=True):
+                 imap_folder="INBOX", wait_for_sync=True, wait_for_sync_timeout=5 * 60):
         if email and password:
             self.login_and_get_token(email, password,
                                      mfa_method=mfa_method,
@@ -362,7 +363,8 @@ class Mint(object):
                                      imap_password=imap_password,
                                      imap_server=imap_server,
                                      imap_folder=imap_folder,
-                                     wait_for_sync=wait_for_sync)
+                                     wait_for_sync=wait_for_sync,
+                                     wait_for_sync_timeout=wait_for_sync_timeout)
 
     @classmethod
     def create(cls, email, password, **opts):
@@ -435,7 +437,8 @@ class Mint(object):
                             imap_password=None,
                             imap_server=None,
                             imap_folder=None,
-                            wait_for_sync=True):
+                            wait_for_sync=True,
+                            wait_for_sync_timeout=5 * 60):
         if self.token and self.driver:
             return
 
@@ -448,7 +451,8 @@ class Mint(object):
                                                           imap_password=imap_password,
                                                           imap_server=imap_server,
                                                           imap_folder=imap_folder,
-                                                          wait_for_sync=wait_for_sync)
+                                                          wait_for_sync=wait_for_sync,
+                                                          wait_for_sync_timeout=wait_for_sync_timeout)
         self.token = self.get_token()
 
     def get_token(self):
@@ -465,12 +469,10 @@ class Mint(object):
         attention = None
         # noinspection PyBroadException
         try:
-            if "attention" in self.status_message:
-                if "." in self.status_message:
-                    if self.status_message[-1:] == ".":
-                        attention = self.status_message
-                    else:
-                        attention = self.status_message.split(".")[1].strip()
+            if "complete" in self.status_message:
+                attention = self.status_message.split(".")[1].strip()
+            else:
+                attention = self.status_message
         except Exception:
             pass
         return attention
@@ -587,7 +589,7 @@ class Mint(object):
             # transactions as well.  Otherwise they are skipped by
             # default.
             if id > 0 or include_investment:
-                params['id'] = id
+                params['accountId'] = id
             if include_investment:
                 params['task'] = 'transactions'
             else:
@@ -844,10 +846,10 @@ class Mint(object):
 
     def get_credit_score(self):
         # Request a single credit report, and extract the score
-        reports = self.get_credit_report(limit=1, details=False)
+        report = self.get_credit_report(limit=1, details=False)
         try:
-            vendor = reports['reports']['vendorReports'][0]
-            return vendor['creditReportList'][0]['creditScore']
+            vendor = report['reports']['vendorReports'][0]
+            return int(vendor['creditReportList'][0]['creditScore'])
         except (KeyError, IndexError):
             raise Exception('No Credit Score Found')
 
@@ -1115,6 +1117,11 @@ def main():
               'backing financial institutions. If this flag is present, do '
               'not wait for them to sync.'))
     cmdline.add_argument(
+        '--wait_for_sync_timeout',
+        type=int,
+        default=5 * 60,
+        help=('Number of seconds to wait for sync.  Default is 5 minutes'))
+    cmdline.add_argument(
         '--attention',
         action='store_true',
         help='Display accounts that need attention (None if none).')
@@ -1174,7 +1181,8 @@ def main():
                        imap_password=options.imap_password,
                        imap_server=options.imap_server,
                        imap_folder=options.imap_folder,
-                       wait_for_sync=not options.no_wait_for_sync
+                       wait_for_sync=not options.no_wait_for_sync,
+                       wait_for_sync_timeout=options.wait_for_sync_timeout
                        )
     atexit.register(mint.close)  # Ensure everything is torn down.
 
@@ -1183,35 +1191,49 @@ def main():
         print("MFA CODE:", mfa_code)
         sys.exit()
 
-    data = {}
-    if options.budgets:
+    data = None
+    if options.accounts and options.budgets:
         try:
-            data["budgets"] = mint.get_budgets()
+            accounts = make_accounts_presentable(
+                mint.get_accounts(get_detail=options.accounts_ext)
+            )
         except Exception:
-            data["budgets"] = None
-    if options.accounts:
+            accounts = None
+
         try:
-            data["accounts"] = make_accounts_presentable(mint.get_accounts(
+            budgets = mint.get_budgets()
+        except Exception:
+            budgets = None
+
+        data = {'accounts': accounts, 'budgets': budgets}
+    elif options.budgets:
+        try:
+            data = mint.get_budgets()
+        except Exception:
+            data = None
+    elif options.accounts:
+        try:
+            data = make_accounts_presentable(mint.get_accounts(
                 get_detail=options.accounts_ext)
             )
         except Exception:
-            data["accounts"] = None
-    if options.transactions:
-        data["transactions"] = mint.get_transactions(
+            data = None
+    elif options.transactions:
+        data = mint.get_transactions(
             include_investment=options.include_investment)
-    if options.extended_transactions:
-        data["extended_transactions"] = mint.get_detailed_transactions(
+    elif options.extended_transactions:
+        data = mint.get_detailed_transactions(
             start_date=options.start_date,
             include_investment=options.include_investment,
             remove_pending=options.show_pending,
             skip_duplicates=options.skip_duplicates)
-    if options.net_worth:
-        data["net_worth"] = mint.get_net_worth()
-    if options.credit_score:
-        data["net_worth"] = mint.get_credit_score()
-    if options.credit_report:
-        data["credit_report"] = mint.get_credit_report(details=True)
-    if options.attention:
+    elif options.net_worth:
+        data = mint.get_net_worth()
+    elif options.credit_score:
+        data = mint.get_credit_score()
+    elif options.credit_report:
+        data = mint.get_credit_report(details=True)
+    elif options.attention:
         data["attention"] = mint.get_attention()
 
     # output the data
