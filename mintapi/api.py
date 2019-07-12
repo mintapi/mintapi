@@ -1234,7 +1234,7 @@ def main():
     elif options.credit_report:
         data = mint.get_credit_report(details=True)
     elif options.attention:
-        data["attention"] = mint.get_attention()
+        data = mint.get_attention()
 
     # output the data
     if options.transactions or options.extended_transactions:
