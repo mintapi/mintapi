@@ -217,11 +217,11 @@ def get_web_driver(email, password, headless=False, mfa_method=None,
     driver.get("https://www.mint.com")
     driver.implicitly_wait(20)  # seconds
     try:
-        element = driver.find_element_by_link_text("Log In")
+        element = driver.find_element_by_link_text("Sign in")
     except NoSuchElementException:
         # when user has cookies, a slightly different front page appears
         driver.implicitly_wait(0)  # seconds
-        element = driver.find_element_by_link_text("LOG IN")
+        element = driver.find_element_by_link_text("Sign in")
         driver.implicitly_wait(20)  # seconds
     element.click()
     time.sleep(1)
