@@ -1,3 +1,12 @@
+1.40
+---
+- simplify pypi long description to prevent rendering error and release blocking
+- actually release changes from 1.39
+
+1.39
+---
+- fix targetting for login/signup (github#187)
+
 1.38
 ---
 - add ability to retrieve mfa code from email via IMAP (github#166)
