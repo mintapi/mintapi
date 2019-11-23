@@ -466,6 +466,16 @@ class Mint(object):
             headers=self._get_api_key_header()
         ).json()['bills']
 
+    def get_invests_json(self):
+        body = self.get(
+            '{}/investment.event'.format(MINT_ROOT_URL),
+        ).text
+        p = re.search(r'<input name="json-import-node" type="hidden" value="json = ([^"]*);"', body)
+        if p:
+            return p.group(1).replace('&quot;','"')
+        else:
+            print("FAIL2")
+
     def get_accounts(self, get_detail=False):  # {{{
         # Issue service request.
         req_id = self.get_request_id_str()
