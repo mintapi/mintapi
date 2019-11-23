@@ -472,7 +472,7 @@ class Mint(object):
         ).text
         p = re.search(r'<input name="json-import-node" type="hidden" value="json = ([^"]*);"', body)
         if p:
-            return p.group(1).replace('&quot;','"')
+            return p.group(1).replace('&quot;', '"')
         else:
             print("FAIL2")
 
