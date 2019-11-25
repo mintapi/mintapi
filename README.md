@@ -91,6 +91,9 @@ make calls to retrieve account/budget information.  We recommend using the
 
   # Get bills
   mint.get_bills()
+
+  # Get investments (holdings and transactions)
+  mint.get_invests_json()
   
   # Close session and exit cleanly from selenium/chromedriver
   mint.close()
