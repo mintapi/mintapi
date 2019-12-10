@@ -42,7 +42,7 @@ make calls to retrieve account/budget information.  We recommend using the
     'your_email@web.com',  # Email used to log in to Mint
     'password',  # Your password used to log in to mint
     # Optional parameters
-    mfa_method='sms',  # Can be 'sms' (default) or 'email'.
+    mfa_method='sms',  # Can be 'sms' (default), 'email', or 'soft-token'.
                        # if mintapi detects an MFA request, it will trigger the requested method
                        # and prompt on the command line.
     headless=False,  # Whether the chromedriver should work without opening a
