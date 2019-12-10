@@ -252,26 +252,33 @@ def get_web_driver(email, password, headless=False, mfa_method=None,
 
         driver.implicitly_wait(1)  # seconds
         try:
-            driver.find_element_by_id('ius-mfa-options-form')
-            try:
-                mfa_method_option = driver.find_element_by_id('ius-mfa-option-{}'.format(mfa_method))
-                mfa_method_option.click()
-                mfa_method_submit = driver.find_element_by_id("ius-mfa-options-submit-btn")
-                mfa_method_submit.click()
+            if mfa_method == 'soft-token':
+                mfa_token_input = driver.find_element_by_id('ius-mfa-soft-token')
+                mfa_code = (mfa_input_callback or input)("Please enter your 6-digit MFA code: ")
+                mfa_token_input.send_keys(mfa_code)
+                mfa_token_submit = driver.find_element_by_id('ius-mfa-soft-token-submit-btn')
+                mfa_token_submit.click()
+            else:
+                driver.find_element_by_id('ius-mfa-options-form')
+                try:
+                    mfa_method_option = driver.find_element_by_id('ius-mfa-option-{}'.format(mfa_method))
+                    mfa_method_option.click()
+                    mfa_method_submit = driver.find_element_by_id("ius-mfa-options-submit-btn")
+                    mfa_method_submit.click()
 
-                if mfa_method == 'email' and imap_account:
-                    mfa_code = get_email_code(imap_account, imap_password, imap_server, imap_folder=imap_folder)
-                else:
-                    mfa_code = (mfa_input_callback or input)("Please enter your 6-digit MFA code: ")
-                mfa_code_input = driver.find_element_by_id("ius-mfa-confirm-code")
-                mfa_code_input.send_keys(mfa_code)
+                    if mfa_method == 'email' and imap_account:
+                        mfa_code = get_email_code(imap_account, imap_password, imap_server, imap_folder=imap_folder)
+                    else:
+                        mfa_code = (mfa_input_callback or input)("Please enter your 6-digit MFA code: ")
+                    mfa_code_input = driver.find_element_by_id("ius-mfa-confirm-code")
+                    mfa_code_input.send_keys(mfa_code)
 
-                mfa_code_submit = driver.find_element_by_id("ius-mfa-otp-submit-btn")
-                mfa_code_submit.click()
-            except Exception:  # if anything goes wrong for any reason, give up on MFA
-                mfa_method = None
-                warnings.warn("Giving up on handling MFA. Please complete "
-                              "the MFA process manually in the browser.")
+                    mfa_code_submit = driver.find_element_by_id("ius-mfa-otp-submit-btn")
+                    mfa_code_submit.click()
+                except Exception:  # if anything goes wrong for any reason, give up on MFA
+                    mfa_method = None
+                    warnings.warn("Giving up on handling MFA. Please complete "
+                                  "the MFA process manually in the browser.")
         except NoSuchElementException:
             pass
         finally:
