@@ -1,3 +1,9 @@
+1.41
+---
+- support soft token mfa method (github#193)
+- allow retrieving brokerage holdings via get_invests_json (github#192)
+- add more methods to README and fix typo (github#191, github#189)
+
 1.40
 ---
 - simplify pypi long description to prevent rendering error and release blocking
