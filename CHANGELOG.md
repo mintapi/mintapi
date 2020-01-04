@@ -1,3 +1,80 @@
+1.41
+---
+- support soft token mfa method (github#193)
+- allow retrieving brokerage holdings via get_invests_json (github#192)
+- add more methods to README and fix typo (github#191, github#189)
+
+1.40
+---
+- simplify pypi long description to prevent rendering error and release blocking
+- actually release changes from 1.39
+
+1.39
+---
+- fix targetting for login/signup (github#187)
+
+1.38
+---
+- add ability to retrieve mfa code from email via IMAP (github#166)
+
+1.37
+---
+- full credit report functionality (github#169)
+
+1.36
+---
+- add ability to get credit score (github#163)
+
+1.35
+---
+- by default, persist a browser session to avoid regular MFA requests (github#160)
+
+1.34
+---
+- correctly fix usages of parse_float (github#159)
+
+1.33
+---
+- fix chromedriver download on win64 (github#158)
+- fix usages of parse_float (github#157)
+
+1.32
+---
+- don't let "accounts need attention" block closing after a successful refresh (github#156)
+
+1.31
+---
+- fix for headless chromedriver not working on Windows (github#151)
+
+1.30
+---
+- chromedriver now supports --headless option (thanks @matthewwardrop/@eschizoid)
+- chromedriver now supports --mfa-method to automate triggering sms/email (thanks @matthewwardrop/@eschizoid)
+
+1.29
+---
+- use seleniumrequests to perform all requests (thanks @jprouty!)
+
+1.28
+---
+- fix get_transactions_json when start_date predates all transactions (thanks @jprouty!)
+
+1.27
+---
+- fix NoneType error when getting cookies via chromedriver (thanks @dherg!)
+
+1.26
+---
+- properly display messages when webdriver raises a URLError (thanks @dherg!)
+
+1.25
+---
+- use Excel-compatible datetime formatting and allow customizing (thanks @felciano!)
+
+1.24
+---
+- fix "Unknown" categories when categories in budgets (thanks @drunnells!)
+
 1.23
 ---
 - mintapi raises MintException instead of Exception for better exception
