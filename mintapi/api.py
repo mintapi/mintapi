@@ -1253,7 +1253,7 @@ def main():
     elif options.budget_hist:
         try:
             data = mint.get_budgets(hist=12)
-        except:
+        except Exception:
             data = None
     elif options.accounts:
         try:
