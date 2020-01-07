@@ -107,7 +107,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
 
 ```shell
     usage: mintapi [-h] [--session-path [SESSION_PATH]] [--accounts]
-                   [--budgets] [--net-worth] [--extended-accounts] [--transactions]
+                   [--budgets | --budget_hist] [--net-worth] [--extended-accounts] [--transactions]
                    [--extended-transactions] [--credit-score] [--credit-report] [--start-date [START_DATE]]
                    [--include-investment] [--skip-duplicates] [--show-pending]
                    [--filename FILENAME] [--keyring] [--headless]
@@ -126,7 +126,8 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                             Directory to save browser session, including cookies. Used to prevent repeated
                             MFA prompts. Defaults to $HOME/.mintapi/session. Set to None to use a temporary
                             profile.
-      --budgets             Retrieve budget information
+      --budgets             Retrieve budget information for current month
+      --budget_hist         Retrieve historical budget information (past 12 months)
       --credit-score        Retrieve credit score
       --credit-report       Retrieve full credit report & history
       --net-worth           Retrieve net worth information

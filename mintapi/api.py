@@ -788,7 +788,7 @@ class Mint(object):
 
         return categories
 
-    def get_budgets(self):  # {{{
+    def get_budgets(self, hist=None):  # {{{
         # Get categories
         categories = self.get_categories()
 
@@ -803,23 +803,60 @@ class Mint(object):
         }
         response = json.loads(self.get(url, params=params, headers=JSON_HEADER).text)
 
-        # Make the skeleton return structure
-        budgets = {
-            'income': response['data']['income'][
-                str(max(map(int, response['data']['income'].keys())))
-            ]['bu'],
-            'spend': response['data']['spending'][
-                str(max(map(int, response['data']['income'].keys())))
-            ]['bu']
-        }
+        if hist is not None:  # version proofing api
+            def mos_to_yrmo(mos_frm_zero):
+                return datetime(year=int(mos_frm_zero / 12),
+                                month=mos_frm_zero % 12 + 1,
+                                day=1).strftime("%Y%m")
 
-        # Fill in the return structure
-        for direction in budgets.keys():
-            for budget in budgets[direction]:
-                budget['cat'] = self.get_category_from_id(
-                    budget['cat'],
-                    categories
-                )
+            # Error checking 'hist' argument
+            if isinstance(hist, str) or hist > 12:
+                hist = 12  # MINT_ROOT_URL only calls last 12 months of budget data
+            elif hist < 1:
+                hist = 1
+
+            bgt_cur_mo = max(map(int, response['data']['income'].keys()))
+            min_mo_hist = bgt_cur_mo - hist
+
+            # Initialize and populate dictionary for return
+            #   Output 'budgets' dictionary with structure
+            #       { "YYYYMM": {"spending": [{"key": value, ...}, ...],
+            #                      "income": [{"key": value, ...}, ...] } }
+            budgets = {}
+            for months in range(bgt_cur_mo, min_mo_hist, -1):
+                budgets[mos_to_yrmo(months)] = {}
+                budgets[mos_to_yrmo(months)][
+                    "income"] = response["data"]["income"][str(months)]['bu']
+                budgets[mos_to_yrmo(months)][
+                    "spending"] = response["data"]["spending"][str(months)]['bu']
+
+            # Fill in the return structure
+            for month in budgets.keys():
+                for direction in budgets[month]:
+                    for budget in budgets[month][direction]:
+                        budget['cat'] = self.get_category_from_id(
+                            budget['cat'],
+                            categories
+                        )
+
+        else:
+            # Make the skeleton return structure
+            budgets = {
+                'income': response['data']['income'][
+                    str(max(map(int, response['data']['income'].keys())))
+                ]['bu'],
+                'spend': response['data']['spending'][
+                    str(max(map(int, response['data']['income'].keys())))
+                ]['bu']
+            }
+
+            # Fill in the return structure
+            for direction in budgets.keys():
+                for budget in budgets[direction]:
+                    budget['cat'] = self.get_category_from_id(
+                        budget['cat'],
+                        categories
+                    )
 
         return budgets
 
@@ -1010,6 +1047,12 @@ def main():
         dest='budgets',
         default=False,
         help='Retrieve budget information')
+    cmdline.add_argument(
+        '--budget_hist',
+        action='store_true',
+        dest='budget_hist',
+        default=None,
+        help='Retrieve 12-month budget history information')
     cmdline.add_argument(
         '--net-worth',
         action='store_true',
@@ -1205,6 +1248,11 @@ def main():
     elif options.budgets:
         try:
             data = mint.get_budgets()
+        except Exception:
+            data = None
+    elif options.budget_hist:
+        try:
+            data = mint.get_budgets(hist=12)
         except Exception:
             data = None
     elif options.accounts:
