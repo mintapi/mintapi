@@ -28,6 +28,8 @@ session in $HOME/.mintapi/session to avoid an MFA in the future, unless you spec
 If mfa-method is email and your email host provides IMAP access, you can specify your IMAP login details.
 This will automate the retrieval of the MFA code from your email and entering it into Mint.
 
+If mfa-method is soft-token then you must also pass your mfa-token.
+
 ### from Python
 
 From python, instantiate the Mint class (from the mintapi package) and you can
@@ -111,7 +113,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                    [--extended-transactions] [--credit-score] [--credit-report] [--start-date [START_DATE]]
                    [--include-investment] [--skip-duplicates] [--show-pending]
                    [--filename FILENAME] [--keyring] [--headless] [--attention]
-                   [--mfa-method {sms,email}]
+                   [--mfa-method {sms,email,soft-token}]
                    email [password]
 
     positional arguments:
@@ -152,8 +154,9 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
 	  --use-chromedriver-on-path
 	  						Whether to use the chromedriver on PATH, instead of
               			  	downloading a local copy.
-      --mfa-method {sms,email}
+      --mfa-method {sms,email,soft-token}
                             The MFA method to automate.
+      --mfa-token      The base32 encoded MFA token.
       --imap-account IMAP_ACCOUNT
       --imap-password IMAP_PASSWORD
       --imap-server IMAP_SERVER_HOSTNAME
