@@ -175,7 +175,7 @@ CHROME_ZIP_TYPES = {
 
 
 def get_latest_chrome_driver_url(platform):
-    # Download the latest chrome driver from the stable channel.
+    """Returns the url for the latest stable chromedriver for platform."""
     latest_url = CHROME_DRIVER_BASE_URL + 'LATEST_RELEASE'
     latest_request = requests.get(latest_url)
 
