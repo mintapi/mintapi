@@ -174,6 +174,21 @@ CHROME_ZIP_TYPES = {
 }
 
 
+def get_latest_chrome_driver_url(platform):
+    # Download the latest chrome driver from the stable channel.
+    latest_url = CHROME_DRIVER_BASE_URL + 'LATEST_RELEASE'
+    latest_request = requests.get(latest_url)
+
+    if latest_request.status_code != 200:
+        raise RuntimeError(
+            'Error finding the latest chromedriver at {}, status = {}'.format(
+                latest_url, latest_request.status_code))
+
+    latest_version = latest_request.text
+    return CHROME_DRIVER_BASE_URL + CHROME_DRIVER_DOWNLOAD_PATH.format(
+        version=latest_version, arch=CHROME_ZIP_TYPES.get(platform))
+
+
 def get_web_driver(email, password, headless=False, mfa_method=None,
                    mfa_input_callback=None, wait_for_sync=True,
                    wait_for_sync_timeout=5 * 60,
@@ -184,24 +199,12 @@ def get_web_driver(email, password, headless=False, mfa_method=None,
                       "is unlikely to lead to a successful login. Defaulting --mfa-method=sms")
         mfa_method = "sms"
 
-    zip_type = CHROME_ZIP_TYPES.get(_platform)
     executable_path = os.getcwd() + os.path.sep + 'chromedriver'
     if _platform in ['win32', 'win64']:
         executable_path += '.exe'
 
     if not os.path.exists(executable_path):
-        # Download the latest chrome driver from the stable channel.
-        latest_url = CHROME_DRIVER_BASE_URL + 'LATEST_RELEASE'
-        latest_request = requests.get(latest_url)
-
-        if latest_request.status_code != 200:
-            raise RuntimeError(
-                'Error finding the latest chromedriver at {}, status = {}'.format(
-                    latest_url, latest_request.status_code))
-
-        latest_version = latest_request.text
-        zip_file_url = CHROME_DRIVER_BASE_URL + CHROME_DRIVER_DOWNLOAD_PATH.format(
-            version=latest_version, arch=zip_type)
+        zip_file_url = get_latest_chrome_driver_url(_platform)
         request = requests.get(zip_file_url)
 
         if request.status_code != 200:
