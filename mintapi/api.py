@@ -163,8 +163,8 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, debug=
     return code
 
 
-CHROME_DRIVER_VERSION = 2.41
-CHROME_DRIVER_BASE_URL = 'https://chromedriver.storage.googleapis.com/%s/chromedriver_%s.zip'
+CHROME_DRIVER_BASE_URL = 'https://chromedriver.storage.googleapis.com/'
+CHROME_DRIVER_DOWNLOAD_PATH = '{version}/chromedriver_{arch}.zip'
 CHROME_ZIP_TYPES = {
     'linux': 'linux64',
     'linux2': 'linux64',
@@ -184,20 +184,30 @@ def get_web_driver(email, password, headless=False, mfa_method=None,
                       "is unlikely to lead to a successful login. Defaulting --mfa-method=sms")
         mfa_method = "sms"
 
-    zip_type = ""
+    zip_type = CHROME_ZIP_TYPES.get(_platform)
     executable_path = os.getcwd() + os.path.sep + 'chromedriver'
     if _platform in ['win32', 'win64']:
         executable_path += '.exe'
 
-    zip_type = CHROME_ZIP_TYPES.get(_platform)
-
     if not os.path.exists(executable_path):
-        zip_file_url = CHROME_DRIVER_BASE_URL % (CHROME_DRIVER_VERSION, zip_type)
+        # Download the latest chrome driver from the stable channel.
+        latest_url = CHROME_DRIVER_BASE_URL + 'LATEST_RELEASE'
+        latest_request = requests.get(latest_url)
+
+        if latest_request.status_code != 200:
+            raise RuntimeError(
+                'Error finding the latest chromedriver at {}, status = {}'.format(
+                    latest_url, latest_request.status_code))
+
+        latest_version = latest_request.text
+        zip_file_url = CHROME_DRIVER_BASE_URL + CHROME_DRIVER_DOWNLOAD_PATH.format(
+            version=latest_version, arch=zip_type)
         request = requests.get(zip_file_url)
 
         if request.status_code != 200:
-            raise RuntimeError('Error finding chromedriver at %r, status = %d' %
-                               (zip_file_url, request.status_code))
+            raise RuntimeError(
+                'Error finding chromedriver at {}, status = {}'.format(
+                    zip_file_url, request.status_code))
 
         zip_file = zipfile.ZipFile(io.BytesIO(request.content))
         zip_file.extractall()
@@ -213,7 +223,7 @@ def get_web_driver(email, password, headless=False, mfa_method=None,
     if session_path is not None:
         chrome_options.add_argument("user-data-dir=%s" % session_path)
 
-    driver = Chrome(chrome_options=chrome_options, executable_path="%s" % executable_path)
+    driver = Chrome(options=chrome_options, executable_path="%s" % executable_path)
     driver.get("https://www.mint.com")
     driver.implicitly_wait(20)  # seconds
     try:
