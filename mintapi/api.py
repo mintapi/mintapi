@@ -213,11 +213,11 @@ def get_stable_chrome_driver():
         if major_version == latest_major_version:
             return local_executable_path
         logger.info('Removing old version {} of Chromedriver'.format(
-              major_version))
+            major_version))
         os.remove(local_executable_path)
 
     logger.info('Downloading version {} of Chromedriver'.format(
-          latest_chrome_driver_version))
+        latest_chrome_driver_version))
     zip_file_url = get_chrome_driver_url(
         latest_chrome_driver_version, _platform)
     request = requests.get(zip_file_url)
