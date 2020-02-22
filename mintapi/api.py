@@ -2,14 +2,15 @@ import atexit
 from datetime import date, datetime, timedelta
 import io
 import json
+import logging
 import os
 import os.path
 import random
 import re
 import requests
+import subprocess
 from sys import platform as _platform
 import time
-import warnings
 import zipfile
 import imaplib
 import email
@@ -35,6 +36,10 @@ try:
 except ImportError:
     pd = None
 
+logger = logging.getLogger('mintapi')
+logger.addHandler(logging.StreamHandler())
+logger.setLevel(logging.INFO)
+
 
 def assert_pd():
     # Common function to check if pd is installed
@@ -59,14 +64,14 @@ def reverse_credit_amount(row):
     return amount if row['isDebit'] else -amount
 
 
-def get_email_code(imap_account, imap_password, imap_server, imap_folder, debug=0, delete=1):
+def get_email_code(imap_account, imap_password, imap_server, imap_folder, delete=True):
     code = None
     imap_client = imaplib.IMAP4_SSL(imap_server)
 
     try:
         rv, data = imap_client.login(imap_account, imap_password)
     except imaplib.IMAP4.error:
-        print("ERROR: email login failed")
+        logger.error("ERROR: email login failed")
         return ''
 
     code = ''
@@ -74,12 +79,12 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, debug=
         time.sleep(10)
         rv, data = imap_client.select(imap_folder)
         if rv != 'OK':
-            print("ERROR: Unable to open mailbox ", rv)
+            logger.error("ERROR: Unable to open mailbox ", rv)
             return ''
 
         rv, data = imap_client.search(None, "ALL")
         if rv != 'OK':
-            print("ERROR: Email search failed")
+            logger.error("ERROR: Email search failed")
             return ''
 
         count = 0
@@ -89,20 +94,18 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, debug=
                 break
             rv, data = imap_client.fetch(num, '(RFC822)')
             if rv != 'OK':
-                print("ERROR: ERROR getting message", num)
+                logger.error("ERROR: ERROR getting message", num)
                 sys.exit(1)
 
             msg = email.message_from_bytes(data[0][1])
 
             x = email.header.make_header(email.header.decode_header(msg['Subject']))
             subject = str(x)
-            if debug:
-                print("DEBUG: SUBJECT:", subject)
+            logger.debug("DEBUG: SUBJECT:", subject)
 
             x = email.header.make_header(email.header.decode_header(msg['From']))
             frm = str(x)
-            if debug:
-                print("DEBUG: FROM:", frm)
+            logger.debug("DEBUG: FROM:", frm)
 
             if not re.search('do_not_reply@intuit.com', frm, re.IGNORECASE):
                 continue
@@ -114,18 +117,16 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, debug=
             if date_tuple:
                 local_date = datetime.fromtimestamp(email.utils.mktime_tz(date_tuple))
             else:
-                print("ERROR: FAIL0")
+                logger.error("ERROR: FAIL0")
 
             diff = datetime.now() - local_date
 
-            if debug:
-                print("DEBUG: AGE:", diff.seconds)
+            logger.debug("DEBUG: AGE:", diff.seconds)
 
             if diff.seconds > 180:
                 continue
 
-            if debug:
-                print("DEBUG: EMAIL HEADER OK")
+            logger.debug("DEBUG: EMAIL HEADER OK")
 
             body = str(msg)
 
@@ -134,27 +135,22 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, debug=
             if p:
                 code = p.group(1)
             else:
-                print("FAIL1")
+                logger.error("FAIL1")
 
-            if debug:
-                print("DEBUG: CODE FROM EMAIL:", code)
+            logger.debug("DEBUG: CODE FROM EMAIL:", code)
 
             if code != '':
                 break
 
-        if debug:
-            print("DEBUG: CODE FROM EMAIL 2:", code)
-            sys.stdout.flush()
+        logger.debug("DEBUG: CODE FROM EMAIL 2:", code)
 
         if code != '':
-            if debug:
-                print("DEBUG: CODE FROM EMAIL 3:", code)
-                sys.stdout.flush()
+            logger.debug("DEBUG: CODE FROM EMAIL 3:", code)
 
-            if delete > 0 and count > 0:
+            if delete and count > 0:
                 imap_client.store(num, '+FLAGS', '\\Deleted')
 
-            if delete > 0:
+            if delete:
                 imap_client.expunge()
 
             break
@@ -165,6 +161,7 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, debug=
 
 CHROME_DRIVER_BASE_URL = 'https://chromedriver.storage.googleapis.com/'
 CHROME_DRIVER_DOWNLOAD_PATH = '{version}/chromedriver_{arch}.zip'
+CHROME_DRIVER_LATEST_RELEASE = 'LATEST_RELEASE'
 CHROME_ZIP_TYPES = {
     'linux': 'linux64',
     'linux2': 'linux64',
@@ -172,62 +169,81 @@ CHROME_ZIP_TYPES = {
     'win32': 'win32',
     'win64': 'win32'
 }
+version_pattern = re.compile(
+    ".*(?P<version>(?P<major>\\d+)\\.(?P<minor>\\d+)\\."
+    "(?P<build>\\d+)\\.(?P<patch>\\d+)).*")
 
 
-def get_latest_chrome_driver_url(platform):
-    """Returns the url for the latest stable chromedriver for platform."""
-    latest_url = CHROME_DRIVER_BASE_URL + 'LATEST_RELEASE'
+def get_chrome_driver_url(version, arch):
+    return CHROME_DRIVER_BASE_URL + CHROME_DRIVER_DOWNLOAD_PATH.format(
+        version=version, arch=CHROME_ZIP_TYPES.get(arch))
+
+
+def get_chrome_driver_major_version_from_executable(local_executable_path):
+    # Note; --version works on windows as well.
+    version = subprocess.check_output([local_executable_path, '--version'])
+    return version_pattern.match(version.decode()).groupdict()['major']
+
+
+def get_latest_chrome_driver_version():
+    """Returns the version of the latest stable chromedriver release."""
+    latest_url = CHROME_DRIVER_BASE_URL + CHROME_DRIVER_LATEST_RELEASE
     latest_request = requests.get(latest_url)
 
     if latest_request.status_code != 200:
         raise RuntimeError(
             'Error finding the latest chromedriver at {}, status = {}'.format(
                 latest_url, latest_request.status_code))
-
-    latest_version = latest_request.text
-    return CHROME_DRIVER_BASE_URL + CHROME_DRIVER_DOWNLOAD_PATH.format(
-        version=latest_version, arch=CHROME_ZIP_TYPES.get(platform))
+    return latest_request.text
 
 
-def is_in_path(binary_name):
-    path_sep = ';' if _platform.startswith('win') else ':'
-    for path in os.environ.get('PATH', '').split(path_sep):
-        candidate_path = os.path.abspath(os.path.join(path, binary_name))
-        if os.path.isfile(candidate_path) and os.access(candidate_path, os.X_OK):
-            return True
-    return False
+def get_stable_chrome_driver():
+    chromedriver_name = 'chromedriver'
+    if _platform in ['win32', 'win64']:
+        chromedriver_name += '.exe'
+
+    local_executable_path = os.getcwd() + os.path.sep + chromedriver_name
+
+    latest_chrome_driver_version = get_latest_chrome_driver_version()
+    latest_major_version = version_pattern.match(
+        latest_chrome_driver_version).groupdict()['major']
+    if os.path.exists(local_executable_path):
+        major_version = get_chrome_driver_major_version_from_executable(
+            local_executable_path)
+        if major_version == latest_major_version:
+            return local_executable_path
+        logger.info('Removing old version {} of Chromedriver'.format(
+              major_version))
+        os.remove(local_executable_path)
+
+    logger.info('Downloading version {} of Chromedriver'.format(
+          latest_chrome_driver_version))
+    zip_file_url = get_chrome_driver_url(
+        latest_chrome_driver_version, _platform)
+    request = requests.get(zip_file_url)
+
+    if request.status_code != 200:
+        raise RuntimeError(
+            'Error finding chromedriver at {}, status = {}'.format(
+                zip_file_url, request.status_code))
+
+    zip_file = zipfile.ZipFile(io.BytesIO(request.content))
+    zip_file.extractall()
+    os.chmod(local_executable_path, 0o755)
+    return local_executable_path
 
 
 def get_web_driver(email, password, headless=False, mfa_method=None,
                    mfa_input_callback=None, wait_for_sync=True,
                    wait_for_sync_timeout=5 * 60,
                    session_path=None, imap_account=None, imap_password=None,
-                   imap_server=None, imap_folder="INBOX", use_chromedriver_on_path=False):
+                   imap_server=None, imap_folder="INBOX",
+                   use_chromedriver_on_path=False):
     if headless and mfa_method is None:
-        warnings.warn("Using headless mode without specifying an MFA method"
-                      "is unlikely to lead to a successful login. Defaulting --mfa-method=sms")
+        logger.warn("Using headless mode without specifying an MFA method"
+                    "is unlikely to lead to a successful login. Defaulting "
+                    "--mfa-method=sms")
         mfa_method = "sms"
-
-    chromedriver_name = 'chromedriver'
-    if _platform in ['win32', 'win64']:
-        chromedriver_name += '.exe'
-
-    local_executable_path = os.getcwd() + os.path.sep + chromedriver_name
-    chromedriver_in_path = is_in_path(chromedriver_name) and use_chromedriver_on_path
-    if chromedriver_in_path:
-        print('Found chromedriver in the path, using that.')
-    elif not os.path.exists(local_executable_path):
-        zip_file_url = get_latest_chrome_driver_url(_platform)
-        request = requests.get(zip_file_url)
-
-        if request.status_code != 200:
-            raise RuntimeError(
-                'Error finding chromedriver at {}, status = {}'.format(
-                    zip_file_url, request.status_code))
-
-        zip_file = zipfile.ZipFile(io.BytesIO(request.content))
-        zip_file.extractall()
-        os.chmod(local_executable_path, 0o755)
 
     chrome_options = ChromeOptions()
     if headless:
@@ -239,10 +255,11 @@ def get_web_driver(email, password, headless=False, mfa_method=None,
     if session_path is not None:
         chrome_options.add_argument("user-data-dir=%s" % session_path)
 
-    if chromedriver_in_path:
+    if use_chromedriver_on_path:
         driver = Chrome(options=chrome_options)
     else:
-        driver = Chrome(options=chrome_options, executable_path=local_executable_path)
+        driver = Chrome(
+            options=chrome_options, executable_path=get_stable_chrome_driver())
     driver.get("https://www.mint.com")
     driver.implicitly_wait(20)  # seconds
     try:
@@ -306,8 +323,8 @@ def get_web_driver(email, password, headless=False, mfa_method=None,
                     mfa_code_submit.click()
                 except Exception:  # if anything goes wrong for any reason, give up on MFA
                     mfa_method = None
-                    warnings.warn("Giving up on handling MFA. Please complete "
-                                  "the MFA process manually in the browser.")
+                    logger.warn("Giving up on handling MFA. Please complete "
+                                "the MFA process manually in the browser.")
         except NoSuchElementException:
             pass
         finally:
@@ -325,8 +342,8 @@ def get_web_driver(email, password, headless=False, mfa_method=None,
                 lambda x: "Account refresh complete" in status_message.get_attribute('innerHTML')
             )
         except (TimeoutException, StaleElementReferenceException):
-            warnings.warn("Mint sync apparently incomplete after timeout. "
-                          "Data retrieved may not be current.")
+            logger.warn("Mint sync apparently incomplete after timeout. "
+                        "Data retrieved may not be current.")
     else:
         driver.find_element_by_id("transaction")
 
@@ -513,7 +530,7 @@ class Mint(object):
         if p:
             return p.group(1).replace('&quot;', '"')
         else:
-            print("FAIL2")
+            logger.error("FAIL2")
 
     def get_accounts(self, get_detail=False):  # {{{
         # Issue service request.
@@ -1162,7 +1179,8 @@ def main():
     cmdline.add_argument(
         '--use-chromedriver-on-path',
         action='store_true',
-        help='Whether to use the chromedriver on PATH, instead of downloading a local copy.')
+        help=('Whether to use the chromedriver on PATH, instead of '
+              'downloading a local copy.'))
     cmdline.add_argument(
         '--mfa-method',
         default='sms',
@@ -1248,22 +1266,25 @@ def main():
     else:
         session_path = options.session_path
 
-    mint = Mint.create(email, password,
-                       mfa_method=options.mfa_method,
-                       session_path=session_path,
-                       headless=options.headless,
-                       imap_account=options.imap_account,
-                       imap_password=options.imap_password,
-                       imap_server=options.imap_server,
-                       imap_folder=options.imap_folder,
-                       wait_for_sync=not options.no_wait_for_sync,
-                       wait_for_sync_timeout=options.wait_for_sync_timeout,
-                       use_chromedriver_on_path=options.use_chromedriver_on_path
-                       )
+    mint = Mint.create(
+        email, password,
+        mfa_method=options.mfa_method,
+        session_path=session_path,
+        headless=options.headless,
+        imap_account=options.imap_account,
+        imap_password=options.imap_password,
+        imap_server=options.imap_server,
+        imap_folder=options.imap_folder,
+        wait_for_sync=not options.no_wait_for_sync,
+        wait_for_sync_timeout=options.wait_for_sync_timeout,
+        use_chromedriver_on_path=options.use_chromedriver_on_path
+    )
     atexit.register(mint.close)  # Ensure everything is torn down.
 
     if options.imap_test:
-        mfa_code = get_email_code(options.imap_account, options.imap_password, options.imap_server, imap_folder=options.imap_folder, debug=1, delete=0)
+        mfa_code = get_email_code(
+            options.imap_account, options.imap_password, options.imap_server,
+            imap_folder=options.imap_folder, delete=False)
         print("MFA CODE:", mfa_code)
         sys.exit()
 
