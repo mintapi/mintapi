@@ -413,7 +413,8 @@ class Mint(object):
                                      imap_server=imap_server,
                                      imap_folder=imap_folder,
                                      wait_for_sync=wait_for_sync,
-                                     wait_for_sync_timeout=wait_for_sync_timeout)
+                                     wait_for_sync_timeout=wait_for_sync_timeout,
+                                     use_chromedriver_on_path=use_chromedriver_on_path)
 
     @classmethod
     def create(cls, email, password, **opts):
