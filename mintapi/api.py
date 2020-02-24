@@ -173,12 +173,15 @@ CHROME_ZIP_TYPES = {
     'win64': 'win32'
 }
 
+status_message = None
+
 
 def get_web_driver(email, password, headless=False, mfa_method=None,
                    mfa_input_callback=None, wait_for_sync=True,
                    wait_for_sync_timeout=5 * 60,
                    session_path=None, imap_account=None, imap_password=None,
                    imap_server=None, imap_folder="INBOX"):
+    global status_message
     if headless and mfa_method is None:
         warnings.warn("Using headless mode without specifying an MFA method"
                       "is unlikely to lead to a successful login. Defaulting --mfa-method=sms")
@@ -296,10 +299,13 @@ def get_web_driver(email, password, headless=False, mfa_method=None,
                 lambda x: "Account refresh complete" in status_message.get_attribute('innerHTML')
             )
         except (TimeoutException, StaleElementReferenceException):
-            warnings.warn("Mint sync apparently incomplete after timeout. "
-                          "Data retrieved may not be current.")
+            status_message = "Mint sync apparently incomplete after timeout.  Data retrieved may not be current."
+            warnings.warn(status_message)
     else:
         driver.find_element_by_id("transaction")
+
+    if status_message is not None:
+        status_message = status_message.text
 
     return driver
 
@@ -350,6 +356,7 @@ class Mint(object):
     request_id = 42  # magic number? random number?
     token = None
     driver = None
+    status_message = None
 
     def __init__(self, email=None, password=None, mfa_method=None,
                  mfa_input_callback=None, headless=False, session_path=None,
@@ -455,6 +462,7 @@ class Mint(object):
                                      imap_folder=imap_folder,
                                      wait_for_sync=wait_for_sync,
                                      wait_for_sync_timeout=wait_for_sync_timeout)
+        self.status_message = status_message
         self.token = self.get_token()
 
     def get_token(self):
@@ -466,6 +474,18 @@ class Mint(object):
         req_id = self.request_id
         self.request_id += 1
         return str(req_id)
+
+    def get_attention(self):
+        attention = None
+        # noinspection PyBroadException
+        try:
+            if "complete" in self.status_message:
+                attention = self.status_message.split(".")[1].strip()
+            else:
+                attention = self.status_message
+        except Exception:
+            pass
+        return attention
 
     def get_bills(self):
         return self.get(
@@ -1164,6 +1184,10 @@ def main():
         type=int,
         default=5 * 60,
         help=('Number of seconds to wait for sync.  Default is 5 minutes'))
+    cmdline.add_argument(
+        '--attention',
+        action='store_true',
+        help='Display accounts that need attention (None if none).')
 
     options = cmdline.parse_args()
 
@@ -1204,7 +1228,7 @@ def main():
 
     if not any([options.accounts, options.budgets, options.transactions,
                 options.extended_transactions, options.net_worth, options.credit_score,
-                options.credit_report]):
+                options.credit_report, options.attention]):
         options.accounts = True
 
     if options.session_path == 'None':
@@ -1297,6 +1321,15 @@ def main():
         else:
             raise ValueError('file type must be json for non-transaction data')
 
+    if options.attention:
+        attention_msg = mint.get_attention()
+        if attention_msg is None or attention_msg == "":
+            attention_msg = "no messages"
+        if options.filename is None:
+            print(attention_msg)
+        else:
+            with open(options.filename, 'w+') as f:
+                f.write(attention_msg)
 
 if __name__ == '__main__':
     main()
