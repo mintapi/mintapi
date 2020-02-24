@@ -24,7 +24,7 @@ accounts_example = [{
 
 class MintApiTests(unittest.TestCase):
     @patch.object(mintapi.api, 'get_web_driver')
-    def test_accounts(self, mock_driver):
+    def test_accounts(self, mock_driver, attention):
         token_json = json.dumps({'token': '123'})
         mock_driver.return_value.find_element_by_name.return_value.get_attribute.return_value = token_json
 
