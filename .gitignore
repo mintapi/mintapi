@@ -2,6 +2,7 @@
 build
 dist
 env
+chromedriver
 __pycache__
 *.pyc
 *.egg-info
