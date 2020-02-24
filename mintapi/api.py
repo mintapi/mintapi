@@ -305,7 +305,7 @@ def get_web_driver(email, password, headless=False, mfa_method=None,
         driver.find_element_by_id("transaction")
 
     if status_message is not None:
-        status_message =  status_message.text
+        status_message = status_message.text
 
     return driver
 
