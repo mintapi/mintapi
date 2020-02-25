@@ -16,6 +16,7 @@ import imaplib
 import email
 import email.header
 import sys  # DEBUG
+import warnings
 
 try:
     from StringIO import StringIO  # Python 2
@@ -64,7 +65,13 @@ def reverse_credit_amount(row):
     return amount if row['isDebit'] else -amount
 
 
-def get_email_code(imap_account, imap_password, imap_server, imap_folder, delete=True):
+def get_email_code(imap_account, imap_password, imap_server, imap_folder, debug=False, delete=True):
+    if debug:
+        warnings.warn(
+            "debug param to get_email_code() is deprecated and will be "
+            "removed soon; use: logging.getLogger('mintapi')"
+            ".setLevel(logging.DEBUG) to show DEBUG log messages.",
+            DeprecationWarning)
     code = None
     imap_client = imaplib.IMAP4_SSL(imap_server)
 
