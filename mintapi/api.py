@@ -26,7 +26,7 @@ from selenium.webdriver import ChromeOptions
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.ui import WebDriverWait
-
+from selenium.webdriver.remote.webelement import WebElement
 from seleniumrequests import Chrome
 import xmltodict
 
@@ -304,9 +304,8 @@ def get_web_driver(email, password, headless=False, mfa_method=None,
     else:
         driver.find_element_by_id("transaction")
 
-    if status_message is not None:
+    if status_message is not None and isinstance(status_message, WebElement):
         status_message = status_message.text
-
     return driver
 
 
