@@ -112,11 +112,11 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                    [--include-investment] [--skip-duplicates] [--show-pending]
                    [--filename FILENAME] [--keyring] [--headless] [--attention]
                    [--mfa-method {sms,email}]
-                   email password
+                   email [password]
 
     positional arguments:
       email                 The e-mail address for your Mint.com account (required)
-      password              The password for your Mint.com account (required)
+      password              The password for your Mint.com account (if not supplied, --keyring must be provided)
 
     optional arguments:
       -h, --help            show this help message and exit

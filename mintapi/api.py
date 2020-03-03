@@ -173,15 +173,12 @@ CHROME_ZIP_TYPES = {
     'win64': 'win32'
 }
 
-status_message = None
-
 
 def get_web_driver(email, password, headless=False, mfa_method=None,
                    mfa_input_callback=None, wait_for_sync=True,
                    wait_for_sync_timeout=5 * 60,
                    session_path=None, imap_account=None, imap_password=None,
                    imap_server=None, imap_folder="INBOX"):
-    global status_message
     if headless and mfa_method is None:
         warnings.warn("Using headless mode without specifying an MFA method"
                       "is unlikely to lead to a successful login. Defaulting --mfa-method=sms")
@@ -288,6 +285,7 @@ def get_web_driver(email, password, headless=False, mfa_method=None,
             driver.implicitly_wait(20)  # seconds
 
     # Wait until the overview page has actually loaded, and if wait_for_sync==True, sync has completed.
+    status_message = None
     if wait_for_sync:
         try:
             # Status message might not be present straight away. Seems to be due
@@ -306,7 +304,7 @@ def get_web_driver(email, password, headless=False, mfa_method=None,
 
     if status_message is not None and isinstance(status_message, WebElement):
         status_message = status_message.text
-    return driver
+    return driver, status_message
 
 
 IGNORE_FLOAT_REGEX = re.compile(r"[$,%]")
@@ -450,18 +448,17 @@ class Mint(object):
         if self.token and self.driver:
             return
 
-        self.driver = get_web_driver(email, password,
-                                     mfa_method=mfa_method,
-                                     mfa_input_callback=mfa_input_callback,
-                                     headless=headless,
-                                     session_path=session_path,
-                                     imap_account=imap_account,
-                                     imap_password=imap_password,
-                                     imap_server=imap_server,
-                                     imap_folder=imap_folder,
-                                     wait_for_sync=wait_for_sync,
-                                     wait_for_sync_timeout=wait_for_sync_timeout)
-        self.status_message = status_message
+        self.driver, self.status_message = get_web_driver(email, password,
+                                                          mfa_method=mfa_method,
+                                                          mfa_input_callback=mfa_input_callback,
+                                                          headless=headless,
+                                                          session_path=session_path,
+                                                          imap_account=imap_account,
+                                                          imap_password=imap_password,
+                                                          imap_server=imap_server,
+                                                          imap_folder=imap_folder,
+                                                          wait_for_sync=wait_for_sync,
+                                                          wait_for_sync_timeout=wait_for_sync_timeout)
         self.token = self.get_token()
 
     def get_token(self):
