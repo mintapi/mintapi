@@ -35,7 +35,7 @@ class Element:
 class TestMock:
     @staticmethod
     def find_element_by_name(test):
-       return Element()
+        return Element()
 
     @staticmethod
     def request(a, b, **c):
