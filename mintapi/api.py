@@ -204,12 +204,12 @@ def get_latest_chrome_driver_version():
     return latest_request.text
 
 
-def get_stable_chrome_driver():
+def get_stable_chrome_driver(download_directory=os.getcwd()):
     chromedriver_name = 'chromedriver'
     if _platform in ['win32', 'win64']:
         chromedriver_name += '.exe'
 
-    local_executable_path = os.getcwd() + os.path.sep + chromedriver_name
+    local_executable_path = os.path.join(download_directory, chromedriver_name)
 
     latest_chrome_driver_version = get_latest_chrome_driver_version()
     latest_major_version = version_pattern.match(
@@ -235,7 +235,7 @@ def get_stable_chrome_driver():
                 zip_file_url, request.status_code))
 
     zip_file = zipfile.ZipFile(io.BytesIO(request.content))
-    zip_file.extractall()
+    zip_file.extractall(path=download_directory)
     os.chmod(local_executable_path, 0o755)
     return local_executable_path
 
@@ -245,7 +245,8 @@ def get_web_driver(email, password, headless=False, mfa_method=None,
                    wait_for_sync_timeout=5 * 60,
                    session_path=None, imap_account=None, imap_password=None,
                    imap_server=None, imap_folder="INBOX",
-                   use_chromedriver_on_path=False):
+                   use_chromedriver_on_path=False,
+                   chromedriver_download_path=os.getcwd()):
     if headless and mfa_method is None:
         logger.warn("Using headless mode without specifying an MFA method"
                     "is unlikely to lead to a successful login. Defaulting "
@@ -266,7 +267,9 @@ def get_web_driver(email, password, headless=False, mfa_method=None,
         driver = Chrome(options=chrome_options)
     else:
         driver = Chrome(
-            options=chrome_options, executable_path=get_stable_chrome_driver())
+            options=chrome_options,
+            executable_path=get_stable_chrome_driver(
+                chromedriver_download_path))
     driver.get("https://www.mint.com")
     driver.implicitly_wait(20)  # seconds
     try:
@@ -412,7 +415,8 @@ class Mint(object):
                  mfa_input_callback=None, headless=False, session_path=None,
                  imap_account=None, imap_password=None, imap_server=None,
                  imap_folder="INBOX", wait_for_sync=True, wait_for_sync_timeout=5 * 60,
-                 use_chromedriver_on_path=False):
+                 use_chromedriver_on_path=False,
+                 chromedriver_download_path=os.getcwd()):
         if email and password:
             self.login_and_get_token(email, password,
                                      mfa_method=mfa_method,
@@ -425,7 +429,8 @@ class Mint(object):
                                      imap_folder=imap_folder,
                                      wait_for_sync=wait_for_sync,
                                      wait_for_sync_timeout=wait_for_sync_timeout,
-                                     use_chromedriver_on_path=use_chromedriver_on_path)
+                                     use_chromedriver_on_path=use_chromedriver_on_path,
+                                     chromedriver_download_path=chromedriver_download_path)
 
     @classmethod
     def create(cls, email, password, **opts):
@@ -500,7 +505,8 @@ class Mint(object):
                             imap_folder=None,
                             wait_for_sync=True,
                             wait_for_sync_timeout=5 * 60,
-                            use_chromedriver_on_path=False):
+                            use_chromedriver_on_path=False,
+                            chromedriver_download_path=os.getcwd()):
         if self.token and self.driver:
             return
 
@@ -516,7 +522,8 @@ class Mint(object):
             imap_folder=imap_folder,
             wait_for_sync=wait_for_sync,
             wait_for_sync_timeout=wait_for_sync_timeout,
-            use_chromedriver_on_path=use_chromedriver_on_path)
+            use_chromedriver_on_path=use_chromedriver_on_path,
+            chromedriver_download_path=chromedriver_download_path)
         self.token = self.get_token()
 
     def get_token(self):
@@ -1207,6 +1214,10 @@ def main():
         help=('Whether to use the chromedriver on PATH, instead of '
               'downloading a local copy.'))
     cmdline.add_argument(
+        '--chromedriver-download-path',
+        default=os.getcwd(),
+        help=('The directory to download chromedrive to.'))
+    cmdline.add_argument(
         '--mfa-method',
         default='sms',
         choices=['sms', 'email'],
@@ -1306,7 +1317,8 @@ def main():
         imap_folder=options.imap_folder,
         wait_for_sync=not options.no_wait_for_sync,
         wait_for_sync_timeout=options.wait_for_sync_timeout,
-        use_chromedriver_on_path=options.use_chromedriver_on_path
+        use_chromedriver_on_path=options.use_chromedriver_on_path,
+        chromedriver_download_path=options.chromedriver_download_path
     )
     atexit.register(mint.close)  # Ensure everything is torn down.
 
