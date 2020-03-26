@@ -17,6 +17,8 @@ import email.header
 import sys  # DEBUG
 
 try:
+    import warnings
+    warnings.simplefilter(action='ignore', category=FutureWarning)
     from StringIO import StringIO  # Python 2
 except ImportError:
     from io import BytesIO as StringIO  # Python 3
