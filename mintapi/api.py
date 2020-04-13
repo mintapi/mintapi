@@ -705,7 +705,7 @@ class Mint(object):
         df = pd.read_csv(s, parse_dates=['Date'])
         df.columns = [c.lower().replace(' ', '_') for c in df.columns]
         df.category = (df.category.str.lower()
-                       .replace('uncategorized', pd.np.nan))
+                       .replace('uncategorized', pd.NA))
         return df
 
     def populate_extended_account_detail(self, accounts):  # {{{
