@@ -1,3 +1,10 @@
+1.42
+---
+- replace deprecated pandas call to fix warning (github#211)
+- added --attention flag to include information on accounts which need attention (github#205)
+- added budget history (--budget_hist) (github#198)
+- various code style, README, and travis improvements
+
 1.41
 ---
 - support soft token mfa method (github#193)
