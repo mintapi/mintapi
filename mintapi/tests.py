@@ -3,6 +3,8 @@ import datetime
 import json
 import unittest
 
+import pandas as pd
+
 import requests
 
 try:
@@ -20,6 +22,8 @@ accounts_example = [{
     "accountType": "bank",
     "currentBalance": 100.12,
 }]
+
+transactions_example = b'"Date","Description","Original Description","Amount","Transaction Type","Category","Account Name","Labels","Notes"\n"5/14/2020","Safeway","SAFEWAY.COM # 3031","88.09","debit","Groceries","CREDIT CARD","",""\n'
 
 
 class Attribute:
@@ -77,3 +81,11 @@ class MintApiTests(unittest.TestCase):
 
         answer = mintapi.api.parse_float('0.00%')
         self.assertEqual(answer, float(0))
+
+
+    @patch.object(mintapi.Mint, 'get_transactions_csv')
+    def test_get_transactions(self, mocked_get_transactions):
+        mocked_get_transactions.return_value = transactions_example
+        mint = mintapi.Mint()
+        transactions_df = mint.get_transactions()
+        assert(isinstance(transactions_df, pd.DataFrame))
