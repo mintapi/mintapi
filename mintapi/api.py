@@ -38,7 +38,6 @@ except ImportError:
     pd = None
 
 logger = logging.getLogger('mintapi')
-logger.addHandler(logging.StreamHandler())
 logger.setLevel(logging.INFO)
 
 
@@ -189,7 +188,10 @@ def get_chrome_driver_url(version, arch):
 def get_chrome_driver_major_version_from_executable(local_executable_path):
     # Note; --version works on windows as well.
     version = subprocess.check_output([local_executable_path, '--version'])
-    return version_pattern.match(version.decode()).groupdict()['major']
+    version_match = version_pattern.match(version.decode())
+    if not version_match:
+        return None
+    return version_match.groupdict()['major']
 
 
 def get_latest_chrome_driver_version():
@@ -212,17 +214,30 @@ def get_stable_chrome_driver(download_directory=os.getcwd()):
     local_executable_path = os.path.join(download_directory, chromedriver_name)
 
     latest_chrome_driver_version = get_latest_chrome_driver_version()
-    latest_major_version = version_pattern.match(
-        latest_chrome_driver_version).groupdict()['major']
+    version_match = version_pattern.match(latest_chrome_driver_version)
+    latest_major_version = None
+    if not version_match:
+        logger.error("Cannot parse latest chrome driver string: {}".format(
+            latest_chrome_driver_version))
+    else:
+        latest_major_version = version_match.groupdict()['major']
     if os.path.exists(local_executable_path):
         major_version = get_chrome_driver_major_version_from_executable(
             local_executable_path)
-        if major_version == latest_major_version:
+        if major_version == latest_major_version or not latest_major_version:
+            # Use the existing chrome driver, as it's already the latest
+            # version or the latest version cannot be determined at the moment.
             return local_executable_path
         logger.info('Removing old version {} of Chromedriver'.format(
             major_version))
         os.remove(local_executable_path)
 
+    if not latest_chrome_driver_version:
+        logger.critical(
+            'No local chrome driver found and cannot parse the latest chrome '
+            'driver on the internet. Please double check your internet '
+            'connection, then ask for assistance on the github project.')
+        return None
     logger.info('Downloading version {} of Chromedriver'.format(
         latest_chrome_driver_version))
     zip_file_url = get_chrome_driver_url(
@@ -248,9 +263,9 @@ def get_web_driver(email, password, headless=False, mfa_method=None,
                    use_chromedriver_on_path=False,
                    chromedriver_download_path=os.getcwd()):
     if headless and mfa_method is None:
-        logger.warn("Using headless mode without specifying an MFA method"
-                    "is unlikely to lead to a successful login. Defaulting "
-                    "--mfa-method=sms")
+        logger.warning("Using headless mode without specifying an MFA method"
+                       "is unlikely to lead to a successful login. Defaulting "
+                       "--mfa-method=sms")
         mfa_method = "sms"
 
     chrome_options = ChromeOptions()
@@ -333,8 +348,9 @@ def get_web_driver(email, password, headless=False, mfa_method=None,
                     mfa_code_submit.click()
                 except Exception:  # if anything goes wrong for any reason, give up on MFA
                     mfa_method = None
-                    logger.warn("Giving up on handling MFA. Please complete "
-                                "the MFA process manually in the browser.")
+                    logger.warning("Giving up on handling MFA. Please "
+                                   "complete the MFA process manually in the "
+                                   "browser.")
         except NoSuchElementException:
             pass
         finally:
@@ -353,8 +369,8 @@ def get_web_driver(email, password, headless=False, mfa_method=None,
                 lambda x: "Account refresh complete" in status_message.get_attribute('innerHTML')
             )
         except (TimeoutException, StaleElementReferenceException):
-            logger.warn("Mint sync apparently incomplete after timeout. "
-                        "Data retrieved may not be current.")
+            logger.warning("Mint sync apparently incomplete after timeout. "
+                           "Data retrieved may not be current.")
     else:
         driver.find_element_by_id("transaction")
 
