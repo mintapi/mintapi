@@ -7,11 +7,9 @@ Ensure you have Python 2 or 3 and pip (`easy_install pip`) and then:
 
 ```shell
 pip install mintapi
-brew cask install chromedriver # or sudo apt-get install chromium-chromedriver on Ubuntu/Debian
 ```
 
-Note that chromedriver must be version 59+ if you want to use headless mode. If not installing via pip,
-make sure to install the `install_requires` dependencies from setup.py yourself.
+`mintapi` scrapes Mint.com by navigating a Chrome browser (or Chromium) just as a human would. Once logged in, the API allows programatic access to various Mint REST APIs. Selenium/WebDriver is used to accomplish this, and specifically, ChromeDriver under the hood. `mintapi` will download the latest stable release of chromedriver, unless --use_chromedriver_on_path is given. **NOTE: You must have [Chrome](https://www.google.com/chrome/) or [Chromium](https://www.chromium.org/getting-involved/dev-channel/) installed, on the `stable` track, and be up-to-date!** If you run into a `SessionNotCreatedException` about "ChromeDriver only supports Chrome version XX", you need to [update Chrome](https://support.google.com/chrome/answer/95414).
 
 ## Usage
 
@@ -60,6 +58,8 @@ make calls to retrieve account/budget information.  We recommend using the
     imap_folder='INBOX',  # IMAP folder that receives MFA email
     wait_for_sync=False,  # do not wait for accounts to sync
     wait_for_sync_timeout=300,  # number of seconds to wait for sync
+	use_chromedriver_on_path=False,  # True will use a system provided chromedriver binary that
+	                                 # is on the PATH (instead of downloading the latest version)
   )
 
   # Get basic account information
@@ -85,7 +85,7 @@ make calls to retrieve account/budget information.  We recommend using the
 
   # Get net worth
   mint.get_net_worth()
-  
+
   # Get credit score
   mint.get_credit_score()
 
@@ -94,7 +94,7 @@ make calls to retrieve account/budget information.  We recommend using the
 
   # Get investments (holdings and transactions)
   mint.get_invests_json()
-  
+
   # Close session and exit cleanly from selenium/chromedriver
   mint.close()
 
@@ -149,6 +149,9 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       --keyring             Use OS keyring for storing password information
       --headless            Whether to execute chromedriver with no visible
                             window.
+	  --use-chromedriver-on-path
+	  						Whether to use the chromedriver on PATH, instead of
+              			  	downloading a local copy.
       --mfa-method {sms,email}
                             The MFA method to automate.
       --imap-account IMAP_ACCOUNT
@@ -161,6 +164,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       --wait_for_sync_timeout
                             Number of seconds to wait for sync (default is 300)
       --attention.          Get notice if there are any accounts that need attention
+
 
     >>> mintapi --keyring email@example.com
     [

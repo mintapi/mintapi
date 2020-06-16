@@ -65,10 +65,10 @@ class MintApiTests(unittest.TestCase):
         mintapi.print_accounts(accounts)
 
     def test_chrome_driver_links(self):
+        latest_version = mintapi.api.get_latest_chrome_driver_version()
         for platform in mintapi.api.CHROME_ZIP_TYPES:
-            zip_type = mintapi.api.CHROME_ZIP_TYPES.get(platform)
-            zip_file_url = mintapi.api.CHROME_DRIVER_BASE_URL % (mintapi.api.CHROME_DRIVER_VERSION, zip_type)
-            request = requests.get(zip_file_url)
+            request = requests.get(
+                mintapi.api.get_chrome_driver_url(latest_version, platform))
             self.assertEqual(request.status_code, 200)
 
     def test_parse_float(self):
