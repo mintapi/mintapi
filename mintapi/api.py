@@ -255,36 +255,12 @@ def get_stable_chrome_driver(download_directory=os.getcwd()):
     return local_executable_path
 
 
-def get_web_driver(email, password, headless=False, mfa_method=None,
+def login(driver, email, password, mfa_method=None,
                    mfa_input_callback=None, wait_for_sync=True,
                    wait_for_sync_timeout=5 * 60,
-                   session_path=None, imap_account=None, imap_password=None,
-                   imap_server=None, imap_folder="INBOX",
-                   use_chromedriver_on_path=False,
-                   chromedriver_download_path=os.getcwd()):
-    if headless and mfa_method is None:
-        logger.warning("Using headless mode without specifying an MFA method"
-                       "is unlikely to lead to a successful login. Defaulting "
-                       "--mfa-method=sms")
-        mfa_method = "sms"
+                   imap_account=None, imap_password=None,
+                   imap_server=None, imap_folder="INBOX"):
 
-    chrome_options = ChromeOptions()
-    if headless:
-        chrome_options.add_argument('headless')
-        chrome_options.add_argument('no-sandbox')
-        chrome_options.add_argument('disable-dev-shm-usage')
-        chrome_options.add_argument('disable-gpu')
-        # chrome_options.add_argument("--window-size=1920x1080")
-    if session_path is not None:
-        chrome_options.add_argument("user-data-dir=%s" % session_path)
-
-    if use_chromedriver_on_path:
-        driver = Chrome(options=chrome_options)
-    else:
-        driver = Chrome(
-            options=chrome_options,
-            executable_path=get_stable_chrome_driver(
-                chromedriver_download_path))
     driver.get("https://www.mint.com")
     driver.implicitly_wait(20)  # seconds
     try:
@@ -420,6 +396,28 @@ JSON_HEADER = {'accept': 'application/json'}
 class MintException(Exception):
     pass
 
+def get_driver(headless, session_path, use_chromedriver_on_path, chromedriver_download_path):
+
+
+    chrome_options = ChromeOptions()
+    if headless:
+        chrome_options.add_argument('headless')
+        chrome_options.add_argument('no-sandbox')
+        chrome_options.add_argument('disable-dev-shm-usage')
+        chrome_options.add_argument('disable-gpu')
+        # chrome_options.add_argument("--window-size=1920x1080")
+    if session_path is not None:
+        chrome_options.add_argument("user-data-dir=%s" % session_path)
+
+    if use_chromedriver_on_path:
+        driver = Chrome(options=chrome_options)
+    else:
+        driver = Chrome(
+            options=chrome_options,
+            executable_path=get_stable_chrome_driver(
+                chromedriver_download_path))
+    return driver
+
 
 class Mint(object):
     request_id = 42  # magic number? random number?
@@ -525,22 +523,26 @@ class Mint(object):
                             chromedriver_download_path=os.getcwd()):
         if self.token and self.driver:
             return
-
-        self.driver, self.status_message = get_web_driver(
-            email, password,
-            mfa_method=mfa_method,
-            mfa_input_callback=mfa_input_callback,
+        self.driver = get_driver(
             headless=headless,
             session_path=session_path,
-            imap_account=imap_account,
-            imap_password=imap_password,
-            imap_server=imap_server,
-            imap_folder=imap_folder,
-            wait_for_sync=wait_for_sync,
-            wait_for_sync_timeout=wait_for_sync_timeout,
             use_chromedriver_on_path=use_chromedriver_on_path,
             chromedriver_download_path=chromedriver_download_path)
-        self.token = self.get_token()
+        try:
+            self.status_message = login(self.driver,
+                email, password,
+                mfa_method=mfa_method,
+                mfa_input_callback=mfa_input_callback,
+                imap_account=imap_account,
+                imap_password=imap_password,
+                imap_server=imap_server,
+                imap_folder=imap_folder,
+                wait_for_sync=wait_for_sync,
+                wait_for_sync_timeout=wait_for_sync_timeout)
+            self.token = self.get_token()
+        except:
+            self.close()
+            raise
 
     def get_token(self):
         value_json = self.driver.find_element_by_name(
