@@ -471,12 +471,6 @@ class Mint(object):
         if not self.driver:
             return
 
-        try:
-            self.driver.implicitly_wait(1)
-            self.driver.find_element_by_id('link-logout').click()
-        except NoSuchElementException:
-            pass
-
         self.driver.quit()
         self.driver = None
 
