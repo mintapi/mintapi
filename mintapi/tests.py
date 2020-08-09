@@ -82,7 +82,6 @@ class MintApiTests(unittest.TestCase):
         answer = mintapi.api.parse_float('0.00%')
         self.assertEqual(answer, float(0))
 
-
     @patch.object(mintapi.Mint, 'get_transactions_csv')
     def test_get_transactions(self, mocked_get_transactions):
         mocked_get_transactions.return_value = transactions_example
