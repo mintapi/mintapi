@@ -1,3 +1,7 @@
+1.44
+---
+- bump for pypi re-release (no changes)
+
 1.43
 ---
 - add soft token support (github#199)
