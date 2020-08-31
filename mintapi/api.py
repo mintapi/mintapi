@@ -255,7 +255,7 @@ def get_stable_chrome_driver(download_directory=os.getcwd()):
     return local_executable_path
 
 
-def get_web_driver(email, password, headless=False, mfa_method=None,
+def get_web_driver(email, password, headless=False, mfa_method=None, mfa_token=None,
                    mfa_input_callback=None, wait_for_sync=True,
                    wait_for_sync_timeout=5 * 60,
                    session_path=None, imap_account=None, imap_password=None,
@@ -324,8 +324,9 @@ def get_web_driver(email, password, headless=False, mfa_method=None,
         driver.implicitly_wait(1)  # seconds
         try:
             if mfa_method == 'soft-token':
+                import oathtool
                 mfa_token_input = driver.find_element_by_id('ius-mfa-soft-token')
-                mfa_code = (mfa_input_callback or input)("Please enter your 6-digit MFA code: ")
+                mfa_code = oathtool.generate_otp(mfa_token)
                 mfa_token_input.send_keys(mfa_code)
                 mfa_token_submit = driver.find_element_by_id('ius-mfa-soft-token-submit-btn')
                 mfa_token_submit.click()
@@ -427,7 +428,7 @@ class Mint(object):
     driver = None
     status_message = None
 
-    def __init__(self, email=None, password=None, mfa_method=None,
+    def __init__(self, email=None, password=None, mfa_method=None, mfa_token=None,
                  mfa_input_callback=None, headless=False, session_path=None,
                  imap_account=None, imap_password=None, imap_server=None,
                  imap_folder="INBOX", wait_for_sync=True, wait_for_sync_timeout=5 * 60,
@@ -436,6 +437,7 @@ class Mint(object):
         if email and password:
             self.login_and_get_token(email, password,
                                      mfa_method=mfa_method,
+                                     mfa_token=mfa_token,
                                      mfa_input_callback=mfa_input_callback,
                                      headless=headless,
                                      session_path=session_path,
@@ -507,7 +509,7 @@ class Mint(object):
     def post(self, url, **kwargs):
         return self.driver.request('POST', url, **kwargs)
 
-    def login_and_get_token(self, email, password, mfa_method=None,
+    def login_and_get_token(self, email, password, mfa_method=None, mfa_token=None,
                             mfa_input_callback=None, headless=False,
                             session_path=None, imap_account=None,
                             imap_password=None,
@@ -523,6 +525,7 @@ class Mint(object):
         self.driver, self.status_message = get_web_driver(
             email, password,
             mfa_method=mfa_method,
+            mfa_token=mfa_token,
             mfa_input_callback=mfa_input_callback,
             headless=headless,
             session_path=session_path,
@@ -1230,8 +1233,12 @@ def main():
     cmdline.add_argument(
         '--mfa-method',
         default='sms',
-        choices=['sms', 'email'],
+        choices=['sms', 'email', 'soft-token'],
         help='The MFA method to automate.')
+    cmdline.add_argument(
+        '--mfa-token',
+        default=None,
+        help='The MFA soft-token to pass to oathtool.')
     cmdline.add_argument(
         '--imap-account',
         default=None,
@@ -1319,6 +1326,7 @@ def main():
     mint = Mint.create(
         email, password,
         mfa_method=options.mfa_method,
+        mfa_token=options.mfa_token,
         session_path=session_path,
         headless=options.headless,
         imap_account=options.imap_account,
