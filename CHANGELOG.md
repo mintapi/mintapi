@@ -1,3 +1,7 @@
+1.43
+---
+- add soft token support (github#199)
+
 1.42
 ---
 - replace deprecated pandas call to fix warning (github#211)
