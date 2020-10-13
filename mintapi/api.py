@@ -940,7 +940,7 @@ class Mint(object):
                     str(max(map(int, response['data']['income'].keys())))
                 ]['bu'],
                 'spend': response['data']['spending'][
-                    str(max(map(int, response['data']['income'].keys())))
+                    str(max(map(int, response['data']['spending'].keys())))
                 ]['bu']
             }
 
