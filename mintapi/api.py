@@ -928,10 +928,9 @@ class Mint(object):
             for month in budgets.keys():
                 for direction in budgets[month]:
                     for budget in budgets[month][direction]:
-                        budget['cat'] = self.get_category_from_id(
-                            budget['cat'],
-                            categories
-                        )
+                        category = self.get_category_from_id(budget['cat'], categories)
+                        budget['cat'] = category['name']
+                        budget['parent'] = category['parent']['name']
 
         else:
             # Make the skeleton return structure
@@ -947,10 +946,9 @@ class Mint(object):
             # Fill in the return structure
             for direction in budgets.keys():
                 for budget in budgets[direction]:
-                    budget['cat'] = self.get_category_from_id(
-                        budget['cat'],
-                        categories
-                    )
+                    category = self.get_category_from_id(budget['cat'], categories)
+                    budget['cat'] = category['name']
+                    budget['parent'] = category['parent']['name']
 
         return budgets
 
@@ -960,12 +958,12 @@ class Mint(object):
 
         for i in categories:
             if categories[i]['id'] == cid:
-                return categories[i]['name']
+                return categories[i]
 
             if 'children' in categories[i]:
                 for j in categories[i]['children']:
                     if categories[i][j]['id'] == cid:
-                        return categories[i][j]['name']
+                        return categories[i][j]
 
         return 'Unknown'
 
