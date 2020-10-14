@@ -928,10 +928,9 @@ class Mint(object):
             for month in budgets.keys():
                 for direction in budgets[month]:
                     for budget in budgets[month][direction]:
-                        budget['cat'] = self.get_category_from_id(
-                            budget['cat'],
-                            categories
-                        )
+                        category = self.get_category_object_from_id(budget['cat'], categories)
+                        budget['cat'] = category['name']
+                        budget['parent'] = category['parent']['name']
 
         else:
             # Make the skeleton return structure
@@ -940,34 +939,37 @@ class Mint(object):
                     str(max(map(int, response['data']['income'].keys())))
                 ]['bu'],
                 'spend': response['data']['spending'][
-                    str(max(map(int, response['data']['income'].keys())))
+                    str(max(map(int, response['data']['spending'].keys())))
                 ]['bu']
             }
 
             # Fill in the return structure
             for direction in budgets.keys():
                 for budget in budgets[direction]:
-                    budget['cat'] = self.get_category_from_id(
-                        budget['cat'],
-                        categories
-                    )
+                    category = self.get_category_object_from_id(budget['cat'], categories)
+                    budget['cat'] = category['name']
+                    budget['parent'] = category['parent']['name']
 
         return budgets
 
     def get_category_from_id(self, cid, categories):
+        category = self.get_category_object_from_id(cid, categories)
+        return category['name']
+
+    def get_category_object_from_id(self, cid, categories):
         if cid == 0:
-            return 'Uncategorized'
+            return {'parent' : 'Uncategorized', 'name' : 'Uncategorized'}
 
         for i in categories:
             if categories[i]['id'] == cid:
-                return categories[i]['name']
+                return categories[i]
 
             if 'children' in categories[i]:
                 for j in categories[i]['children']:
                     if categories[i][j]['id'] == cid:
-                        return categories[i][j]['name']
+                        return categories[i][j]
 
-        return 'Unknown'
+        return {'parent' : 'Unknown', 'name' : 'Unknown'}
 
     def initiate_account_refresh(self):
         self.post(
