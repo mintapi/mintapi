@@ -928,7 +928,7 @@ class Mint(object):
             for month in budgets.keys():
                 for direction in budgets[month]:
                     for budget in budgets[month][direction]:
-                        category = self.get_category_from_id(budget['cat'], categories)
+                        category = self.get_category_object_from_id(budget['cat'], categories)
                         budget['cat'] = category['name']
                         budget['parent'] = category['parent']['name']
 
@@ -946,15 +946,19 @@ class Mint(object):
             # Fill in the return structure
             for direction in budgets.keys():
                 for budget in budgets[direction]:
-                    category = self.get_category_from_id(budget['cat'], categories)
+                    category = self.get_category_object_from_id(budget['cat'], categories)
                     budget['cat'] = category['name']
                     budget['parent'] = category['parent']['name']
 
         return budgets
 
     def get_category_from_id(self, cid, categories):
+        category = self.get_category_object_from_id(cid, categories)
+        return category['name']
+
+    def get_category_object_from_id(self, cid, categories):
         if cid == 0:
-            return 'Uncategorized'
+            return {'parent' : 'Uncategorized', 'name' : 'Uncategorized'}
 
         for i in categories:
             if categories[i]['id'] == cid:
@@ -965,7 +969,7 @@ class Mint(object):
                     if categories[i][j]['id'] == cid:
                         return categories[i][j]
 
-        return 'Unknown'
+        return {'parent' : 'Unknown', 'name' : 'Unknown'}
 
     def initiate_account_refresh(self):
         self.post(
