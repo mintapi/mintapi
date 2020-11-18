@@ -263,7 +263,7 @@ def get_web_driver(email, password, headless=False, mfa_method=None, mfa_token=N
                    use_chromedriver_on_path=False,
                    chromedriver_download_path=os.getcwd()):
     if headless and mfa_method is None:
-        logger.warning("Using headless mode without specifying an MFA method"
+        logger.warning("Using headless mode without specifying an MFA method "
                        "is unlikely to lead to a successful login. Defaulting "
                        "--mfa-method=sms")
         mfa_method = "sms"
