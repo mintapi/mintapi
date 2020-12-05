@@ -2,6 +2,8 @@ import copy
 import datetime
 import json
 import unittest
+import sys
+import os
 
 import pandas as pd
 
@@ -12,6 +14,7 @@ try:
 except ImportError:
     from unittest.mock import patch  # Python 3
 
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import mintapi
 import mintapi.api
 
@@ -88,3 +91,6 @@ class MintApiTests(unittest.TestCase):
         mint = mintapi.Mint()
         transactions_df = mint.get_transactions()
         assert(isinstance(transactions_df, pd.DataFrame))
+
+if __name__ == '__main__':
+    unittest.main()
