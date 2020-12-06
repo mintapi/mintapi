@@ -18,6 +18,13 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 import mintapi
 import mintapi.api
 
+try:
+    with open(os.path.join(os.path.dirname(__file__), 'test_args.json')) as file:
+        cred = json.load(file)
+    assert 'username' in cred and 'password' in cred
+except (FileNotFoundError, AssertionError):
+    cred = None
+
 accounts_example = [{
     "accountName": "Chase Checking",
     "lastUpdated": 1401201492000,
@@ -91,6 +98,27 @@ class MintApiTests(unittest.TestCase):
         mint = mintapi.Mint()
         transactions_df = mint.get_transactions()
         assert(isinstance(transactions_df, pd.DataFrame))
+
+
+@unittest.skipIf(cred is None, "This test requires a sign in")
+class GivenBrowserAtSignInPage(unittest.TestCase):
+    """
+    Set up gives mint.com sign page given by clicking "Sign In"
+    """
+    def setUp(self):
+        if 'headless' in cred:
+            headless = cred['headless']
+        else:
+            headless = False
+        self.driver = mintapi.api._create_web_driver_at_mint_com(headless)
+
+    def tearDown(self) -> None:
+        self.driver.close()
+
+    def test_sign_in(self):
+        mintapi.api._sign_in(cred['username'], cred['password'], self.driver)
+        self.assertTrue(self.driver.current_url.startswith('https://mint.intuit.com/overview.event'))
+
 
 if __name__ == '__main__':
     unittest.main()

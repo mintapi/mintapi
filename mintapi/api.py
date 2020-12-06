@@ -23,7 +23,7 @@ try:
 except ImportError:
     from io import BytesIO as StringIO  # Python 3
 
-from selenium.common.exceptions import ElementNotVisibleException, NoSuchElementException, StaleElementReferenceException, TimeoutException
+from selenium.common.exceptions import ElementNotInteractableException, ElementNotVisibleException, NoSuchElementException, StaleElementReferenceException, TimeoutException
 from selenium.webdriver import ChromeOptions
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions
@@ -255,19 +255,10 @@ def get_stable_chrome_driver(download_directory=os.getcwd()):
     return local_executable_path
 
 
-def get_web_driver(email, password, headless=False, mfa_method=None, mfa_token=None,
-                   mfa_input_callback=None, wait_for_sync=True,
-                   wait_for_sync_timeout=5 * 60,
-                   session_path=None, imap_account=None, imap_password=None,
-                   imap_server=None, imap_folder="INBOX",
-                   use_chromedriver_on_path=False,
-                   chromedriver_download_path=os.getcwd()):
-    if headless and mfa_method is None:
-        logger.warning("Using headless mode without specifying an MFA method "
-                       "is unlikely to lead to a successful login. Defaulting "
-                       "--mfa-method=sms")
-        mfa_method = "sms"
-
+def _create_web_driver_at_mint_com(headless=False, session_path=None, use_chromedriver_on_path=False, chromedriver_download_path=os.getcwd()):
+    """
+    Handles starting a web driver at mint.com
+    """
     chrome_options = ChromeOptions()
     if headless:
         chrome_options.add_argument('headless')
@@ -287,6 +278,18 @@ def get_web_driver(email, password, headless=False, mfa_method=None, mfa_token=N
                 chromedriver_download_path))
     driver.get("https://www.mint.com")
     driver.implicitly_wait(20)  # seconds
+    return driver
+
+
+def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
+            mfa_input_callback=None, wait_for_sync=True,
+            wait_for_sync_timeout=5 * 60,
+            imap_account=None, imap_password=None,
+            imap_server=None, imap_folder="INBOX",
+            ):
+    """
+    Takes in a web driver and gets it through the Mint sign in process
+    """
     try:
         element = driver.find_element_by_link_text("Sign in")
     except NoSuchElementException:
@@ -296,15 +299,20 @@ def get_web_driver(email, password, headless=False, mfa_method=None, mfa_token=N
         driver.implicitly_wait(20)  # seconds
     element.click()
     time.sleep(1)
-    email_input = driver.find_element_by_id("ius-userid")
-    # It's possible that the user clicked "remember me" at some point, causing
-    # the email to already be present. If anything is in the input, clear it
-    # and use the provided email, just to be safe.
-    # email_input.setAttribute("value", "")
-    email_input.clear()
-    email_input.send_keys(email)
-    driver.find_element_by_id("ius-password").send_keys(password)
-    driver.find_element_by_id("ius-sign-in-submit-btn").submit()
+    try:
+        email_input = driver.find_element_by_id("ius-userid")
+        email_input.clear()  # clear email and user specified email
+        email_input.send_keys(email)
+        driver.find_element_by_id("ius-password").send_keys(password)
+        driver.find_element_by_id("ius-sign-in-submit-btn").submit()
+    except ElementNotInteractableException:
+        email_input = driver.find_element_by_id("ius-identifier")
+        email_input.clear()  # clear email and use specified email
+        email_input.send_keys(email)
+        driver.find_element_by_id("ius-sign-in-submit-btn").click()
+        driver.implicitly_wait(5)
+        driver.find_element_by_id("ius-sign-in-mfa-password-collection-current-password").send_keys(password)
+        driver.find_element_by_id("ius-sign-in-mfa-password-collection-continue-btn").submit()
 
     # Wait until logged in, just in case we need to deal with MFA.
     while not driver.current_url.startswith(
@@ -333,8 +341,12 @@ def get_web_driver(email, password, headless=False, mfa_method=None, mfa_token=N
             else:
                 driver.find_element_by_id('ius-mfa-options-form')
                 try:
-                    mfa_method_option = driver.find_element_by_id('ius-mfa-option-{}'.format(mfa_method))
-                    mfa_method_option.click()
+                    try:
+                        # Not sure if this method is still works some of the time. It could be that this has been deprecated/changed by mint.com
+                        mfa_method_option = driver.find_element_by_id('ius-mfa-option-{}'.format(mfa_method))
+                        mfa_method_option.click()
+                    except NoSuchElementException:
+                        logger.info('sms button is not there. Trying without selection')
                     mfa_method_submit = driver.find_element_by_id("ius-mfa-options-submit-btn")
                     mfa_method_submit.click()
 
@@ -356,6 +368,24 @@ def get_web_driver(email, password, headless=False, mfa_method=None, mfa_token=N
             pass
         finally:
             driver.implicitly_wait(20)  # seconds
+
+
+def get_web_driver(email, password, headless=False, mfa_method=None, mfa_token=None,
+                   mfa_input_callback=None, wait_for_sync=True,
+                   wait_for_sync_timeout=5 * 60,
+                   session_path=None, imap_account=None, imap_password=None,
+                   imap_server=None, imap_folder="INBOX",
+                   use_chromedriver_on_path=False,
+                   chromedriver_download_path=os.getcwd()):
+    if headless and mfa_method is None:
+        logger.warning("Using headless mode without specifying an MFA method "
+                       "is unlikely to lead to a successful login. Defaulting "
+                       "--mfa-method=sms")
+        mfa_method = "sms"
+    driver = _create_web_driver_at_mint_com(headless, session_path, use_chromedriver_on_path, chromedriver_download_path)
+
+    _sign_in(email, password, driver, mfa_method, mfa_token, mfa_input_callback, wait_for_sync, wait_for_sync_timeout, imap_account,
+    imap_password, imap_server, imap_folder)
 
     # Wait until the overview page has actually loaded, and if wait_for_sync==True, sync has completed.
     status_message = None
