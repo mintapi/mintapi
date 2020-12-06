@@ -299,13 +299,13 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
         driver.implicitly_wait(20)  # seconds
     element.click()
     time.sleep(1)
-    try:
+    try:  # try to enter in credentials if username and password are on same page
         email_input = driver.find_element_by_id("ius-userid")
         email_input.clear()  # clear email and user specified email
         email_input.send_keys(email)
         driver.find_element_by_id("ius-password").send_keys(password)
         driver.find_element_by_id("ius-sign-in-submit-btn").submit()
-    except ElementNotInteractableException:
+    except ElementNotInteractableException:  # try to enter in credentials if username and password are on different pages
         email_input = driver.find_element_by_id("ius-identifier")
         email_input.clear()  # clear email and use specified email
         email_input.send_keys(email)
