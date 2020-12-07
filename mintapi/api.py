@@ -105,11 +105,13 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, debug=
 
             msg = email.message_from_bytes(data[0][1])
 
-            x = email.header.make_header(email.header.decode_header(msg['Subject']))
+            x = email.header.make_header(
+                email.header.decode_header(msg['Subject']))
             subject = str(x)
             logger.debug("DEBUG: SUBJECT:", subject)
 
-            x = email.header.make_header(email.header.decode_header(msg['From']))
+            x = email.header.make_header(
+                email.header.decode_header(msg['From']))
             frm = str(x)
             logger.debug("DEBUG: FROM:", frm)
 
@@ -121,7 +123,8 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, debug=
 
             date_tuple = email.utils.parsedate_tz(msg['Date'])
             if date_tuple:
-                local_date = datetime.fromtimestamp(email.utils.mktime_tz(date_tuple))
+                local_date = datetime.fromtimestamp(
+                    email.utils.mktime_tz(date_tuple))
             else:
                 logger.error("ERROR: FAIL0")
 
@@ -282,11 +285,11 @@ def _create_web_driver_at_mint_com(headless=False, session_path=None, use_chrome
 
 
 def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
-            mfa_input_callback=None, wait_for_sync=True,
-            wait_for_sync_timeout=5 * 60,
-            imap_account=None, imap_password=None,
-            imap_server=None, imap_folder="INBOX",
-            ):
+             mfa_input_callback=None, wait_for_sync=True,
+             wait_for_sync_timeout=5 * 60,
+             imap_account=None, imap_password=None,
+             imap_server=None, imap_folder="INBOX",
+             ):
     """
     Takes in a web driver and gets it through the Mint sign in process
     """
@@ -305,14 +308,17 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
         email_input.send_keys(email)
         driver.find_element_by_id("ius-password").send_keys(password)
         driver.find_element_by_id("ius-sign-in-submit-btn").submit()
-    except ElementNotInteractableException:  # try to enter in credentials if username and password are on different pages
+    # try to enter in credentials if username and password are on different pages
+    except ElementNotInteractableException:
         email_input = driver.find_element_by_id("ius-identifier")
         email_input.clear()  # clear email and use specified email
         email_input.send_keys(email)
         driver.find_element_by_id("ius-sign-in-submit-btn").click()
         driver.implicitly_wait(5)
-        driver.find_element_by_id("ius-sign-in-mfa-password-collection-current-password").send_keys(password)
-        driver.find_element_by_id("ius-sign-in-mfa-password-collection-continue-btn").submit()
+        driver.find_element_by_id(
+            "ius-sign-in-mfa-password-collection-current-password").send_keys(password)
+        driver.find_element_by_id(
+            "ius-sign-in-mfa-password-collection-continue-btn").submit()
 
     # Wait until logged in, just in case we need to deal with MFA.
     while not driver.current_url.startswith(
@@ -324,7 +330,8 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
 
         # bypass "Let's add your current mobile number" interstitial page
         try:
-            skip_for_now = driver.find_element_by_id('ius-verified-user-update-btn-skip')
+            skip_for_now = driver.find_element_by_id(
+                'ius-verified-user-update-btn-skip')
             skip_for_now.click()
         except (NoSuchElementException, StaleElementReferenceException, ElementNotVisibleException):
             pass
@@ -333,31 +340,40 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
         try:
             if mfa_method == 'soft-token':
                 import oathtool
-                mfa_token_input = driver.find_element_by_id('ius-mfa-soft-token')
+                mfa_token_input = driver.find_element_by_id(
+                    'ius-mfa-soft-token')
                 mfa_code = oathtool.generate_otp(mfa_token)
                 mfa_token_input.send_keys(mfa_code)
-                mfa_token_submit = driver.find_element_by_id('ius-mfa-soft-token-submit-btn')
+                mfa_token_submit = driver.find_element_by_id(
+                    'ius-mfa-soft-token-submit-btn')
                 mfa_token_submit.click()
             else:
                 driver.find_element_by_id('ius-mfa-options-form')
                 try:
                     try:
                         # Not sure if this method is still works some of the time. It could be that this has been deprecated/changed by mint.com
-                        mfa_method_option = driver.find_element_by_id('ius-mfa-option-{}'.format(mfa_method))
+                        mfa_method_option = driver.find_element_by_id(
+                            'ius-mfa-option-{}'.format(mfa_method))
                         mfa_method_option.click()
                     except NoSuchElementException:
-                        logger.info('sms button is not there. Trying without selection')
-                    mfa_method_submit = driver.find_element_by_id("ius-mfa-options-submit-btn")
+                        logger.info(
+                            'sms button is not there. Trying without selection')
+                    mfa_method_submit = driver.find_element_by_id(
+                        "ius-mfa-options-submit-btn")
                     mfa_method_submit.click()
 
                     if mfa_method == 'email' and imap_account:
-                        mfa_code = get_email_code(imap_account, imap_password, imap_server, imap_folder=imap_folder)
+                        mfa_code = get_email_code(
+                            imap_account, imap_password, imap_server, imap_folder=imap_folder)
                     else:
-                        mfa_code = (mfa_input_callback or input)("Please enter your 6-digit MFA code: ")
-                    mfa_code_input = driver.find_element_by_id("ius-mfa-confirm-code")
+                        mfa_code = (mfa_input_callback or input)(
+                            "Please enter your 6-digit MFA code: ")
+                    mfa_code_input = driver.find_element_by_id(
+                        "ius-mfa-confirm-code")
                     mfa_code_input.send_keys(mfa_code)
 
-                    mfa_code_submit = driver.find_element_by_id("ius-mfa-otp-submit-btn")
+                    mfa_code_submit = driver.find_element_by_id(
+                        "ius-mfa-otp-submit-btn")
                     mfa_code_submit.click()
                 except Exception:  # if anything goes wrong for any reason, give up on MFA
                     mfa_method = None
@@ -382,10 +398,11 @@ def get_web_driver(email, password, headless=False, mfa_method=None, mfa_token=N
                        "is unlikely to lead to a successful login. Defaulting "
                        "--mfa-method=sms")
         mfa_method = "sms"
-    driver = _create_web_driver_at_mint_com(headless, session_path, use_chromedriver_on_path, chromedriver_download_path)
+    driver = _create_web_driver_at_mint_com(
+        headless, session_path, use_chromedriver_on_path, chromedriver_download_path)
 
     _sign_in(email, password, driver, mfa_method, mfa_token, mfa_input_callback, wait_for_sync, wait_for_sync_timeout, imap_account,
-    imap_password, imap_server, imap_folder)
+             imap_password, imap_server, imap_folder)
 
     # Wait until the overview page has actually loaded, and if wait_for_sync==True, sync has completed.
     status_message = None
@@ -397,7 +414,8 @@ def get_web_driver(email, password, headless=False, mfa_method=None, mfa_token=N
                 expected_conditions.visibility_of_element_located(
                     (By.CSS_SELECTOR, ".SummaryView .message")))
             WebDriverWait(driver, wait_for_sync_timeout).until(
-                lambda x: "Account refresh complete" in status_message.get_attribute('innerHTML')
+                lambda x: "Account refresh complete" in status_message.get_attribute(
+                    'innerHTML')
             )
         except (TimeoutException, StaleElementReferenceException):
             logger.warning("Mint sync apparently incomplete after timeout. "
@@ -601,7 +619,8 @@ class Mint(object):
         body = self.get(
             '{}/investment.event'.format(MINT_ROOT_URL),
         ).text
-        p = re.search(r'<input name="json-import-node" type="hidden" value="json = ([^"]*);"', body)
+        p = re.search(
+            r'<input name="json-import-node" type="hidden" value="json = ([^"]*);"', body)
         if p:
             return p.group(1).replace('&quot;', '"')
         else:
@@ -918,14 +937,16 @@ class Mint(object):
 
         # Issue request for budget utilization
         first_of_this_month = date.today().replace(day=1)
-        eleven_months_ago = (first_of_this_month - timedelta(days=330)).replace(day=1)
+        eleven_months_ago = (first_of_this_month -
+                             timedelta(days=330)).replace(day=1)
         url = "{}/getBudget.xevent".format(MINT_ROOT_URL)
         params = {
             'startDate': eleven_months_ago.strftime('%m/%d/%Y'),
             'endDate': first_of_this_month.strftime('%m/%d/%Y'),
             'rnd': Mint.get_rnd(),
         }
-        response = json.loads(self.get(url, params=params, headers=JSON_HEADER).text)
+        response = json.loads(
+            self.get(url, params=params, headers=JSON_HEADER).text)
 
         if hist is not None:  # version proofing api
             def mos_to_yrmo(mos_frm_zero):
@@ -958,7 +979,8 @@ class Mint(object):
             for month in budgets.keys():
                 for direction in budgets[month]:
                     for budget in budgets[month][direction]:
-                        category = self.get_category_object_from_id(budget['cat'], categories)
+                        category = self.get_category_object_from_id(
+                            budget['cat'], categories)
                         budget['cat'] = category['name']
                         budget['parent'] = category['parent']['name']
 
@@ -976,7 +998,8 @@ class Mint(object):
             # Fill in the return structure
             for direction in budgets.keys():
                 for budget in budgets[direction]:
-                    category = self.get_category_object_from_id(budget['cat'], categories)
+                    category = self.get_category_object_from_id(
+                        budget['cat'], categories)
                     budget['cat'] = category['name']
                     budget['parent'] = category['parent']['name']
 
@@ -988,7 +1011,7 @@ class Mint(object):
 
     def get_category_object_from_id(self, cid, categories):
         if cid == 0:
-            return {'parent' : 'Uncategorized', 'name' : 'Uncategorized'}
+            return {'parent': 'Uncategorized', 'name': 'Uncategorized'}
 
         for i in categories:
             if categories[i]['id'] == cid:
@@ -999,7 +1022,7 @@ class Mint(object):
                     if categories[i][j]['id'] == cid:
                         return categories[i][j]
 
-        return {'parent' : 'Unknown', 'name' : 'Unknown'}
+        return {'parent': 'Unknown', 'name': 'Unknown'}
 
     def initiate_account_refresh(self):
         self.post(
@@ -1046,7 +1069,8 @@ class Mint(object):
 
             # Get credit utilization history (~3 months, by account)
             response = self.get(
-                '{}/v1/creditreports/creditutilizationhistory'.format(MINT_CREDIT_URL),
+                '{}/v1/creditreports/creditutilizationhistory'.format(
+                    MINT_CREDIT_URL),
                 headers=credit_header)
             clean_data = self.process_utilization(response.json())
             credit_report['utilization'] = clean_data

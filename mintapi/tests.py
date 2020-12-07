@@ -1,3 +1,5 @@
+import mintapi.api
+import mintapi
 import copy
 import datetime
 import json
@@ -15,9 +17,8 @@ except ImportError:
     from unittest.mock import patch  # Python 3
 
 # add mintapi to path so it can be accessed even if not running from mintapi folder
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-import mintapi
-import mintapi.api
+sys.path.insert(0, os.path.abspath(
+    os.path.join(os.path.dirname(__file__), '..')))
 
 try:  # read test_args file if supplied
     with open(os.path.join(os.path.dirname(__file__), 'test_args.json')) as file:
@@ -68,7 +69,8 @@ class MintApiTests(unittest.TestCase):
 
         accounts_annotated = copy.deepcopy(accounts_example)
         for account in accounts_annotated:
-            account['lastUpdatedInDate'] = (datetime.datetime.fromtimestamp(account['lastUpdated'] / 1000))
+            account['lastUpdatedInDate'] = (
+                datetime.datetime.fromtimestamp(account['lastUpdated'] / 1000))
         self.assertEqual(accounts, accounts_annotated)
 
         # ensure everything is json serializable as this is the command-line
@@ -106,6 +108,7 @@ class GivenBrowserAtSignInPage(unittest.TestCase):
     """
     Set up gives mint.com sign page given by clicking "Sign In"
     """
+
     def setUp(self):
         if 'headless' in test_args:
             headless = test_args['headless']
@@ -117,8 +120,10 @@ class GivenBrowserAtSignInPage(unittest.TestCase):
         self.driver.close()
 
     def test_sign_in(self):
-        mintapi.api._sign_in(test_args['username'], test_args['password'], self.driver)
-        self.assertTrue(self.driver.current_url.startswith('https://mint.intuit.com/overview.event'))
+        mintapi.api._sign_in(
+            test_args['username'], test_args['password'], self.driver)
+        self.assertTrue(self.driver.current_url.startswith(
+            'https://mint.intuit.com/overview.event'))
 
 
 if __name__ == '__main__':
