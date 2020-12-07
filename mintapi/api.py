@@ -937,8 +937,7 @@ class Mint(object):
 
         # Issue request for budget utilization
         first_of_this_month = date.today().replace(day=1)
-        eleven_months_ago = (first_of_this_month -
-                             timedelta(days=330)).replace(day=1)
+        eleven_months_ago = (first_of_this_month - timedelta(days=330)).replace(day=1)
         url = "{}/getBudget.xevent".format(MINT_ROOT_URL)
         params = {
             'startDate': eleven_months_ago.strftime('%m/%d/%Y'),
