@@ -1,3 +1,5 @@
+import mintapi.api
+import mintapi
 import copy
 import datetime
 import json
@@ -14,9 +16,16 @@ try:
 except ImportError:
     from unittest.mock import patch  # Python 3
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-import mintapi
-import mintapi.api
+# add mintapi to path so it can be accessed even if not running from mintapi folder
+sys.path.insert(0, os.path.abspath(
+    os.path.join(os.path.dirname(__file__), '..')))
+
+try:  # read test_args file if supplied
+    with open(os.path.join(os.path.dirname(__file__), 'test_args.json')) as file:
+        test_args = json.load(file)
+    assert 'username' in test_args and 'password' in test_args
+except (FileNotFoundError, AssertionError):
+    test_args = None
 
 accounts_example = [{
     "accountName": "Chase Checking",
@@ -91,6 +100,30 @@ class MintApiTests(unittest.TestCase):
         mint = mintapi.Mint()
         transactions_df = mint.get_transactions()
         assert(isinstance(transactions_df, pd.DataFrame))
+
+
+@unittest.skipIf(test_args is None, "This test requires a sign in")
+class GivenBrowserAtSignInPage(unittest.TestCase):
+    """
+    Set up gives mint.com sign page given by clicking "Sign In"
+    """
+
+    def setUp(self):
+        if 'headless' in test_args:
+            headless = test_args['headless']
+        else:
+            headless = False
+        self.driver = mintapi.api._create_web_driver_at_mint_com(headless)
+
+    def tearDown(self) -> None:
+        self.driver.close()
+
+    def test_sign_in(self):
+        mintapi.api._sign_in(
+            test_args['username'], test_args['password'], self.driver)
+        self.assertTrue(self.driver.current_url.startswith(
+            'https://mint.intuit.com/overview.event'))
+
 
 if __name__ == '__main__':
     unittest.main()
