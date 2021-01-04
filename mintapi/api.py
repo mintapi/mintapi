@@ -51,7 +51,7 @@ def assert_pd():
 
 
 def json_date_to_datetime(dateraw):
-    cy = datetime.isocalendar(date.today())[0]
+    cy = date.today().year
     try:
         newdate = datetime.strptime(dateraw + str(cy), '%b %d%Y')
     except ValueError:
