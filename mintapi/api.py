@@ -289,7 +289,7 @@ def _create_web_driver_at_mint_com(headless=False, session_path=None, use_chrome
 
 
 def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
-             mfa_input_callback=None, wait_for_sync=True,
+             mfa_input_callback=None, intuit_account=None, wait_for_sync=True,
              wait_for_sync_timeout=5 * 60,
              imap_account=None, imap_password=None,
              imap_server=None, imap_folder="INBOX",
@@ -319,10 +319,13 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
         email_input.send_keys(email)
         driver.find_element_by_id("ius-sign-in-submit-btn").click()
         driver.implicitly_wait(5)
-        driver.find_element_by_id(
-            "ius-sign-in-mfa-password-collection-current-password").send_keys(password)
-        driver.find_element_by_id(
-            "ius-sign-in-mfa-password-collection-continue-btn").submit()
+        try:
+            driver.find_element_by_id(
+                "ius-sign-in-mfa-password-collection-current-password").send_keys(password)
+            driver.find_element_by_id(
+                "ius-sign-in-mfa-password-collection-continue-btn").submit()
+        except NoSuchElementException:
+            pass # password may not be here when using MFA
 
     # Wait until logged in, just in case we need to deal with MFA.
     while not driver.current_url.startswith(
@@ -339,7 +342,7 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
         except (NoSuchElementException, StaleElementReferenceException, ElementNotVisibleException):
             pass
 
-        driver.implicitly_wait(1)  # seconds
+        # mfa screen
         try:
             if mfa_method == 'soft-token':
                 import oathtool
@@ -349,42 +352,59 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
                 mfa_token_submit = driver.find_element_by_id('ius-mfa-soft-token-submit-btn')
                 mfa_token_submit.click()
             else:
-                driver.find_element_by_id('ius-mfa-options-form')
                 try:
-                    try:
-                        # Not sure if this method is still works some of the time. It could be that this has been deprecated/changed by mint.com
-                        mfa_method_option = driver.find_element_by_id(
-                            'ius-mfa-option-{}'.format(mfa_method))
-                        mfa_method_option.click()
-                    except NoSuchElementException:
-                        logger.info(
-                            'sms button is not there. Trying without selection')
+                    driver.find_element_by_id('ius-mfa-options-form')
+                    # Not sure if this method is still works some of the time. It could be that this has been deprecated/changed by mint.com
+                    mfa_method_option = driver.find_element_by_id(
+                        'ius-mfa-option-{}'.format(mfa_method))
+                    mfa_method_option.click()
                     mfa_method_submit = driver.find_element_by_id(
                         "ius-mfa-options-submit-btn")
                     mfa_method_submit.click()
+                except NoSuchElementException:
+                    pass # no option to select mfa option
 
+                try:
+                    mfa_code_input = driver.find_element_by_id("ius-mfa-confirm-code")
+                    mfa_code_input.clear()
                     if mfa_method == 'email' and imap_account:
                         mfa_code = get_email_code(imap_account, imap_password, imap_server, imap_folder=imap_folder)
                     else:
                         mfa_code = (mfa_input_callback or input)("Please enter your 6-digit MFA code: ")
-                    mfa_code_input = driver.find_element_by_id("ius-mfa-confirm-code")
                     mfa_code_input.send_keys(mfa_code)
 
                     mfa_code_submit = driver.find_element_by_id("ius-mfa-otp-submit-btn")
                     mfa_code_submit.click()
-                except Exception:  # if anything goes wrong for any reason, give up on MFA
-                    mfa_method = None
-                    logger.warning("Giving up on handling MFA. Please "
-                                   "complete the MFA process manually in the "
-                                   "browser.")
+                except (NoSuchElementException, ElementNotInteractableException):
+                    pass # we're not on mfa input screen
+
         except NoSuchElementException:
-            pass
+            pass # not on mfa screen
+
+        # account selection screen -- if there are multiple accounts, select one
+        try:
+            select_account = driver.find_element_by_id("ius-mfa-select-account-section")
+            if intuit_account is not None:
+                account_input = select_account.find_element_by_xpath(
+                    "//label/span[text()='{}']/../preceding-sibling::input".format(intuit_account))
+                account_input.click()
+            driver.find_element_by_id("ius-sign-in-mfa-select-account-continue-btn").submit()
+        except NoSuchElementException:
+            pass # not on account selection screen
+
+        # password only sometimes after mfa
+        try:
+            driver.find_element_by_id("ius-sign-in-mfa-password-collection-current-password").send_keys(password)
+            driver.find_element_by_id("ius-sign-in-mfa-password-collection-continue-btn").submit()
+        except NoSuchElementException:
+            pass # not on secondary mfa password screen
+
         finally:
             driver.implicitly_wait(20)  # seconds
 
 
 def get_web_driver(email, password, headless=False, mfa_method=None, mfa_token=None,
-                   mfa_input_callback=None, wait_for_sync=True,
+                   mfa_input_callback=None, intuit_account=None, wait_for_sync=True,
                    wait_for_sync_timeout=5 * 60,
                    session_path=None, imap_account=None, imap_password=None,
                    imap_server=None, imap_folder="INBOX",
@@ -398,7 +418,7 @@ def get_web_driver(email, password, headless=False, mfa_method=None, mfa_token=N
     driver = _create_web_driver_at_mint_com(
         headless, session_path, use_chromedriver_on_path, chromedriver_download_path)
 
-    _sign_in(email, password, driver, mfa_method, mfa_token, mfa_input_callback, wait_for_sync, wait_for_sync_timeout, imap_account,
+    _sign_in(email, password, driver, mfa_method, mfa_token, mfa_input_callback, intuit_account, wait_for_sync, wait_for_sync_timeout, imap_account,
              imap_password, imap_server, imap_folder)
 
     # Wait until the overview page has actually loaded, and if wait_for_sync==True, sync has completed.
@@ -473,7 +493,7 @@ class Mint(object):
     status_message = None
 
     def __init__(self, email=None, password=None, mfa_method=None, mfa_token=None,
-                 mfa_input_callback=None, headless=False, session_path=None,
+                 mfa_input_callback=None, intuit_account=None, headless=False, session_path=None,
                  imap_account=None, imap_password=None, imap_server=None,
                  imap_folder="INBOX", wait_for_sync=True, wait_for_sync_timeout=5 * 60,
                  use_chromedriver_on_path=False,
@@ -483,6 +503,7 @@ class Mint(object):
                                      mfa_method=mfa_method,
                                      mfa_token=mfa_token,
                                      mfa_input_callback=mfa_input_callback,
+                                     intuit_account=intuit_account,
                                      headless=headless,
                                      session_path=session_path,
                                      imap_account=imap_account,
@@ -554,7 +575,7 @@ class Mint(object):
         return self.driver.request('POST', url, **kwargs)
 
     def login_and_get_token(self, email, password, mfa_method=None, mfa_token=None,
-                            mfa_input_callback=None, headless=False,
+                            mfa_input_callback=None, intuit_account=None, headless=False,
                             session_path=None, imap_account=None,
                             imap_password=None,
                             imap_server=None,
@@ -571,6 +592,7 @@ class Mint(object):
             mfa_method=mfa_method,
             mfa_token=mfa_token,
             mfa_input_callback=mfa_input_callback,
+            intuit_account=intuit_account,
             headless=headless,
             session_path=session_path,
             imap_account=imap_account,
