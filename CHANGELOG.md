@@ -1,3 +1,10 @@
+1.45
+---
+- various fixes and improvements for recent Mint flow changes
+- add support for users with multiple intuit accounts (`--intuit_account`)
+- provide get_category_object_from_id() to get a dict with 'name' and 'parent'
+- improvements to budget data returned
+
 1.44
 ---
 - bump for pypi re-release (no changes)
