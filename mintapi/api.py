@@ -347,8 +347,14 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
             if mfa_method == 'soft-token':
                 import oathtool
                 mfa_code = oathtool.generate_otp(mfa_token)
-                mfa_token_input = driver.find_element_by_id('ius-mfa-soft-token')
-                mfa_token_input.send_keys(mfa_code)
+                try:
+                    mfa_token_input = driver.find_element_by_id('ius-mfa-soft-token')
+                    mfa_token_input.send_keys(mfa_code)
+                except StaleElementReferenceException:
+                    # The element sometimes goes out of the DOM due to refresh. Try a second time.
+                    mfa_token_input = driver.find_element_by_id('ius-mfa-soft-token')
+                    mfa_token_input.send_keys(mfa_code)
+                
                 mfa_token_submit = driver.find_element_by_id('ius-mfa-soft-token-submit-btn')
                 mfa_token_submit.click()
             else:
