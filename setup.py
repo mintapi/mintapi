@@ -1,4 +1,5 @@
-# new version to pypi => python setup.py sdist upload
+# new version to pypi (pip install twine):
+# rm -rf dist && python setup.py sdist && python -m twine upload dist/*
 import os
 import setuptools
 
