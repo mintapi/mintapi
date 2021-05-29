@@ -1,3 +1,7 @@
+1.47
+---
+- actually release previous changes!
+
 1.46
 ---
 - handle selecting a saved account if normal login fails (github#260)
