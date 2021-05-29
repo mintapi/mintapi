@@ -1,3 +1,7 @@
+1.46
+---
+- handle selecting a saved account if normal login fails (github#260)
+
 1.45
 ---
 - various fixes and improvements for recent Mint flow changes
