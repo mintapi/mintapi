@@ -308,20 +308,24 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
     time.sleep(1)
     try:  # try to enter in credentials if username and password are on same page
         email_input = driver.find_element_by_id("ius-userid")
+        if not email_input.is_displayed():
+          raise ElementNotVisibleException();
         email_input.clear()  # clear email and user specified email
         email_input.send_keys(email)
         driver.find_element_by_id("ius-password").send_keys(password)
         driver.find_element_by_id("ius-sign-in-submit-btn").submit()
     # try to enter in credentials if username and password are on different pages
-    except ElementNotInteractableException:
+    except (ElementNotInteractableException,ElementNotVisibleException):
         driver.implicitly_wait(0)
         try:
             email_input = driver.find_element_by_id("ius-identifier")
+            if not email_input.is_displayed():
+              raise ElementNotVisibleException();
             email_input.clear()  # clear email and use specified email
             email_input.send_keys(email)
             driver.find_element_by_id("ius-sign-in-submit-btn").click()
         # click on username if on the saved usernames page
-        except ElementNotInteractableException:
+        except (ElementNotInteractableException,ElementNotVisibleException):
             username_elements = driver.find_elements_by_class_name('ius-option-username')
             for username_element in username_elements:
                 if username_element.text == email:
