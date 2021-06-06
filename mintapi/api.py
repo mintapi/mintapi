@@ -1027,7 +1027,11 @@ class Mint(object):
                 for budget in budgets[direction]:
                     category = self.get_category_object_from_id(budget['cat'], categories)
                     budget['cat'] = category['name']
-                    budget['parent'] = category['parent']['name']
+                    # Uncategorized budget's parent is a string: 'Uncategorized'
+                    if isinstance(category['parent'], dict):
+                        budget['parent'] = category['parent']['name']
+                    else:
+                        budget['parent'] = category['parent']
 
         return budgets
 
