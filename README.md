@@ -1,6 +1,6 @@
 # mintapi
 
-a screen-scraping API for Mint.com. [![Build Status](https://travis-ci.org/mrooney/mintapi.svg?branch=master)](https://travis-ci.org/mrooney/mintapi)
+a screen-scraping API for Mint.com. [![Build Status](https://github.com/mrooney/mintapi/actions/workflows/ci.yml/badge.svg)](https://github.com/mrooney/mintapi/actions)
 
 ## Community
 
