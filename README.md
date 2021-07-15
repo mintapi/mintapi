@@ -1,6 +1,6 @@
 # mintapi
 
-a screen-scraping API for Mint.com. [![Build Status](https://travis-ci.org/mrooney/mintapi.svg?branch=master)](https://travis-ci.org/mrooney/mintapi)
+a screen-scraping API for Mint.com. ![Build Status](https://github.com/mrooney/mintapi/actions/workflows/ci.yml/badge.svg)
 
 ## Community
 
@@ -189,4 +189,4 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
 ```
 
 If you need to avoid using pip or setup.py, you can also clone/download
-this repository and run: ``python mintapi/api.py``
+this repository and run: ``python mi  
