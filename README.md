@@ -189,4 +189,4 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
 ```
 
 If you need to avoid using pip or setup.py, you can also clone/download
-this repository and run: ``python mi  
+this repository and run: ``python mintapi/api.py``
