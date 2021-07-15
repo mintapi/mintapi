@@ -4,7 +4,7 @@ a screen-scraping API for Mint.com. [![Build Status](https://travis-ci.org/mroon
 
 ## Community
 
-Please [join us on Discord](https://discord.gg/N9c4QcTz) to get help or just chat with fellow mintapi users :)
+Please [join us on Discord](https://discord.gg/YjJEuJRAu9) to get help or just chat with fellow mintapi users :)
 
 ## Installation
 Ensure you have Python 2 or 3 and pip (`easy_install pip`) and then:
