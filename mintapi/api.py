@@ -367,7 +367,6 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
             else:
                 try:
                     driver.find_element_by_id('ius-mfa-options-form')
-                    # Not sure if this method is still works some of the time. It could be that this has been deprecated/changed by mint.com
                     mfa_method_option = driver.find_element_by_id(
                         'ius-mfa-option-{}'.format(mfa_method))
                     mfa_method_option.click()
@@ -409,7 +408,7 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
         try:
             driver.find_element_by_id("ius-sign-in-mfa-password-collection-current-password").send_keys(password)
             driver.find_element_by_id("ius-sign-in-mfa-password-collection-continue-btn").submit()
-        except NoSuchElementException:
+        except (NoSuchElementException, ElementNotInteractableException):
             pass  # not on secondary mfa password screen
 
         finally:
