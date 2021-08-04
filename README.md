@@ -1,6 +1,10 @@
 # mintapi
 
-a screen-scraping API for Mint.com. [![Build Status](https://travis-ci.org/mrooney/mintapi.svg?branch=master)](https://travis-ci.org/mrooney/mintapi)
+a screen-scraping API for Mint.com. [![Build Status](https://github.com/mrooney/mintapi/actions/workflows/ci.yml/badge.svg)](https://github.com/mrooney/mintapi/actions)
+
+## Community
+
+Please [join us on Discord](https://discord.gg/YjJEuJRAu9) to get help or just chat with fellow mintapi users :)
 
 ## Installation
 Ensure you have Python 2 or 3 and pip (`easy_install pip`) and then:

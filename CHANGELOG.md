@@ -1,3 +1,19 @@
+1.49
+---
+- fix for Uncategorized budget as parent (github#261)
+
+1.48
+---
+- improvements for login when ElementNotVisibleException is thrown (github#262)
+
+1.47
+---
+- actually release previous changes!
+
+1.46
+---
+- handle selecting a saved account if normal login fails (github#260)
+
 1.45
 ---
 - various fixes and improvements for recent Mint flow changes

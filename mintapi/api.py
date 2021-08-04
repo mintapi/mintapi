@@ -190,11 +190,11 @@ def get_chrome_driver_major_version_from_executable(local_executable_path):
     # check_output fails if running from a thread without a console on win10.
     # To protect against this use explicit pipes for STDIN/STDERR.
     # See: https://github.com/pyinstaller/pyinstaller/issues/3392
-    with open(os.devnull, 'wb') as DEVNULL:
+    with open(os.devnull, 'wb') as devnull:
         version = subprocess.check_output(
             [local_executable_path, '--version'],
-            stderr=DEVNULL,
-            stdin=DEVNULL)
+            stderr=devnull,
+            stdin=devnull)
         version_match = version_pattern.search(version.decode())
         if not version_match:
             return None
@@ -308,16 +308,29 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
     time.sleep(1)
     try:  # try to enter in credentials if username and password are on same page
         email_input = driver.find_element_by_id("ius-userid")
+        if not email_input.is_displayed():
+            raise ElementNotVisibleException()
         email_input.clear()  # clear email and user specified email
         email_input.send_keys(email)
         driver.find_element_by_id("ius-password").send_keys(password)
         driver.find_element_by_id("ius-sign-in-submit-btn").submit()
     # try to enter in credentials if username and password are on different pages
-    except ElementNotInteractableException:
-        email_input = driver.find_element_by_id("ius-identifier")
-        email_input.clear()  # clear email and use specified email
-        email_input.send_keys(email)
-        driver.find_element_by_id("ius-sign-in-submit-btn").click()
+    except (ElementNotInteractableException, ElementNotVisibleException):
+        driver.implicitly_wait(0)
+        try:
+            email_input = driver.find_element_by_id("ius-identifier")
+            if not email_input.is_displayed():
+                raise ElementNotVisibleException()
+            email_input.clear()  # clear email and use specified email
+            email_input.send_keys(email)
+            driver.find_element_by_id("ius-sign-in-submit-btn").click()
+        # click on username if on the saved usernames page
+        except (ElementNotInteractableException, ElementNotVisibleException):
+            username_elements = driver.find_elements_by_class_name('ius-option-username')
+            for username_element in username_elements:
+                if username_element.text == email:
+                    username_element.click()
+                    break
         driver.implicitly_wait(5)
         try:
             driver.find_element_by_id(
@@ -325,7 +338,7 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
             driver.find_element_by_id(
                 "ius-sign-in-mfa-password-collection-continue-btn").submit()
         except NoSuchElementException:
-            pass # password may not be here when using MFA
+            pass  # password may not be here when using MFA
 
     # Wait until logged in, just in case we need to deal with MFA.
     while not driver.current_url.startswith(
@@ -360,7 +373,6 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
             else:
                 try:
                     driver.find_element_by_id('ius-mfa-options-form')
-                    # Not sure if this method is still works some of the time. It could be that this has been deprecated/changed by mint.com
                     mfa_method_option = driver.find_element_by_id(
                         'ius-mfa-option-{}'.format(mfa_method))
                     mfa_method_option.click()
@@ -368,7 +380,7 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
                         "ius-mfa-options-submit-btn")
                     mfa_method_submit.click()
                 except NoSuchElementException:
-                    pass # no option to select mfa option
+                    pass  # no option to select mfa option
 
                 try:
                     mfa_code_input = driver.find_element_by_id("ius-mfa-confirm-code")
@@ -382,10 +394,10 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
                     mfa_code_submit = driver.find_element_by_id("ius-mfa-otp-submit-btn")
                     mfa_code_submit.click()
                 except (NoSuchElementException, ElementNotInteractableException):
-                    pass # we're not on mfa input screen
+                    pass  # we're not on mfa input screen
 
         except NoSuchElementException:
-            pass # not on mfa screen
+            pass  # not on mfa screen
 
         # account selection screen -- if there are multiple accounts, select one
         try:
@@ -396,14 +408,14 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
                 account_input.click()
             driver.find_element_by_id("ius-sign-in-mfa-select-account-continue-btn").submit()
         except NoSuchElementException:
-            pass # not on account selection screen
+            pass  # not on account selection screen
 
         # password only sometimes after mfa
         try:
             driver.find_element_by_id("ius-sign-in-mfa-password-collection-current-password").send_keys(password)
             driver.find_element_by_id("ius-sign-in-mfa-password-collection-continue-btn").submit()
-        except NoSuchElementException:
-            pass # not on secondary mfa password screen
+        except (NoSuchElementException, ElementNotInteractableException):
+            pass  # not on secondary mfa password screen
 
         finally:
             driver.implicitly_wait(20)  # seconds
@@ -1020,7 +1032,11 @@ class Mint(object):
                 for budget in budgets[direction]:
                     category = self.get_category_object_from_id(budget['cat'], categories)
                     budget['cat'] = category['name']
-                    budget['parent'] = category['parent']['name']
+                    # Uncategorized budget's parent is a string: 'Uncategorized'
+                    if isinstance(category['parent'], dict):
+                        budget['parent'] = category['parent']['name']
+                    else:
+                        budget['parent'] = category['parent']
 
         return budgets
 

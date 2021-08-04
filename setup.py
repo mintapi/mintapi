@@ -1,4 +1,5 @@
-# new version to pypi => python setup.py sdist upload
+# new version to pypi (pip install twine):
+# rm -rf dist && python setup.py sdist && python -m twine upload dist/*
 import os
 import setuptools
 
@@ -10,7 +11,7 @@ setuptools.setup(
     name='mintapi',
     description='a screen-scraping API for Mint.com',
     long_description="https://github.com/mrooney/mintapi/",
-    version='1.45',
+    version='1.49',
     packages=['mintapi'],
     license='The MIT License',
     author='Michael Rooney',
