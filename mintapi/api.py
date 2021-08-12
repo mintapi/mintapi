@@ -376,6 +376,13 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
                 except NoSuchElementException:
                     pass  # no option to select mfa option
 
+                if mfa_method == 'email' and imap_account:
+                    try:
+                        mfa_email_select = driver.find_element_by_id("ius-mfa-email-otp-card-challenge")
+                        mfa_email_select.click()
+                    except NoSuchElementException:
+                        pass  # no option to select email address
+
                 try:
                     mfa_code_input = driver.find_element_by_id("ius-mfa-confirm-code")
                     mfa_code_input.clear()
