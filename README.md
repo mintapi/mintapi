@@ -49,12 +49,15 @@ make calls to retrieve account/budget information.  We recommend using the
     mfa_method='sms',  # Can be 'sms' (default), 'email', or 'soft-token'.
                        # if mintapi detects an MFA request, it will trigger the requested method
                        # and prompt on the command line.
-    headless=False,  # Whether the chromedriver should work without opening a
-                     # visible window (useful for server-side deployments)
-    mfa_input_callback=None,  # A callback accepting a single argument (the prompt)
+    mfa_input_callback=None,  # used with mfa_method = 'sms' or 'email'
+                              # A callback accepting a single argument (the prompt)
                               # which returns the user-inputted 2FA code. By default
                               # the default Python `input` function is used.
+    mfa_token=None,   # used with mfa_method='soft-token'
+                      # the token that is used to generate the totp
     intuit_account=None, # account name when multiple accounts are registered with this email.
+    headless=False,  # Whether the chromedriver should work without opening a
+                     # visible window (useful for server-side deployments)
                          # None will use the default account.
     session_path=None, # Directory that the Chrome persistent session will be written/read from.
                        # To avoid the 2FA code being asked for multiple times, you can either set
