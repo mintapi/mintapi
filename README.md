@@ -29,10 +29,12 @@ an MFA prompt, you'll be prompted on the command line for your code, which by de
 goes to SMS unless you specify `--mfa-method=email`. This will also persist a browser
 session in $HOME/.mintapi/session to avoid an MFA in the future, unless you specify `--session-path=None`.
 
+### MFA Authentication Methods
+
 If mfa-method is email and your email host provides IMAP access, you can specify your IMAP login details.
 This will automate the retrieval of the MFA code from your email and entering it into Mint.
 
-If mfa-method is soft-token then you must also pass your mfa-token.
+If mfa-method is soft-token then you must also pass your mfa-token. The mfa-token can be obtained by going to [your mint.com settings](https://mint.intuit.com/settings.event?filter=all) and clicking on 'Intuit Account'. From there go to *Sign In & Security* -> *Two-step verification*. From there, enable the top option however you wish (either text or email is fine). After that, start the process to enable the *Authenticator app* option and when you get the part where you see the QR code, **copy the manual setup code** that appears next to it. Careful where you store this as it allows anyone to generate TOTP codes. This is the token that you will pass to `mfa-token` in either the python api or from the command line.
 
 ### from Python
 
@@ -46,14 +48,17 @@ make calls to retrieve account/budget information.  We recommend using the
     'your_email@web.com',  # Email used to log in to Mint
     'password',  # Your password used to log in to mint
     # Optional parameters
-    mfa_method='sms',  # Can be 'sms' (default), 'email', or 'soft-token'.
+    mfa_method='sms',  # See MFA Methods section
+                       # Can be 'sms' (default), 'email', or 'soft-token'.
                        # if mintapi detects an MFA request, it will trigger the requested method
                        # and prompt on the command line.
-    mfa_input_callback=None,  # used with mfa_method = 'sms' or 'email'
+    mfa_input_callback=None,  # see MFA Methods section
+                              # used with mfa_method = 'sms' or 'email'
                               # A callback accepting a single argument (the prompt)
                               # which returns the user-inputted 2FA code. By default
                               # the default Python `input` function is used.
-    mfa_token=None,   # used with mfa_method='soft-token'
+    mfa_token=None,   # see MFA Methods section
+                      # used with mfa_method='soft-token'
                       # the token that is used to generate the totp
     intuit_account=None, # account name when multiple accounts are registered with this email.
     headless=False,  # Whether the chromedriver should work without opening a
