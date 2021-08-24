@@ -380,7 +380,12 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
                     try:
                         mfa_email_select = driver.find_element_by_id("ius-mfa-email-otp-card-challenge")
                         mfa_email_select.click()
-                    except NoSuchElementException:
+                    except (NoSuchElementException, ElementNotInteractableException):
+                        pass  # no option to select email address
+                    try:
+                        mfa_email_select = driver.find_element_by_id("ius-sublabel-mfa-email-otp")
+                        mfa_email_select.click()
+                    except (NoSuchElementException, ElementNotInteractableException):
                         pass  # no option to select email address
 
                 try:
