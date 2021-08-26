@@ -377,16 +377,12 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
                     pass  # no option to select mfa option
 
                 if mfa_method == 'email' and imap_account:
-                    try:
-                        mfa_email_select = driver.find_element_by_id("ius-mfa-email-otp-card-challenge")
-                        mfa_email_select.click()
-                    except (NoSuchElementException, ElementNotInteractableException):
-                        pass  # no option to select email address
-                    try:
-                        mfa_email_select = driver.find_element_by_id("ius-sublabel-mfa-email-otp")
-                        mfa_email_select.click()
-                    except (NoSuchElementException, ElementNotInteractableException):
-                        pass  # no option to select email address
+                    for element_id in ["ius-mfa-email-otp-card-challenge", "ius-sublabel-mfa-email-otp"]:
+                        try:
+                            mfa_email_select = driver.find_element_by_id(element_id)
+                            mfa_email_select.click()
+                        except (NoSuchElementException, ElementNotInteractableException):
+                            pass  # no option to select email address
 
                 try:
                     mfa_code_input = driver.find_element_by_id("ius-mfa-confirm-code")
