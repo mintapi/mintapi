@@ -381,6 +381,7 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
                         try:
                             mfa_email_select = driver.find_element_by_id(element_id)
                             mfa_email_select.click()
+                            break
                         except (NoSuchElementException, ElementNotInteractableException):
                             pass  # no option to select email address
 
