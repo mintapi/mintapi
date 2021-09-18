@@ -29,6 +29,12 @@ an MFA prompt, you'll be prompted on the command line for your code, which by de
 goes to SMS unless you specify `--mfa-method=email`. This will also persist a browser
 session in $HOME/.mintapi/session to avoid an MFA in the future, unless you specify `--session-path=None`.
 
+### from Raspberry Pi / Headless
+
+You can use mintapi in headless mode. Make sure your Raspbian is up-to-date (10+) and then install/update Chromium: `apt install chromium-browser chromium-chromedriver`
+
+Additionally, you may need to also link the binary to the location mintapi expects, deleting the latter file if it already exists: `ln -s /usr/bin/chromedriver /home/pi/chromedriver`
+
 ### MFA Authentication Methods
 
 If mfa-method is email and your email host provides IMAP access, you can specify your IMAP login details.
