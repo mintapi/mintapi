@@ -1,3 +1,7 @@
+1.50
+---
+- various fixes for different element IDs and more robust checks
+
 1.49
 ---
 - fix for Uncategorized budget as parent (github#261)
