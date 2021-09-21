@@ -1,3 +1,7 @@
+1.51
+---
+- don't leave dangling chrome instances on sign-in exception
+
 1.50
 ---
 - various fixes for different element IDs and more robust checks
