@@ -629,7 +629,8 @@ class Mint(object):
             wait_for_sync_timeout=wait_for_sync_timeout,
             use_chromedriver_on_path=use_chromedriver_on_path,
             chromedriver_download_path=chromedriver_download_path)
-        self.token = self.get_token()
+        if self.driver is not None:  # check if sign in failed
+            self.token = self.get_token()
 
     def get_token(self):
         value_json = self.driver.find_element_by_name(

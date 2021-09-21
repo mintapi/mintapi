@@ -101,6 +101,15 @@ class MintApiTests(unittest.TestCase):
         transactions_df = mint.get_transactions()
         assert(isinstance(transactions_df, pd.DataFrame))
 
+    @patch.object(mintapi.api, '_create_web_driver_at_mint_com')
+    @patch.object(mintapi.api, 'logger')
+    @patch.object(mintapi.api, '_sign_in')
+    def test_when_sign_in_fails_then_logs_exception(self, mock_sign_in, mock_logger, *_):
+        test_exception = Exception()
+        mock_sign_in.side_effect = test_exception
+        mintapi.Mint('test', 'test')
+        mock_logger.exception.assert_called_with(test_exception)
+
 
 @unittest.skipIf(test_args is None, "This test requires a sign in")
 class GivenBrowserAtSignInPage(unittest.TestCase):
