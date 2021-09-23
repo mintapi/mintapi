@@ -1,3 +1,7 @@
+1.52
+---
+- No changes. Redeploy to pypi to update project URLs (github#292)
+
 1.51
 ---
 - don't leave dangling chrome instances on sign-in exception
