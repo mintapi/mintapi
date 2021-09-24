@@ -1,3 +1,7 @@
+1.53
+---
+- Ensure pip installs selenium-requests >= 1.3.3 (github#296)
+
 1.52
 ---
 - No changes. Redeploy to pypi to update project URLs (github#292)
