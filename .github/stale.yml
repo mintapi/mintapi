@@ -1,4 +1,5 @@
 # Configuration for probot-stale - https://github.com/probot/stale
+daysUntilStale: 31
 
 # Only issues or pull requests with all of these labels are check if stale. Defaults to `[]` (disabled)
 onlyLabels: ['awaiting-feedback']
