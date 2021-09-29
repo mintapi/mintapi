@@ -124,7 +124,8 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
 ```shell
     usage: mintapi [-h] [--session-path [SESSION_PATH]] [--accounts]
                    [--budgets | --budget_hist] [--net-worth] [--extended-accounts] [--transactions]
-                   [--extended-transactions] [--credit-score] [--credit-report] [--start-date [START_DATE]]
+                   [--extended-transactions] [--credit-score] [--credit-report]
+                   [--start-date [START_DATE]] [--end-date [END_DATE]]
                    [--include-investment] [--skip-duplicates] [--show-pending]
                    [--filename FILENAME] [--keyring] [--headless] [--attention]
                    [--mfa-method {sms,email,soft-token}]
@@ -153,7 +154,10 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                             Retrieve transactions with extra information and
                             arguments
       --start-date [START_DATE]
-                            Earliest date for transactions to be retrieved from.
+                            Earliest date for which to retrieve transactions.
+                            Used with --extended-transactions. Format: mm/dd/yy
+      --end-date [END_DATE]
+                            Latest date for which to retrieve transactions.
                             Used with --extended-transactions. Format: mm/dd/yy
       --include-investment  Used with --extended-transactions
       --skip-duplicates     Used with --extended-transactions

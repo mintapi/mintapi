@@ -739,7 +739,8 @@ class Mint(object):
                 'Could not parse response to set_user_property')
 
     def get_transactions_json(self, include_investment=False,
-                              skip_duplicates=False, start_date=None, id=0):
+                              skip_duplicates=False,
+                              start_date=None, end_date=None, id=0):
         """Returns the raw JSON transaction data as downloaded from Mint.  The JSON
         transaction data includes some additional information missing from the
         CSV data, such as whether the transaction is pending or completed, but
@@ -760,6 +761,13 @@ class Mint(object):
             start_date = datetime.strptime(start_date, '%m/%d/%y')
         except (TypeError, ValueError):
             start_date = None
+
+        # Converts the end date into datetime format - must be mm/dd/yy
+        try:
+            end_date = datetime.strptime(end_date, '%m/%d/%y')
+        except (TypeError, ValueError):
+            end_date = None
+
         all_txns = []
         offset = 0
         # Mint only returns some of the transactions at once.  To get all of
@@ -770,6 +778,8 @@ class Mint(object):
                 'queryNew': '',
                 'offset': offset,
                 'comparableType': '8',
+                'startDate': start_date.strftime('%m/%d/%Y') if start_date else None,
+                'endDate': end_date.strftime('%m/%d/%Y') if end_date else None,
                 'rnd': Mint.get_rnd(),
             }
             # Specifying accountId=0 causes Mint to return investment
@@ -789,14 +799,6 @@ class Mint(object):
             txns = data['set'][0].get('data', [])
             if not txns:
                 break
-            if start_date:
-                last_dt = json_date_to_datetime(txns[-1]['odate'])
-                if last_dt < start_date:
-                    keep_txns = [
-                        t for t in txns
-                        if json_date_to_datetime(t['odate']) >= start_date]
-                    all_txns.extend(keep_txns)
-                    break
             all_txns.extend(txns)
             offset += len(txns)
         return all_txns
@@ -804,14 +806,15 @@ class Mint(object):
     def get_detailed_transactions(self, include_investment=False,
                                   skip_duplicates=False,
                                   remove_pending=True,
-                                  start_date=None):
+                                  start_date=None,
+                                  end_date=None):
         """Returns the JSON transaction data as a DataFrame, and converts
         current year dates and prior year dates into consistent datetime
         format, and reverses credit activity.
 
-        Note: start_date must be in format mm/dd/yy. If pulls take too long,
-        use a more recent start date. See json explanations of
-        include_investment and skip_duplicates.
+        Note: start_date and end_date must be in format mm/dd/yy.
+        If pulls take too long, consider a narrower range of start and end
+        date. See json explanations of include_investment and skip_duplicates.
 
         Also note: Mint includes pending transactions, however these sometimes
         change dates/amounts after the transactions post. They have been
@@ -822,7 +825,8 @@ class Mint(object):
         assert_pd()
 
         result = self.get_transactions_json(include_investment,
-                                            skip_duplicates, start_date)
+                                            skip_duplicates,
+                                            start_date, end_date)
         df = pd.DataFrame(result)
         df['odate'] = df['odate'].apply(json_date_to_datetime)
 
@@ -1289,6 +1293,12 @@ def main():
         help='Earliest date for transactions to be retrieved from. '
         'Used with --extended-transactions. Format: mm/dd/yy')
     cmdline.add_argument(
+        '--end-date',
+        nargs='?',
+        default=None,
+        help='Latest date for transactions to be retrieved from. '
+        'Used with --extended-transactions. Format: mm/dd/yy')
+    cmdline.add_argument(
         '--include-investment',
         action='store_true',
         default=False,
@@ -1484,6 +1494,7 @@ def main():
     elif options.extended_transactions:
         data = mint.get_detailed_transactions(
             start_date=options.start_date,
+            end_date=options.end_date,
             include_investment=options.include_investment,
             remove_pending=options.show_pending,
             skip_duplicates=options.skip_duplicates)
