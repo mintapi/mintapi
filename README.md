@@ -29,9 +29,9 @@ an MFA prompt, you'll be prompted on the command line for your code, which by de
 goes to SMS unless you specify `--mfa-method=email`. This will also persist a browser
 session in $HOME/.mintapi/session to avoid an MFA in the future, unless you specify `--session-path=None`.
 
-### from Raspberry Pi / Headless
+### Linux Distributions (including Raspberry Pi OS)
 
-You can use mintapi in headless mode. Make sure your Raspbian is up-to-date (10+) and then install/update Chromium: `apt install chromium-browser chromium-chromedriver`
+If you're running mintapi in a server environment on an automatic schedule, consider running mintapi in headless mode if you don't need to see the login workflow. In addition, you'll want to use your distribution's package manager to install chromium and chromedriver. Make sure your distribution is up-to-date and then install/update Chromium (debian-family example): `apt install chromium-browser chromium-chromedriver`. Then use the option `use_chromedriver_on_path` either through the CLI or the python api so that mintapi doesn't try to find a matching chromedriver.
 
 Additionally, you may need to also link the binary to the location mintapi expects, deleting the latter file if it already exists: `ln -s /usr/bin/chromedriver /home/pi/chromedriver`
 
