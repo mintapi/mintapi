@@ -55,9 +55,21 @@ def json_date_to_datetime(dateraw):
     try:
         newdate = datetime.strptime(dateraw + str(cy), '%b %d%Y')
     except ValueError:
-        newdate = datetime.strptime(dateraw, '%m/%d/%y')
+        newdate = convert_mmddyy_to_datetime(dateraw)
     return newdate
 
+def convert_mmddyy_to_datetime(date):
+    try:
+        newdate = datetime.strptime(date, '%m/%d/%y')
+    except (TypeError, ValueError):
+        newdate = None
+    return newdate
+
+def convert_date_to_string(date):
+    date_string = None
+    if date:
+        date_string = date.strftime('%m/%d/%Y')
+    return date_string
 
 def reverse_credit_amount(row):
     amount = float(row['amount'][1:].replace(',', ''))
@@ -756,17 +768,10 @@ class Mint(object):
         self.set_user_property(
             'hide_duplicates', 'T' if skip_duplicates else 'F')
 
-        # Converts the start date into datetime format - must be mm/dd/yy
-        try:
-            start_date = datetime.strptime(start_date, '%m/%d/%y')
-        except (TypeError, ValueError):
-            start_date = None
-
-        # Converts the end date into datetime format - must be mm/dd/yy
-        try:
-            end_date = datetime.strptime(end_date, '%m/%d/%y')
-        except (TypeError, ValueError):
-            end_date = None
+        # Converts the start date into datetime format - input must be mm/dd/yy
+        start_date = convert_mmddyy_to_datetime(start_date)
+        # Converts the end date into datetime format - input must be mm/dd/yy
+        end_date = convert_mmddyy_to_datetime(end_date)
 
         all_txns = []
         offset = 0
@@ -778,8 +783,8 @@ class Mint(object):
                 'queryNew': '',
                 'offset': offset,
                 'comparableType': '8',
-                'startDate': start_date.strftime('%m/%d/%Y') if start_date else None,
-                'endDate': end_date.strftime('%m/%d/%Y') if end_date else None,
+                'startDate': convert_date_to_string(start_date),
+                'endDate': convert_date_to_string(end_date),
                 'rnd': Mint.get_rnd(),
             }
             # Specifying accountId=0 causes Mint to return investment
@@ -988,8 +993,8 @@ class Mint(object):
         eleven_months_ago = (first_of_this_month - timedelta(days=330)).replace(day=1)
         url = "{}/getBudget.xevent".format(MINT_ROOT_URL)
         params = {
-            'startDate': eleven_months_ago.strftime('%m/%d/%Y'),
-            'endDate': first_of_this_month.strftime('%m/%d/%Y'),
+            'startDate': convert_date_to_string(eleven_months_ago),
+            'endDate': convert_date_to_string(first_of_this_month),
             'rnd': Mint.get_rnd(),
         }
         response = json.loads(self.get(url, params=params, headers=JSON_HEADER).text)
