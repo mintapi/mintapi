@@ -1240,8 +1240,8 @@ def main():
     # Parse command-line arguments {{{
     cmdline = argparse.ArgumentParser()
 
-    for positional_args, keyword_args in ARGUMENTS:
-         cmdline.add_argument(*positional_args, **keyword_args)
+    for argument_commands, argument_options in ARGUMENTS:
+         cmdline.add_argument(*argument_commands, **argument_options)
 
     options = cmdline.parse_args()
 
