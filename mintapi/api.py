@@ -169,7 +169,7 @@ ARGUMENTS = [
    (('password' , ), {'nargs': '?', 'default': None, 'help': 'The password for your Mint.com account'}),
    (('--accounts', ), {'action': 'store_true', 'dest': 'accounts', 'default': False, 'help': 'Retrieve account information (default if nothing else is specified)'}),
    (('--attention', ), {'action': 'store_true', 'help': 'Display accounts that need attention (None if none).'}),
-   (('--budgets', ), {'action': 'store_true', 'dest': 'budgets', 'default': None, 'help': 'Retrieve budget information'}),
+   (('--budgets', ), {'action': 'store_true', 'dest': 'budgets', 'default': False, 'help': 'Retrieve budget information'}),
    (('--budget_hist', ), {'action': 'store_true', 'dest': 'budget_hist', 'default': None, 'help': 'Retrieve 12-month budget history information'}),
    (('--chromedriver-download-path', ), {'default': os.getcwd(), 'help': 'The directory to download chromedrive to.'}),
    (('--credit-report', ), {'action': 'store_true', 'dest': 'credit_report', 'default': False, 'help': 'Retrieve full credit report'}),
@@ -1227,10 +1227,6 @@ def get_credit_report(email, password):
 def initiate_account_refresh(email, password):
     mint = Mint.create(email, password)
     return mint.initiate_account_refresh()
-
-# Get the updated list of tables
-
-#sqlGetTableList = "SELECT table_schema,table_name FROM information_schema.tables where table_schema='test' ORDER BY table_schema,table_name ;"
 
 def main():
     import getpass
