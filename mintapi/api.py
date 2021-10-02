@@ -164,6 +164,40 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, debug=
     imap_client.logout()
     return code
 
+ARGUMENTS = [
+   (('email' , ), {'nargs': '?', 'default': None, 'help': 'The e-mail address for your Mint.com account'}),
+   (('password' , ), {'nargs': '?', 'default': None, 'help': 'The password for your Mint.com account'}),
+   (('--accounts', ), {'action': 'store_true', 'dest': 'accounts', 'default': False, 'help': 'Retrieve account information (default if nothing else is specified)'}),
+   (('--attention', ), {'action': 'store_true', 'help': 'Display accounts that need attention (None if none).'}),
+   (('--budgets', ), {'action': 'store_true', 'dest': 'budgets', 'default': None, 'help': 'Retrieve budget information'}),
+   (('--budget_hist', ), {'action': 'store_true', 'dest': 'budget_hist', 'default': None, 'help': 'Retrieve 12-month budget history information'}),
+   (('--chromedriver-download-path', ), {'default': os.getcwd(), 'help': 'The directory to download chromedrive to.'}),
+   (('--credit-report', ), {'action': 'store_true', 'dest': 'credit_report', 'default': False, 'help': 'Retrieve full credit report'}),
+   (('--credit-score', ), {'action': 'store_true', 'dest': 'credit_score', 'default': False, 'help': 'Retrieve current credit score'}),
+   (('--extended-accounts', ), {'action': 'store_true', 'dest': 'accounts_ext', 'default': False, 'help': 'Retrieve extended account information (slower, implies --accounts)'}),
+   (('--extended-transactions', ), {'action': 'store_true', 'default': False, 'help': 'Retrieve transactions with extra information and arguments'}),
+   (('--filename', '-f'), {'help': 'write results to file. can be {csv,json} format. default is to write to stdout.'}),
+   (('--headless', ), {'action': 'store_true', 'help': 'Whether to execute chromedriver with no visible window.'}),
+   (('--imap-account', ), {'default': None, 'help': 'IMAP login account'}),
+   (('--imap-folder', ), {'default': 'INBOX', 'help': 'IMAP folder'}),
+   (('--imap-password', ), {'default': None, 'help': 'IMAP login password'}),
+   (('--imap-server', ), {'default': None, 'help': 'IMAP server'}),
+   (('--imap-test', ), {'action': 'store_true', 'help': 'Test imap login and retrieval.'}),
+   (('--include-investment', ), {'action': 'store_true', 'default': False, 'help': 'Used with --extended-transactions'}),
+   (('--keyring', ), {'action': 'store_true', 'help': 'Use OS keyring for storing password information'}),
+   (('--mfa-method', ), {'choices': ['sms', 'email', 'soft-token'], 'default': 'sms', 'help': 'The MFA method to automate.'}),
+   (('--mfa-token', ), {'default': None, 'help': 'The MFA soft-token to pass to oathtool.'}),
+   (('--net-worth', ), {'action': 'store_true', 'dest': 'net_worth', 'default': False, 'help': 'Retrieve net worth information'}),
+   (('--no_wait_for_sync', ), {'action': 'store_true', 'default': False, 'help': 'By default, mint api will wait for accounts to sync with the backing financial institutions. If this flag is present, do not wait for them to sync.'}),
+   (('--session-path', ), {'nargs': '?', 'default': os.path.join(os.path.expanduser("~"), '.mintapi', 'session'), 'help': 'Directory to save browser session, including cookies. Used to prevent repeated MFA prompts. Defaults to $HOME/.mintapi/session.  Set to None to use a temporary profile.'}),
+   # Displayed to the user as a postive switch, but processed back here as a negative
+   (('--show-pending', ), {'action': 'store_false', 'default': True, 'help': 'Exclude pending transactions from being retrieved. Used with --extended-transactions'}),
+   (('--skip-duplicates', ), {'action': 'store_true', 'default': False, 'help': 'Used with --extended-transactions'}),
+   (('--start-date', ), {'nargs': '?', 'default': None, 'help': 'Earliest date for transactions to be retrieved from. Used with --extended-transactions. Format: mm/dd/yy'}),
+   (('--transactions', '-t' ), {'action': 'store_true', 'default': False, 'help': 'Retrieve transactions'}),
+   (('--use-chromedriver-on-path', ), {'action': 'store_true', 'help': 'Whether to use the chromedriver on PATH, instead of downloading a local copy.'}),
+   (('--wait_for_sync_timeout', ), {'type': int, 'default': 5 * 60, 'help': 'Number of seconds to wait for sync.  Default is 5 minutes'}),
+]
 
 CHROME_DRIVER_BASE_URL = 'https://chromedriver.storage.googleapis.com/'
 CHROME_DRIVER_DOWNLOAD_PATH = '{version}/chromedriver_{arch}.zip'
@@ -1194,6 +1228,9 @@ def initiate_account_refresh(email, password):
     mint = Mint.create(email, password)
     return mint.initiate_account_refresh()
 
+# Get the updated list of tables
+
+#sqlGetTableList = "SELECT table_schema,table_name FROM information_schema.tables where table_schema='test' ORDER BY table_schema,table_name ;"
 
 def main():
     import getpass
@@ -1206,174 +1243,9 @@ def main():
 
     # Parse command-line arguments {{{
     cmdline = argparse.ArgumentParser()
-    cmdline.add_argument(
-        'email',
-        nargs='?',
-        default=None,
-        help='The e-mail address for your Mint.com account')
-    cmdline.add_argument(
-        'password',
-        nargs='?',
-        default=None,
-        help='The password for your Mint.com account')
 
-    home = os.path.expanduser("~")
-    default_session_path = os.path.join(home, '.mintapi', 'session')
-    cmdline.add_argument(
-        '--session-path',
-        nargs='?',
-        default=default_session_path,
-        help='Directory to save browser session, including cookies. '
-        'Used to prevent repeated MFA prompts. Defaults to '
-        '$HOME/.mintapi/session.  Set to None to use '
-        'a temporary profile.')
-    cmdline.add_argument(
-        '--accounts',
-        action='store_true',
-        dest='accounts',
-        default=False,
-        help='Retrieve account information'
-        '(default if nothing else is specified)')
-    cmdline.add_argument(
-        '--budgets',
-        action='store_true',
-        dest='budgets',
-        default=False,
-        help='Retrieve budget information')
-    cmdline.add_argument(
-        '--budget_hist',
-        action='store_true',
-        dest='budget_hist',
-        default=None,
-        help='Retrieve 12-month budget history information')
-    cmdline.add_argument(
-        '--net-worth',
-        action='store_true',
-        dest='net_worth',
-        default=False,
-        help='Retrieve net worth information')
-    cmdline.add_argument(
-        '--credit-score',
-        action='store_true',
-        dest='credit_score',
-        default=False,
-        help='Retrieve current credit score')
-    cmdline.add_argument(
-        '--credit-report',
-        action='store_true',
-        dest='credit_report',
-        default=False,
-        help='Retrieve full credit report')
-    cmdline.add_argument(
-        '--extended-accounts',
-        action='store_true',
-        dest='accounts_ext',
-        default=False,
-        help='Retrieve extended account information (slower, '
-        'implies --accounts)')
-    cmdline.add_argument(
-        '--transactions',
-        '-t',
-        action='store_true',
-        default=False,
-        help='Retrieve transactions')
-    cmdline.add_argument(
-        '--extended-transactions',
-        action='store_true',
-        default=False,
-        help='Retrieve transactions with extra information and arguments')
-    cmdline.add_argument(
-        '--start-date',
-        nargs='?',
-        default=None,
-        help='Earliest date for transactions to be retrieved from. '
-        'Used with --extended-transactions. Format: mm/dd/yy')
-    cmdline.add_argument(
-        '--include-investment',
-        action='store_true',
-        default=False,
-        help='Used with --extended-transactions')
-    cmdline.add_argument(
-        '--skip-duplicates',
-        action='store_true',
-        default=False,
-        help='Used with --extended-transactions')
-    # Displayed to the user as a postive switch, but processed back
-    # here as a negative
-    cmdline.add_argument(
-        '--show-pending',
-        action='store_false',
-        default=True,
-        help='Exclude pending transactions from being retrieved. '
-        'Used with --extended-transactions')
-    cmdline.add_argument(
-        '--filename', '-f',
-        help='write results to file. can '
-        'be {csv,json} format. default is to write to '
-        'stdout.')
-    cmdline.add_argument(
-        '--keyring',
-        action='store_true',
-        help='Use OS keyring for storing password '
-        'information')
-    cmdline.add_argument(
-        '--headless',
-        action='store_true',
-        help='Whether to execute chromedriver with no visible window.')
-    cmdline.add_argument(
-        '--use-chromedriver-on-path',
-        action='store_true',
-        help=('Whether to use the chromedriver on PATH, instead of '
-              'downloading a local copy.'))
-    cmdline.add_argument(
-        '--chromedriver-download-path',
-        default=os.getcwd(),
-        help=('The directory to download chromedrive to.'))
-    cmdline.add_argument(
-        '--mfa-method',
-        default='sms',
-        choices=['sms', 'email', 'soft-token'],
-        help='The MFA method to automate.')
-    cmdline.add_argument(
-        '--mfa-token',
-        default=None,
-        help='The MFA soft-token to pass to oathtool.')
-    cmdline.add_argument(
-        '--imap-account',
-        default=None,
-        help='IMAP login account')
-    cmdline.add_argument(
-        '--imap-password',
-        default=None,
-        help='IMAP login password')
-    cmdline.add_argument(
-        '--imap-server',
-        default=None,
-        help='IMAP server')
-    cmdline.add_argument(
-        '--imap-folder',
-        default="INBOX",
-        help='IMAP folder')
-    cmdline.add_argument(
-        '--imap-test',
-        action='store_true',
-        help='Test imap login and retrieval.')
-    cmdline.add_argument(
-        '--no_wait_for_sync',
-        action='store_true',
-        default=False,
-        help=('By default, mint api will wait for accounts to sync with the '
-              'backing financial institutions. If this flag is present, do '
-              'not wait for them to sync.'))
-    cmdline.add_argument(
-        '--wait_for_sync_timeout',
-        type=int,
-        default=5 * 60,
-        help=('Number of seconds to wait for sync.  Default is 5 minutes'))
-    cmdline.add_argument(
-        '--attention',
-        action='store_true',
-        help='Display accounts that need attention (None if none).')
+    for positional_args, keyword_args in ARGUMENTS:
+         cmdline.add_argument(*positional_args, **keyword_args)
 
     options = cmdline.parse_args()
 
