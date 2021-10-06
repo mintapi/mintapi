@@ -58,6 +58,7 @@ def json_date_to_datetime(dateraw):
         newdate = convert_mmddyy_to_datetime(dateraw)
     return newdate
 
+
 def convert_mmddyy_to_datetime(date):
     try:
         newdate = datetime.strptime(date, '%m/%d/%y')
@@ -65,11 +66,13 @@ def convert_mmddyy_to_datetime(date):
         newdate = None
     return newdate
 
+
 def convert_date_to_string(date):
     date_string = None
     if date:
         date_string = date.strftime('%m/%d/%Y')
     return date_string
+
 
 def reverse_credit_amount(row):
     amount = float(row['amount'][1:].replace(',', ''))
