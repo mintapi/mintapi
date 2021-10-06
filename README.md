@@ -33,7 +33,7 @@ session in $HOME/.mintapi/session to avoid an MFA in the future, unless you spec
 
 If you're running mintapi in a server environment on an automatic schedule, consider running mintapi in headless mode if you don't need to see the login workflow. In addition, you'll want to use your distribution's package manager to install chromium and chromedriver. Make sure your distribution is up-to-date and then install/update Chromium (debian-family example): `apt install chromium-browser chromium-chromedriver`. Then use the option `use_chromedriver_on_path` either through the CLI or the python api so that mintapi doesn't try to find a matching chromedriver.
 
-Additionally, you may need to also link the binary to the location mintapi expects, deleting the latter file if it already exists: `ln -s /usr/bin/chromedriver /home/pi/chromedriver`
+If you need to download the chromedriver manually, be sure to get the version that matches your chrome version and make the chromedriver available to your python interpreter either by putting the chromedriver in your python working directory or inside your `PATH` as described in the [python selenium documentation](https://www.selenium.dev/selenium/docs/api/py/index.html#drivers).
 
 ### MFA Authentication Methods
 
