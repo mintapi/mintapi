@@ -1,3 +1,8 @@
+1.54
+---
+- Add support for --end-date filtering for transactions (github#208)
+- start and end date filtering use native Mint capabilities (github#278)
+
 1.53
 ---
 - Ensure pip installs selenium-requests >= 1.3.3 (github#296)
