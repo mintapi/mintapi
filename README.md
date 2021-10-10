@@ -1,6 +1,9 @@
 # mintapi
 
-a screen-scraping API for Mint.com. [![Build Status](https://github.com/mintapi/mintapi/actions/workflows/ci.yml/badge.svg)](https://github.com/mintapi/mintapi/actions)
+[![Build Status](https://github.com/mintapi/mintapi/actions/workflows/ci.yml/badge.svg)](https://github.com/mintapi/mintapi/actions)
+[![PyPI Version](https://img.shields.io/pypi/v/mintapi)](https://pypi.org/project/mintapi/)
+
+An unofficial screen-scraping API for Mint.com.
 
 ## Community
 
