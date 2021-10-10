@@ -1227,7 +1227,7 @@ def initiate_account_refresh(email, password):
 
 def main():
     import getpass
-    import argparse
+    import configargparse
 
     ARGUMENTS = [
         (('email', ), {'nargs': '?', 'default': None, 'help': 'The e-mail address for your Mint.com account'}),
@@ -1237,6 +1237,7 @@ def main():
         (('--budgets', ), {'action': 'store_true', 'dest': 'budgets', 'default': False, 'help': 'Retrieve budget information'}),
         (('--budget_hist', ), {'action': 'store_true', 'dest': 'budget_hist', 'default': None, 'help': 'Retrieve 12-month budget history information'}),
         (('--chromedriver-download-path', ), {'default': os.getcwd(), 'help': 'The directory to download chromedrive to.'}),
+        (('--config-file', '-c'), {'required': False, 'is_config_file': True, 'help': 'The path to the config file used.'}),
         (('--credit-report', ), {'action': 'store_true', 'dest': 'credit_report', 'default': False, 'help': 'Retrieve full credit report'}),
         (('--credit-score', ), {'action': 'store_true', 'dest': 'credit_score', 'default': False, 'help': 'Retrieve current credit score'}),
         (('--end-date', ), {'nargs': '?', 'default': None, 'help': 'Latest date for transactions to be retrieved from. Used with --extended-transactions. Format: mm/dd/yy'}),
@@ -1271,7 +1272,7 @@ def main():
         keyring = None
 
     # Parse command-line arguments {{{
-    cmdline = argparse.ArgumentParser()
+    cmdline = configargparse.ArgumentParser()
 
     for argument_commands, argument_options in ARGUMENTS:
         cmdline.add_argument(*argument_commands, **argument_options)
