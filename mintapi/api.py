@@ -78,6 +78,7 @@ def reverse_credit_amount(row):
     amount = float(row['amount'][1:].replace(',', ''))
     return amount if row['isDebit'] else -amount
 
+
 def get_email_code(imap_account, imap_password, imap_server, imap_folder, debug=False, delete=True):
     if debug:
         warnings.warn(
