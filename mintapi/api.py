@@ -78,7 +78,6 @@ def reverse_credit_amount(row):
     amount = float(row['amount'][1:].replace(',', ''))
     return amount if row['isDebit'] else -amount
 
-
 def get_email_code(imap_account, imap_password, imap_server, imap_folder, debug=False, delete=True):
     if debug:
         warnings.warn(
@@ -850,9 +849,20 @@ class Mint(object):
         """
         assert_pd()
 
+        # Get categories
+        categories = self.get_categories()
+
         result = self.get_transactions_json(include_investment,
                                             skip_duplicates,
                                             start_date, end_date)
+
+        # Finds the parent category name from the categories object based on
+        # the transaction category ID
+        for transaction in result:
+            parent = self.get_category_object_from_id(transaction['categoryId'], categories)['parent']
+            transaction['parentCategoryName'] = '' if parent['name'] == 'Root' else parent['name']
+            transaction['parentCategoryId'] = '' if parent['name'] == 'Root' else parent['id']
+
         df = pd.DataFrame(result)
         df['odate'] = df['odate'].apply(json_date_to_datetime)
 
@@ -1082,6 +1092,10 @@ class Mint(object):
     def get_category_from_id(self, cid, categories):
         category = self.get_category_object_from_id(cid, categories)
         return category['name']
+
+    def get_category_parent_from_id(self, cid, categories):
+        category = self.get_category_object_from_id(cid, categories)
+        return category['parent']['name']
 
     def get_category_object_from_id(self, cid, categories):
         if cid == 0:
