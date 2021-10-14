@@ -17,7 +17,7 @@ setuptools.setup(
     author='Michael Rooney',
     author_email='mrooney.mintapi@rowk.com',
     url='https://github.com/mintapi/mintapi',
-    install_requires=['configargparse', 'future', 'mock', 'oathtool', 'pandas>=1.0', 'requests', 'selenium', 'selenium-requests>=1.3.3', 'xmltodict'],
+    install_requires=['future', 'mock', 'oathtool', 'pandas>=1.0', 'requests', 'selenium', 'selenium-requests>=1.3.3', 'xmltodict'],
     entry_points=dict(
         console_scripts=[
             'mintapi = mintapi.api:main',

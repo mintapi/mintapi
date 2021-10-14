@@ -1240,8 +1240,7 @@ def initiate_account_refresh(email, password):
     return mint.initiate_account_refresh()
 
 
-def main():
-    import getpass
+def parse_arguments():
     import configargparse
 
     ARGUMENTS = [
@@ -1281,22 +1280,27 @@ def main():
         (('--wait_for_sync_timeout', ), {'type': int, 'default': 5 * 60, 'help': 'Number of seconds to wait for sync.  Default is 5 minutes'}),
     ]
 
-    try:
-        import keyring
-    except ImportError:
-        keyring = None
-
     # Parse command-line arguments {{{
     cmdline = configargparse.ArgumentParser()
 
     for argument_commands, argument_options in ARGUMENTS:
         cmdline.add_argument(*argument_commands, **argument_options)
 
-    options = cmdline.parse_args()
+    return cmdline.parse_args()
+
+
+def main():
+    import getpass
+
+    try:
+        import keyring
+    except ImportError:
+        keyring = None
+
+    options = parse_arguments()
 
     if options.keyring and not keyring:
-        cmdline.error('--keyring can only be used if the `keyring` '
-                      'library is installed.')
+        raise Exception('--keyring can only be used if the `keyring` library is installed.')
 
     try:  # python 2.x
         from __builtin__ import raw_input as input
