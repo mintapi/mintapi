@@ -424,7 +424,10 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
                 account_input = select_account.find_element_by_xpath(
                     "//label/span[text()='{}']/../preceding-sibling::input".format(intuit_account))
                 account_input.click()
-            driver.find_element_by_id("ius-sign-in-mfa-select-account-continue-btn").submit()
+
+            continue_btn = driver.find_element_by_css_selector('[data-testid="SelectAccountContinueButton"]')
+            driver.implicitly_wait(5)  # seconds
+            continue_btn.click()
         except NoSuchElementException:
             pass  # not on account selection screen
 
