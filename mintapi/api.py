@@ -425,11 +425,15 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
                     "//label/span[text()='{}']/../preceding-sibling::input".format(intuit_account))
                 account_input.click()
 
-            continue_btn = driver.find_element_by_id("ius-sign-in-mfa-select-account-continue-btn")
-            if continue_btn is not None:
+            try:
+                continue_btn = driver.find_element_by_id(
+                    "ius-sign-in-mfa-select-account-continue-btn"
+                )
                 continue_btn.submit()
-            else:
-                continue_btn = driver.find_element_by_css_selector('[data-testid="SelectAccountContinueButton"]')
+            except NoSuchElementException:
+                continue_btn = driver.find_element_by_css_selector(
+                    '[data-testid="SelectAccountContinueButton"]'
+                )
                 driver.implicitly_wait(5)  # seconds
                 continue_btn.click()
         except NoSuchElementException:
