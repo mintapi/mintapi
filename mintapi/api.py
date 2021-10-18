@@ -318,8 +318,17 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
         # when user has cookies, a slightly different front page appears
         driver.implicitly_wait(0)  # seconds
         element = driver.find_element_by_link_text("Sign in")
-        driver.implicitly_wait(20)  # seconds
     element.click()
+
+    WebDriverWait(driver, 20).until(expected_conditions.presence_of_element_located((By.CSS_SELECTOR, "#ius-link-use-a-different-id-known-device, #ius-userid, #ius-identifier, #ius-option-username")))
+    driver.implicitly_wait(0)  # seconds
+
+    # click "Use a different user ID" if needed
+    try:
+        driver.find_element_by_id("ius-link-use-a-different-id-known-device").click()
+    except NoSuchElementException:
+        pass
+
     time.sleep(1)
     try:  # try to enter in credentials if username and password are on same page
         email_input = driver.find_element_by_id("ius-userid")
@@ -331,7 +340,6 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
         driver.find_element_by_id("ius-sign-in-submit-btn").submit()
     # try to enter in credentials if username and password are on different pages
     except (ElementNotInteractableException, ElementNotVisibleException):
-        driver.implicitly_wait(0)
         try:
             email_input = driver.find_element_by_id("ius-identifier")
             if not email_input.is_displayed():
@@ -356,12 +364,9 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
             pass  # password may not be here when using MFA
 
     # Wait until logged in, just in case we need to deal with MFA.
+    driver.implicitly_wait(1)  # seconds
     while not driver.current_url.startswith(
             'https://mint.intuit.com/overview.event'):
-        # An implicitly_wait is also necessary here to avoid getting stuck on
-        # find_element_by_id while the page is still in transition.
-        driver.implicitly_wait(1)
-        time.sleep(1)
 
         # bypass "Let's add your current mobile number" interstitial page
         try:
@@ -392,7 +397,7 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
                     pass  # no option to select mfa option
 
                 if mfa_method == 'email' and imap_account:
-                    for element_id in ["ius-mfa-email-otp-card-challenge", "ius-sublabel-mfa-email-otp"]:
+                    for element_id in ["ius-label-mfa-email-otp", "ius-mfa-email-otp-card-challenge", "ius-sublabel-mfa-email-otp"]:
                         try:
                             mfa_email_select = driver.find_element_by_id(element_id)
                             mfa_email_select.click()
@@ -434,10 +439,6 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
             driver.find_element_by_id("ius-sign-in-mfa-password-collection-continue-btn").submit()
         except (NoSuchElementException, ElementNotInteractableException):
             pass  # not on secondary mfa password screen
-
-        finally:
-            driver.implicitly_wait(20)  # seconds
-
 
 def get_web_driver(email, password, headless=False, mfa_method=None, mfa_token=None,
                    mfa_input_callback=None, intuit_account=None, wait_for_sync=True,
@@ -481,7 +482,10 @@ def get_web_driver(email, password, headless=False, mfa_method=None, mfa_token=N
         driver = None
 
     if status_message is not None and isinstance(status_message, WebElement):
-        status_message = status_message.text
+        try:
+            status_message = status_message.text
+        except StaleElementReferenceException:
+            pass
     return driver, status_message
 
 
