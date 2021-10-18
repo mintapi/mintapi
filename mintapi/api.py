@@ -440,6 +440,7 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
         except (NoSuchElementException, ElementNotInteractableException):
             pass  # not on secondary mfa password screen
 
+
 def get_web_driver(email, password, headless=False, mfa_method=None, mfa_token=None,
                    mfa_input_callback=None, intuit_account=None, wait_for_sync=True,
                    wait_for_sync_timeout=5 * 60,
