@@ -113,11 +113,10 @@ class MintApiTests(unittest.TestCase):
 
     def test_config_file(self):
         # verify parsing from config file
-        config_file = tempfile.NamedTemporaryFile(mode="w", delete=True)
+        config_file = tempfile.NamedTemporaryFile(mode="wt", dir="/tmp", delete=False)
         config_file.write("extended-transactions")
-        config_file.flush()
-
-        arguments = mintapi.parse_arguments(args="-c %s" % config_file.name)
+        mint = mintapi.Mint()
+        arguments = mint.parse_arguments(["-c " + config_file.name])
         self.assertEqual(arguments.extended_transactions, 'true')
 
 
