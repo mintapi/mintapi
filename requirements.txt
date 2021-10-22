@@ -1,3 +1,4 @@
+configargparse==1.5.3
 future==0.18.2
 mock==4.0.2
 oathtool==2.3.0
