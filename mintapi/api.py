@@ -399,7 +399,7 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
                             break
                         except (NoSuchElementException, ElementNotInteractableException):
                             pass  # no option to select email address
-                            
+
                 if mfa_method == 'sms':
                     try:
                         mfa_sms_select = driver.find_element_by_id("ius-mfa-sms-otp-card-challenge")
