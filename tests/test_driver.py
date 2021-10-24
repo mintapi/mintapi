@@ -160,11 +160,12 @@ class MintApiTests(unittest.TestCase):
 
     def test_config_file(self):
         # verify parsing from config file
-        config_file = tempfile.NamedTemporaryFile(mode="wt", dir="/tmp", delete=False)
+        config_file = tempfile.NamedTemporaryFile(mode="wt")
         config_file.write("extended-transactions")
-        mint = mintapi.Mint()
-        arguments = mint.parse_arguments(["-c " + config_file.name])
-        self.assertEqual(arguments.extended_transactions, 'true')
+        config_file.flush()
+        arguments = mintapi.Mint().parse_arguments(["-c", config_file.name])
+        self.assertEqual(arguments.extended_transactions, True)
+        config_file.close()
 
 
 @unittest.skipIf(test_args is None, "This test requires a sign in")
