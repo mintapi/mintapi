@@ -175,7 +175,7 @@ class MintApiTests(unittest.TestCase):
         assert(isinstance(transactions_df, pd.DataFrame))
 
     @patch.object(mintapi.Mint, 'get_categories')
-    def test_get_detailed_transactions(self, mock_get_categories):
+    def test_detailed_transactions_with_parents(self, mock_get_categories):
         mock_get_categories.return_value = category_example
         results_with_parents = mintapi.Mint().add_parent_category_to_result(detailed_transactions_example)[0]
         self.assertTrue('parentCategoryName' in results_with_parents)
