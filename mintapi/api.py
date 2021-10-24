@@ -849,9 +849,7 @@ class Mint(object):
                                             skip_duplicates,
                                             start_date, end_date)
 
-        result_with_category = self.add_parent_category_to_result(result)
-
-        df = pd.DataFrame(result_with_category)
+        df = pd.DataFrame(self.add_parent_category_to_result(result))
         df['odate'] = df['odate'].apply(json_date_to_datetime)
 
         if remove_pending:
