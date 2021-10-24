@@ -1135,25 +1135,24 @@ class Mint(object):
         # If we want details, request the detailed sub-reports
         if details:
             # Get full list of credit inquiries
-            response = self.get(
-                '{}/v1/creditreports/0/inquiries'.format(MINT_CREDIT_URL),
-                headers=credit_header)
+            # TODO: Add command-line option to control if inquiries are included.
+            response = self.get_credit_details('{}/v1/creditreports/0/inquiries', credit_header)
             credit_report['inquiries'] = response.json()
 
             # Get full list of credit accounts
-            response = self.get(
-                '{}/v1/creditreports/0/tradelines'.format(MINT_CREDIT_URL),
-                headers=credit_header)
+            # TODO: Add command-line option to control if credit accounts are included.
+            response = self.get_credit_details('{}/v1/creditreports/0/tradelines', credit_header)
             credit_report['accounts'] = response.json()
 
             # Get credit utilization history (~3 months, by account)
-            response = self.get(
-                '{}/v1/creditreports/creditutilizationhistory'.format(MINT_CREDIT_URL),
-                headers=credit_header)
-            clean_data = self.process_utilization(response.json())
-            credit_report['utilization'] = clean_data
+            # TODO: Add command-line option to control if utilization history is included.
+            response = self.get_credit_details('{}/v1/creditreports/creditutilizationhistory', credit_header)
+            credit_report['utilization'] = self.process_utilization(response.json())
 
         return credit_report
+
+    def get_credit_details(self, url, credit_header):
+        return self.get(url.format(MINT_CREDIT_URL), headers=credit_header)
 
     def process_utilization(self, data):
         # Function to clean up the credit utilization history data
