@@ -850,21 +850,13 @@ class Mint(object):
         """
         assert_pd()
 
-        # Get categories
-        categories = self.get_categories()
-
         result = self.get_transactions_json(include_investment,
                                             skip_duplicates,
                                             start_date, end_date)
 
-        # Finds the parent category name from the categories object based on
-        # the transaction category ID
-        for transaction in result:
-            parent = self.get_category_object_from_id(transaction['categoryId'], categories)['parent']
-            transaction['parentCategoryName'] = '' if parent['name'] == 'Root' else parent['name']
-            transaction['parentCategoryId'] = '' if parent['name'] == 'Root' else parent['id']
+        result_with_category = self.add_parent_category_to_result(result)
 
-        df = pd.DataFrame(result)
+        df = pd.DataFrame(result_with_category)
         df['odate'] = df['odate'].apply(json_date_to_datetime)
 
         if remove_pending:
@@ -874,6 +866,17 @@ class Mint(object):
         df.amount = df.apply(reverse_credit_amount, axis=1)
 
         return df
+
+    def add_parent_category_to_result(self, result):
+        # Get categories
+        categories = self.get_categories()
+        # Finds the parent category name from the categories object based on
+        # the transaction category ID
+        for transaction in result:
+            parent = self.get_category_object_from_id(transaction['categoryId'], categories)['parent']
+            transaction['parentCategoryName'] = '' if parent['name'] == 'Root' else parent['name']
+            transaction['parentCategoryId'] = '' if parent['name'] == 'Root' else parent['id']
+        return result
 
     def get_transactions_csv(self, include_investment=False, acct=0):
         """Returns the raw CSV transaction data as downloaded from Mint.

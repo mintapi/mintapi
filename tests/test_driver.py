@@ -36,6 +36,44 @@ accounts_example = [{
     "currentBalance": 100.12,
 }]
 
+detailed_transactions_example = {
+    "date": "Oct 22",
+    "note": "",
+    "isPercent": "False",
+    "fi": "",
+    "txnType": "0",
+    "numberMatchedByRule": "-1",
+    "isEdited": "False",
+    "isPending": "False",
+    "mcategory": "Alcohol & Bars",
+    "isMatched": "False",
+    "odate": "2021-10-22",
+    "isFirstDate": "True",
+    "id": "1",
+    "isDuplicate": "False",
+    "hasAttachments": "False",
+    "isChild": "False",
+    "isSpending": "True",
+    "amount": "17.16",
+    "ruleCategory": "",
+    "userCategoryId": "",
+    "isTransfer": "False",
+    "isAfterFiCreationTime": "True",
+    "merchant": "TRIMTAB BREWING COMPANY",
+    "manualType": "0",
+    "labels": "[]",
+    "mmerchant": "TRIMTAB BREWING COMPANY",
+    "isCheck": "False",
+    "omerchant": "TRIMTAB BREWING COMPANY",
+    "isDebit": "True",
+    "category": "Alcohol & Bars",
+    "ruleMerchant": "",
+    "isLinkedToRule": "False",
+    "account": "CREDIT CARD",
+    "categoryId": "708",
+    "ruleCategoryId": "0"
+}
+
 transactions_example = b'"Date","Description","Original Description","Amount","Transaction Type","Category","Account Name","Labels","Notes"\n"5/14/2020","Safeway","SAFEWAY.COM # 3031","88.09","debit","Groceries","CREDIT CARD","",""\n'
 
 
@@ -101,6 +139,15 @@ class MintApiTests(unittest.TestCase):
         mint = mintapi.Mint()
         transactions_df = mint.get_transactions()
         assert(isinstance(transactions_df, pd.DataFrame))
+
+    @patch.object(mintapi.Mint, 'get_detailed_transactions')
+    def test_get_detailed_transactions(self, mock_get_detailed_transactions):
+        mock_get_detailed_transactions.return_value = pd.DataFrame(detailed_transactions_example, index=[0])
+        extended_transactions_df = mintapi.Mint().get_detailed_transactions()
+        assert(isinstance(extended_transactions_df, pd.DataFrame))
+        results_with_parents = mintapi.Mint().add_parent_category_to_result(detailed_transactions_example)
+        self.assertTrue('parentCategoryName' in results_with_parents)
+        self.assertTrue('parentCategoryId' in results_with_parents)
 
     @patch.object(mintapi.api, '_create_web_driver_at_mint_com')
     @patch.object(mintapi.api, 'logger')
