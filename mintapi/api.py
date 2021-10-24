@@ -400,6 +400,13 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
                         except (NoSuchElementException, ElementNotInteractableException):
                             pass  # no option to select email address
 
+                if mfa_method == 'sms':
+                    try:
+                        mfa_sms_select = driver.find_element_by_id("ius-mfa-sms-otp-card-challenge")
+                        mfa_sms_select.click()
+                    except (NoSuchElementException, ElementNotInteractableException):
+                        pass  # no option to select sms
+
                 try:
                     mfa_code_input = driver.find_element_by_id("ius-mfa-confirm-code")
                     mfa_code_input.clear()
@@ -424,7 +431,13 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
                 account_input = select_account.find_element_by_xpath(
                     "//label/span[text()='{}']/../preceding-sibling::input".format(intuit_account))
                 account_input.click()
-            driver.find_element_by_id("ius-sign-in-mfa-select-account-continue-btn").submit()
+
+            try:
+                continue_btn = driver.find_element_by_id("ius-sign-in-mfa-select-account-continue-btn")
+                continue_btn.submit()
+            except NoSuchElementException:
+                continue_btn = driver.find_element_by_css_selector('[data-testid="SelectAccountContinueButton"]')
+                continue_btn.click()
         except NoSuchElementException:
             pass  # not on account selection screen
 
