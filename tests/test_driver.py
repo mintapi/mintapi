@@ -35,43 +35,77 @@ accounts_example = [{
     "currentBalance": 100.12,
 }]
 
-detailed_transactions_example = {
+category_example = {
+    708:
+    {
+        "categoryType": "EXPENSE",
+        "parent":
+        {
+            "categoryType": "EXPENSE",
+            "parent":
+            {
+                "categoryType": "NO_CATEGORY",
+                "parent": None,
+                "depth": 0,
+                "name": "Root",
+                "id": 0,
+                "notificationName": "Everything Else",
+                "parentId": 0,
+                "precedence": 100
+            },
+            "depth": 1,
+            "name": "Food & Dining",
+            "id": 7,
+            "notificationName": "Food & Dining",
+            "parentId": 0,
+            "precedence": 30
+        },
+        "depth": 2,
+        "name": "Alcohol & Bars",
+        "id": 708,
+        "notificationName": "Alcohol & Bars",
+        "parentId": 7,
+        "precedence": 20
+    }
+}
+
+detailed_transactions_example = [{
     "date": "Oct 22",
     "note": "",
-    "isPercent": "False",
+    "isPercent": False,
     "fi": "",
-    "txnType": "0",
-    "numberMatchedByRule": "-1",
-    "isEdited": "False",
-    "isPending": "False",
+    "txnType": 0,
+    "numberMatchedByRule": -1,
+    "isEdited": False,
+    "isPending": False,
     "mcategory": "Alcohol & Bars",
-    "isMatched": "False",
+    "isMatched": False,
     "odate": "2021-10-22",
-    "isFirstDate": "True",
-    "id": "1",
-    "isDuplicate": "False",
-    "hasAttachments": "False",
-    "isChild": "False",
-    "isSpending": "True",
-    "amount": "17.16",
+    "isFirstDate": True,
+    "id": 1,
+    "isDuplicate": False,
+    "hasAttachments": False,
+    "isChild": False,
+    "isSpending": True,
+    "amount": 17.16,
     "ruleCategory": "",
     "userCategoryId": "",
-    "isTransfer": "False",
-    "isAfterFiCreationTime": "True",
+    "isTransfer": False,
+    "isAfterFiCreationTime": True,
     "merchant": "TRIMTAB BREWING COMPANY",
-    "manualType": "0",
-    "labels": "[]",
+    "manualType": 0,
+    "labels": [],
     "mmerchant": "TRIMTAB BREWING COMPANY",
-    "isCheck": "False",
+    "isCheck": False,
     "omerchant": "TRIMTAB BREWING COMPANY",
-    "isDebit": "True",
+    "isDebit": True,
     "category": "Alcohol & Bars",
     "ruleMerchant": "",
-    "isLinkedToRule": "False",
+    "isLinkedToRule": False,
     "account": "CREDIT CARD",
-    "categoryId": "708",
-    "ruleCategoryId": "0"
-}
+    "categoryId": 708,
+    "ruleCategoryId": 0
+}]
 
 transactions_example = b'"Date","Description","Original Description","Amount","Transaction Type","Category","Account Name","Labels","Notes"\n"5/14/2020","Safeway","SAFEWAY.COM # 3031","88.09","debit","Groceries","CREDIT CARD","",""\n'
 
@@ -139,12 +173,10 @@ class MintApiTests(unittest.TestCase):
         transactions_df = mint.get_transactions()
         assert(isinstance(transactions_df, pd.DataFrame))
 
-    @patch.object(mintapi.Mint, 'get_detailed_transactions')
-    def test_get_detailed_transactions(self, mock_get_detailed_transactions):
-        mock_get_detailed_transactions.return_value = pd.DataFrame(detailed_transactions_example, index=[0])
-        extended_transactions_df = mintapi.Mint().get_detailed_transactions()
-        assert(isinstance(extended_transactions_df, pd.DataFrame))
-        results_with_parents = mintapi.Mint().add_parent_category_to_result(detailed_transactions_example)
+    @patch.object(mintapi.Mint, 'get_categories')
+    def test_get_detailed_transactions(self, mock_get_categories):
+        mock_get_categories.return_value = category_example
+        results_with_parents = mintapi.Mint().add_parent_category_to_result(detailed_transactions_example)[0]
         self.assertTrue('parentCategoryName' in results_with_parents)
         self.assertTrue('parentCategoryId' in results_with_parents)
 
