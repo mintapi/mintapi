@@ -1,4 +1,5 @@
 import atexit
+import configargparse
 from datetime import date, datetime, timedelta
 import io
 import json
@@ -1175,6 +1176,52 @@ class Mint(object):
                 })
         return utilization
 
+    def parse_arguments(self, args):
+        ARGUMENTS = [
+            (('email', ), {'nargs': '?', 'default': None, 'help': 'The e-mail address for your Mint.com account'}),
+            (('password', ), {'nargs': '?', 'default': None, 'help': 'The password for your Mint.com account'}),
+            (('--accounts', ), {'action': 'store_true', 'dest': 'accounts', 'default': False, 'help': 'Retrieve account information (default if nothing else is specified)'}),
+            (('--attention', ), {'action': 'store_true', 'help': 'Display accounts that need attention (None if none).'}),
+            (('--budgets', ), {'action': 'store_true', 'dest': 'budgets', 'default': False, 'help': 'Retrieve budget information'}),
+            (('--budget_hist', ), {'action': 'store_true', 'dest': 'budget_hist', 'default': None, 'help': 'Retrieve 12-month budget history information'}),
+            (('--chromedriver-download-path', ), {'default': os.getcwd(), 'help': 'The directory to download chromedrive to.'}),
+            (('--config-file', '-c'), {'required': False, 'is_config_file': True, 'help': 'The path to the config file used.'}),
+            (('--credit-report', ), {'action': 'store_true', 'dest': 'credit_report', 'default': False, 'help': 'Retrieve full credit report'}),
+            (('--credit-score', ), {'action': 'store_true', 'dest': 'credit_score', 'default': False, 'help': 'Retrieve current credit score'}),
+            (('--end-date', ), {'nargs': '?', 'default': None, 'help': 'Latest date for transactions to be retrieved from. Used with --transactions or --extended-transactions. Format: mm/dd/yy'}),
+            (('--extended-accounts', ), {'action': 'store_true', 'dest': 'accounts_ext', 'default': False, 'help': 'Retrieve extended account information (slower, implies --accounts)'}),
+            (('--extended-transactions', ), {'action': 'store_true', 'default': False, 'help': 'Retrieve transactions with extra information and arguments'}),
+            (('--filename', '-f'), {'help': 'write results to file. can be {csv,json} format. default is to write to stdout.'}),
+            (('--headless', ), {'action': 'store_true', 'help': 'Whether to execute chromedriver with no visible window.'}),
+            (('--imap-account', ), {'default': None, 'help': 'IMAP login account'}),
+            (('--imap-folder', ), {'default': 'INBOX', 'help': 'IMAP folder'}),
+            (('--imap-password', ), {'default': None, 'help': 'IMAP login password'}),
+            (('--imap-server', ), {'default': None, 'help': 'IMAP server'}),
+            (('--imap-test', ), {'action': 'store_true', 'help': 'Test imap login and retrieval.'}),
+            (('--include-investment', ), {'action': 'store_true', 'default': False, 'help': 'Used with --extended-transactions'}),
+            (('--keyring', ), {'action': 'store_true', 'help': 'Use OS keyring for storing password information'}),
+            (('--mfa-method', ), {'choices': ['sms', 'email', 'soft-token'], 'default': 'sms', 'help': 'The MFA method to automate.'}),
+            (('--mfa-token', ), {'default': None, 'help': 'The MFA soft-token to pass to oathtool.'}),
+            (('--net-worth', ), {'action': 'store_true', 'dest': 'net_worth', 'default': False, 'help': 'Retrieve net worth information'}),
+            (('--no_wait_for_sync', ), {'action': 'store_true', 'default': False, 'help': 'By default, mint api will wait for accounts to sync with the backing financial institutions. If this flag is present, do not wait for them to sync.'}),
+            (('--session-path', ), {'nargs': '?', 'default': os.path.join(os.path.expanduser("~"), '.mintapi', 'session'), 'help': 'Directory to save browser session, including cookies. Used to prevent repeated MFA prompts. Defaults to $HOME/.mintapi/session.  Set to None to use a temporary profile.'}),
+            # Displayed to the user as a postive switch, but processed back here as a negative
+            (('--show-pending', ), {'action': 'store_false', 'default': True, 'help': 'Exclude pending transactions from being retrieved. Used with --extended-transactions'}),
+            (('--skip-duplicates', ), {'action': 'store_true', 'default': False, 'help': 'Used with --extended-transactions'}),
+            (('--start-date', ), {'nargs': '?', 'default': None, 'help': 'Earliest date for transactions to be retrieved from. Used with --transactions or --extended-transactions. Format: mm/dd/yy'}),
+            (('--transactions', '-t'), {'action': 'store_true', 'default': False, 'help': 'Retrieve transactions'}),
+            (('--use-chromedriver-on-path', ), {'action': 'store_true', 'help': 'Whether to use the chromedriver on PATH, instead of downloading a local copy.'}),
+            (('--wait_for_sync_timeout', ), {'type': int, 'default': 5 * 60, 'help': 'Number of seconds to wait for sync.  Default is 5 minutes'}),
+        ]
+
+        # Parse command-line arguments {{{
+        cmdline = configargparse.ArgumentParser()
+
+        for argument_commands, argument_options in ARGUMENTS:
+            cmdline.add_argument(*argument_commands, **argument_options)
+
+        return cmdline.parse_args(args)
+
 
 def get_accounts(email, password, get_detail=False):
     mint = Mint.create(email, password)
@@ -1227,60 +1274,16 @@ def initiate_account_refresh(email, password):
 
 def main():
     import getpass
-    import argparse
-
-    ARGUMENTS = [
-        (('email', ), {'nargs': '?', 'default': None, 'help': 'The e-mail address for your Mint.com account'}),
-        (('password', ), {'nargs': '?', 'default': None, 'help': 'The password for your Mint.com account'}),
-        (('--accounts', ), {'action': 'store_true', 'dest': 'accounts', 'default': False, 'help': 'Retrieve account information (default if nothing else is specified)'}),
-        (('--attention', ), {'action': 'store_true', 'help': 'Display accounts that need attention (None if none).'}),
-        (('--budgets', ), {'action': 'store_true', 'dest': 'budgets', 'default': False, 'help': 'Retrieve budget information'}),
-        (('--budget_hist', ), {'action': 'store_true', 'dest': 'budget_hist', 'default': None, 'help': 'Retrieve 12-month budget history information'}),
-        (('--chromedriver-download-path', ), {'default': os.getcwd(), 'help': 'The directory to download chromedrive to.'}),
-        (('--credit-report', ), {'action': 'store_true', 'dest': 'credit_report', 'default': False, 'help': 'Retrieve full credit report'}),
-        (('--credit-score', ), {'action': 'store_true', 'dest': 'credit_score', 'default': False, 'help': 'Retrieve current credit score'}),
-        (('--end-date', ), {'nargs': '?', 'default': None, 'help': 'Latest date for transactions to be retrieved from. Used with --transactions or --extended-transactions. Format: mm/dd/yy'}),
-        (('--extended-accounts', ), {'action': 'store_true', 'dest': 'accounts_ext', 'default': False, 'help': 'Retrieve extended account information (slower, implies --accounts)'}),
-        (('--extended-transactions', ), {'action': 'store_true', 'default': False, 'help': 'Retrieve transactions with extra information and arguments'}),
-        (('--filename', '-f'), {'help': 'write results to file. can be {csv,json} format. default is to write to stdout.'}),
-        (('--headless', ), {'action': 'store_true', 'help': 'Whether to execute chromedriver with no visible window.'}),
-        (('--imap-account', ), {'default': None, 'help': 'IMAP login account'}),
-        (('--imap-folder', ), {'default': 'INBOX', 'help': 'IMAP folder'}),
-        (('--imap-password', ), {'default': None, 'help': 'IMAP login password'}),
-        (('--imap-server', ), {'default': None, 'help': 'IMAP server'}),
-        (('--imap-test', ), {'action': 'store_true', 'help': 'Test imap login and retrieval.'}),
-        (('--include-investment', ), {'action': 'store_true', 'default': False, 'help': 'Used with --extended-transactions'}),
-        (('--keyring', ), {'action': 'store_true', 'help': 'Use OS keyring for storing password information'}),
-        (('--mfa-method', ), {'choices': ['sms', 'email', 'soft-token'], 'default': 'sms', 'help': 'The MFA method to automate.'}),
-        (('--mfa-token', ), {'default': None, 'help': 'The MFA soft-token to pass to oathtool.'}),
-        (('--net-worth', ), {'action': 'store_true', 'dest': 'net_worth', 'default': False, 'help': 'Retrieve net worth information'}),
-        (('--no_wait_for_sync', ), {'action': 'store_true', 'default': False, 'help': 'By default, mint api will wait for accounts to sync with the backing financial institutions. If this flag is present, do not wait for them to sync.'}),
-        (('--session-path', ), {'nargs': '?', 'default': os.path.join(os.path.expanduser("~"), '.mintapi', 'session'), 'help': 'Directory to save browser session, including cookies. Used to prevent repeated MFA prompts. Defaults to $HOME/.mintapi/session.  Set to None to use a temporary profile.'}),
-        # Displayed to the user as a postive switch, but processed back here as a negative
-        (('--show-pending', ), {'action': 'store_false', 'default': True, 'help': 'Exclude pending transactions from being retrieved. Used with --extended-transactions'}),
-        (('--skip-duplicates', ), {'action': 'store_true', 'default': False, 'help': 'Used with --extended-transactions'}),
-        (('--start-date', ), {'nargs': '?', 'default': None, 'help': 'Earliest date for transactions to be retrieved from. Used with --transactions or --extended-transactions. Format: mm/dd/yy'}),
-        (('--transactions', '-t'), {'action': 'store_true', 'default': False, 'help': 'Retrieve transactions'}),
-        (('--use-chromedriver-on-path', ), {'action': 'store_true', 'help': 'Whether to use the chromedriver on PATH, instead of downloading a local copy.'}),
-        (('--wait_for_sync_timeout', ), {'type': int, 'default': 5 * 60, 'help': 'Number of seconds to wait for sync.  Default is 5 minutes'}),
-    ]
 
     try:
         import keyring
     except ImportError:
         keyring = None
 
-    # Parse command-line arguments {{{
-    cmdline = argparse.ArgumentParser()
-
-    for argument_commands, argument_options in ARGUMENTS:
-        cmdline.add_argument(*argument_commands, **argument_options)
-
-    options = cmdline.parse_args()
+    options = Mint.parse_arguments(sys.argv[1:])
 
     if options.keyring and not keyring:
-        cmdline.error('--keyring can only be used if the `keyring` '
-                      'library is installed.')
+        raise Exception('--keyring can only be used if the `keyring` library is installed.')
 
     try:  # python 2.x
         from __builtin__ import raw_input as input
