@@ -1,3 +1,9 @@
+1.55
+---
+- add support for --config-file for specifying config options (github#309)
+- handle login flow change for SMS 2FA (gihub#318)
+- improve handling for change account continue button (github#316)
+
 1.54
 ---
 - Add support for --end-date filtering for extended transactions (github#208)

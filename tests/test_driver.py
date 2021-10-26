@@ -10,6 +10,7 @@ import os
 import pandas as pd
 
 import requests
+import tempfile
 
 try:
     from mock import patch  # Python 2
@@ -109,6 +110,15 @@ class MintApiTests(unittest.TestCase):
         mock_sign_in.side_effect = test_exception
         mintapi.Mint('test', 'test')
         mock_logger.exception.assert_called_with(test_exception)
+
+    def test_config_file(self):
+        # verify parsing from config file
+        config_file = tempfile.NamedTemporaryFile(mode="wt")
+        config_file.write("extended-transactions")
+        config_file.flush()
+        arguments = mintapi.Mint().parse_arguments(["-c", config_file.name])
+        self.assertEqual(arguments.extended_transactions, True)
+        config_file.close()
 
 
 @unittest.skipIf(test_args is None, "This test requires a sign in")
