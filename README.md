@@ -32,6 +32,8 @@ an MFA prompt, you'll be prompted on the command line for your code, which by de
 goes to SMS unless you specify `--mfa-method=email`. This will also persist a browser
 session in $HOME/.mintapi/session to avoid an MFA in the future, unless you specify `--session-path=None`.
 
+If you wish to simplify the number of arguments passed in the command line, you can use a configuration file by specifying `--config-file`.  For arguments such as `--extended-transactions`, you can add a line in your config file that says `extended-transactions`.  For other arguments that have input, such as `--start-date`, you would add a line such as `start-date=10/01/21`.  There are two exceptions to what you can add to the config file: email and password.  Since these arguments do not include `--`, you cannot add them to the config file.
+
 ### Linux Distributions (including Raspberry Pi OS)
 
 If you're running mintapi in a server environment on an automatic schedule, consider running mintapi in headless mode if you don't need to see the login workflow. In addition, you'll want to use your distribution's package manager to install chromium and chromedriver. Make sure your distribution is up-to-date and then install/update Chromium (debian-family example): `apt install chromium-browser chromium-chromedriver`. Then use the option `use_chromedriver_on_path` either through the CLI or the python api so that mintapi doesn't try to find a matching chromedriver.
@@ -154,6 +156,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                             profile.
       --budgets             Retrieve budget information for current month
       --budget_hist         Retrieve historical budget information (past 12 months)
+      --config-file, -c     File used to store arguments
       --credit-score        Retrieve credit score
       --credit-report       Retrieve full credit report & history
       --net-worth           Retrieve net worth information
