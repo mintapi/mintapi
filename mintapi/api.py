@@ -300,7 +300,6 @@ def _create_web_driver_at_mint_com(headless=False, session_path=None, use_chrome
             executable_path=get_stable_chrome_driver(
                 chromedriver_download_path))
     driver.get("https://www.mint.com")
-    driver.implicitly_wait(20)  # seconds
     return driver
 
 
@@ -313,12 +312,8 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
     """
     Takes in a web driver and gets it through the Mint sign in process
     """
-    try:
-        element = driver.find_element_by_link_text("Sign in")
-    except NoSuchElementException:
-        # when user has cookies, a slightly different front page appears
-        driver.implicitly_wait(0)  # seconds
-        element = driver.find_element_by_link_text("Sign in")
+    driver.implicitly_wait(20)  # seconds
+    element = driver.find_element_by_link_text("Sign in")
     element.click()
 
     WebDriverWait(driver, 20).until(expected_conditions.presence_of_element_located((By.CSS_SELECTOR, "#ius-link-use-a-different-id-known-device, #ius-userid, #ius-identifier, #ius-option-username")))
@@ -327,10 +322,10 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
     # click "Use a different user ID" if needed
     try:
         driver.find_element_by_id("ius-link-use-a-different-id-known-device").click()
+        WebDriverWait(driver, 20).until(expected_conditions.presence_of_element_located((By.CSS_SELECTOR, "#ius-userid, #ius-identifier, #ius-option-username")))
     except NoSuchElementException:
         pass
 
-    time.sleep(1)
     try:  # try to enter in credentials if username and password are on same page
         email_input = driver.find_element_by_id("ius-userid")
         if not email_input.is_displayed():
@@ -355,7 +350,7 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
                 if username_element.text == email:
                     username_element.click()
                     break
-        driver.implicitly_wait(5)
+        driver.implicitly_wait(20)  # seconds
         try:
             driver.find_element_by_id(
                 "ius-sign-in-mfa-password-collection-current-password").send_keys(password)
@@ -453,6 +448,7 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
             driver.find_element_by_id("ius-sign-in-mfa-password-collection-continue-btn").submit()
         except (NoSuchElementException, ElementNotInteractableException):
             pass  # not on secondary mfa password screen
+    driver.implicitly_wait(20)  # seconds
 
 
 def get_web_driver(email, password, headless=False, mfa_method=None, mfa_token=None,
