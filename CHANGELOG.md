@@ -1,3 +1,7 @@
+1.56
+---
+- add columns for parent category to the output of extended-transactions (github#310)
+
 1.55
 ---
 - add support for --config-file for specifying config options (github#309)
