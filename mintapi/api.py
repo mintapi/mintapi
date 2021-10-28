@@ -1275,7 +1275,9 @@ def main():
     except ImportError:
         keyring = None
 
-    options = Mint.parse_arguments(sys.argv[1:])
+    # We need to pass None as the first argument since the test driver sends
+    # self, so we need parse_arguments to have self and args as the two params.
+    options = Mint.parse_arguments(None, sys.argv[1:])
 
     if options.keyring and not keyring:
         raise Exception('--keyring can only be used if the `keyring` library is installed.')
