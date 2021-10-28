@@ -1134,11 +1134,7 @@ class Mint(object):
         # Because cookies are involved and you cannot add cookies for another
         # domain, we have to first load up the MINT_CREDIT_URL.  Once the new
         # domain has loaded, we can proceed with the pull of credit data.
-        try:
-            self.driver.get(MINT_CREDIT_URL + "/404")
-        except Exception:
-            raise Exception('Unable to access the Inuit Credit Score URL.  Please try again.')
-            return None
+        self.driver.get(MINT_CREDIT_URL)
 
         response = self.get(
             '{}/v1/creditreports?limit={}'.format(MINT_CREDIT_URL, limit),
