@@ -1144,20 +1144,20 @@ class Mint(object):
         # If we want details, request the detailed sub-reports
         if details:
             # Get full list of credit inquiries
-            response = self.get_credit_details('{}/v1/creditreports/0/inquiries', credit_header)
+            response = self._get_credit_details('{}/v1/creditreports/0/inquiries', credit_header)
             credit_report['inquiries'] = response.json()
 
             # Get full list of credit accounts
-            response = self.get_credit_details('{}/v1/creditreports/0/tradelines', credit_header)
+            response = self._get_credit_details('{}/v1/creditreports/0/tradelines', credit_header)
             credit_report['accounts'] = response.json()
 
             # Get credit utilization history (~3 months, by account)
-            response = self.get_credit_details('{}/v1/creditreports/creditutilizationhistory', credit_header)
+            response = self._get_credit_details('{}/v1/creditreports/creditutilizationhistory', credit_header)
             credit_report['utilization'] = self.process_utilization(response.json())
 
         return credit_report
 
-    def get_credit_details(self, url, credit_header):
+    def _get_credit_details(self, url, credit_header):
         return self.get(url.format(MINT_CREDIT_URL), headers=credit_header)
 
     def process_utilization(self, data):
