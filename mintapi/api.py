@@ -1136,17 +1136,14 @@ class Mint(object):
         # If we want details, request the detailed sub-reports
         if details:
             # Get full list of credit inquiries
-            # TODO: Add command-line option to control if inquiries are included.
             response = self.get_credit_details('{}/v1/creditreports/0/inquiries', credit_header)
             credit_report['inquiries'] = response.json()
 
             # Get full list of credit accounts
-            # TODO: Add command-line option to control if credit accounts are included.
             response = self.get_credit_details('{}/v1/creditreports/0/tradelines', credit_header)
             credit_report['accounts'] = response.json()
 
             # Get credit utilization history (~3 months, by account)
-            # TODO: Add command-line option to control if utilization history is included.
             response = self.get_credit_details('{}/v1/creditreports/creditutilizationhistory', credit_header)
             credit_report['utilization'] = self.process_utilization(response.json())
 
