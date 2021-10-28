@@ -1183,7 +1183,7 @@ class Mint(object):
                 })
         return utilization
 
-def parse_arguments(self, args):
+def parse_arguments(args):
     ARGUMENTS = [
         (('email', ), {'nargs': '?', 'default': None, 'help': 'The e-mail address for your Mint.com account'}),
         (('password', ), {'nargs': '?', 'default': None, 'help': 'The password for your Mint.com account'}),
@@ -1287,9 +1287,7 @@ def main():
     except ImportError:
         keyring = None
 
-    # We need to pass None as the first argument since the test driver sends
-    # self, so we need parse_arguments to have self and args as the two params.
-    options = parse_arguments(None, sys.argv[1:])
+    options = parse_arguments(sys.argv[1:])
 
     if options.keyring and not keyring:
         raise Exception('--keyring can only be used if the `keyring` library is installed.')
