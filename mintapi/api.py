@@ -1183,6 +1183,7 @@ class Mint(object):
                 })
         return utilization
 
+
 def parse_arguments(args):
     ARGUMENTS = [
         (('email', ), {'nargs': '?', 'default': None, 'help': 'The e-mail address for your Mint.com account'}),
