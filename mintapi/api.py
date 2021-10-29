@@ -1280,6 +1280,39 @@ def initiate_account_refresh(email, password):
     return mint.initiate_account_refresh()
 
 
+def _get_budgets(self, hist):
+    try:
+        mint.get_budgets(hist)
+    except Exception:
+        None
+
+
+def _get_transactions(self, options):
+    try:
+        mint.get_transactions(start_date=options.start_date,
+                              end_date=options.end_date,
+                              include_investment=options.include_investment)
+    except Exception:
+        None
+
+
+def _get_detailed_transactions(self, options):
+    try:
+        mint.get_detailed_transactions(start_date=options.start_date,
+                                       end_date=options.end_date,
+                                       include_investment=options.include_investment,
+                                       remove_pending=options.show_pending,
+                                       skip_duplicates=options.skip_duplicates)
+    except Exception:
+        None
+
+
+def _get_accounts(self, options):
+    try:
+        make_accounts_presentable(mint.get_accounts(get_detail=options.accounts_ext))
+    except Exception:
+        None
+
 def main():
     import getpass
 
@@ -1360,46 +1393,19 @@ def main():
 
     data = None
     if options.accounts and options.budgets:
-        try:
-            accounts = make_accounts_presentable(
-                mint.get_accounts(get_detail=options.accounts_ext)
-            )
-        except Exception:
-            accounts = None
-
-        try:
-            budgets = mint.get_budgets()
-        except Exception:
-            budgets = None
-
+        accounts = _get_accounts(options)
+        budgets = _get_budgets()
         data = {'accounts': accounts, 'budgets': budgets}
     elif options.budgets:
-        try:
-            data = mint.get_budgets()
-        except Exception:
-            data = None
+        data = _get_budgets()
     elif options.budget_hist:
-        try:
-            data = mint.get_budgets(hist=12)
-        except Exception:
-            data = None
+        data = _get_budgets(hist=12)
     elif options.accounts:
-        try:
-            data = make_accounts_presentable(mint.get_accounts(
-                get_detail=options.accounts_ext)
-            )
-        except Exception:
-            data = None
+        data = _get_accounts(options)
     elif options.transactions:
-        data = mint.get_transactions(
-            include_investment=options.include_investment)
+        data = _get_transactions(options)
     elif options.extended_transactions:
-        data = mint.get_detailed_transactions(
-            start_date=options.start_date,
-            end_date=options.end_date,
-            include_investment=options.include_investment,
-            remove_pending=options.show_pending,
-            skip_duplicates=options.skip_duplicates)
+        data = _get_detailed_transactions(options)
     elif options.net_worth:
         data = mint.get_net_worth()
     elif options.credit_score:
