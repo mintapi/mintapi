@@ -1114,14 +1114,14 @@ class Mint(object):
 
     def get_credit_score(self):
         # Request a single credit report, and extract the score
-        report = self.get_credit_report(limit=1, details=False)
+        report = self.get_credit_report(limit=1, details=False, exclude_inquiries=False)
         try:
             vendor = report['reports']['vendorReports'][0]
             return vendor['creditReportList'][0]['creditScore']
         except (KeyError, IndexError):
             raise Exception('No Credit Score Found')
 
-    def get_credit_report(self, limit=2, details=True):
+    def get_credit_report(self, limit=2, details=True, exclude_inquiries):
         # Get the browser API key, build auth header
         credit_header = self._get_api_key_header()
 
@@ -1197,6 +1197,7 @@ def parse_arguments(args):
         (('--credit-report', ), {'action': 'store_true', 'dest': 'credit_report', 'default': False, 'help': 'Retrieve full credit report'}),
         (('--credit-score', ), {'action': 'store_true', 'dest': 'credit_score', 'default': False, 'help': 'Retrieve current credit score'}),
         (('--end-date', ), {'nargs': '?', 'default': None, 'help': 'Latest date for transactions to be retrieved from. Used with --extended-transactions. Format: mm/dd/yy'}),
+        (('--exclude-inquiries', ), {'action': 'store_true', 'help': 'When accessing credit report details, exclude data related to credit inquiries.  Used with --credit-report.'}),
         (('--extended-accounts', ), {'action': 'store_true', 'dest': 'accounts_ext', 'default': False, 'help': 'Retrieve extended account information (slower, implies --accounts)'}),
         (('--extended-transactions', ), {'action': 'store_true', 'default': False, 'help': 'Retrieve transactions with extra information and arguments'}),
         (('--filename', '-f'), {'help': 'write results to file. can be {csv,json} format. default is to write to stdout.'}),
@@ -1405,7 +1406,8 @@ def main():
     elif options.credit_score:
         data = mint.get_credit_score()
     elif options.credit_report:
-        data = mint.get_credit_report(details=True)
+        data = mint.get_credit_report(details=True,
+                                      exclude_inquiries=options.exclude_inquiries)
 
     # output the data
     if options.transactions or options.extended_transactions:
