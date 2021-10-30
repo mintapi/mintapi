@@ -278,7 +278,11 @@ def get_stable_chrome_driver(download_directory=os.getcwd()):
     return local_executable_path
 
 
-def _create_web_driver_at_mint_com(headless=False, session_path=None, use_chromedriver_on_path=False, chromedriver_download_path=os.getcwd()):
+def _create_web_driver_at_mint_com(headless=False,
+                                   session_path=None,
+                                   use_chromedriver_on_path=False,
+                                   chromedriver_download_path=os.getcwd(),
+                                   alternative_browser_path=False):
     """
     Handles starting a web driver at mint.com
     """
@@ -291,6 +295,9 @@ def _create_web_driver_at_mint_com(headless=False, session_path=None, use_chrome
         # chrome_options.add_argument("--window-size=1920x1080")
     if session_path is not None:
         chrome_options.add_argument("user-data-dir=%s" % session_path)
+
+    if alternative_browser_path:
+        chrome_options.binary_location = alternative_browser_path
 
     if use_chromedriver_on_path:
         driver = Chrome(options=chrome_options)
@@ -459,14 +466,15 @@ def get_web_driver(email, password, headless=False, mfa_method=None, mfa_token=N
                    session_path=None, imap_account=None, imap_password=None,
                    imap_server=None, imap_folder="INBOX",
                    use_chromedriver_on_path=False,
-                   chromedriver_download_path=os.getcwd()):
+                   chromedriver_download_path=os.getcwd(),
+                   alternative_browser_path=False):
     if headless and mfa_method is None:
         logger.warning("Using headless mode without specifying an MFA method "
                        "is unlikely to lead to a successful login. Defaulting "
                        "--mfa-method=sms")
         mfa_method = "sms"
     driver = _create_web_driver_at_mint_com(
-        headless, session_path, use_chromedriver_on_path, chromedriver_download_path)
+        headless, session_path, use_chromedriver_on_path, chromedriver_download_path, alternative_browser_path)
 
     status_message = None
     try:
@@ -552,7 +560,8 @@ class Mint(object):
                  imap_account=None, imap_password=None, imap_server=None,
                  imap_folder="INBOX", wait_for_sync=True, wait_for_sync_timeout=5 * 60,
                  use_chromedriver_on_path=False,
-                 chromedriver_download_path=os.getcwd()):
+                 chromedriver_download_path=os.getcwd(),
+                 alternative_browser_path=False):
         if email and password:
             self.login_and_get_token(email, password,
                                      mfa_method=mfa_method,
@@ -568,7 +577,8 @@ class Mint(object):
                                      wait_for_sync=wait_for_sync,
                                      wait_for_sync_timeout=wait_for_sync_timeout,
                                      use_chromedriver_on_path=use_chromedriver_on_path,
-                                     chromedriver_download_path=chromedriver_download_path)
+                                     chromedriver_download_path=chromedriver_download_path,
+                                     alternative_browser_path=alternative_browser_path)
 
     @classmethod
     def create(cls, email, password, **opts):
@@ -638,7 +648,8 @@ class Mint(object):
                             wait_for_sync=True,
                             wait_for_sync_timeout=5 * 60,
                             use_chromedriver_on_path=False,
-                            chromedriver_download_path=os.getcwd()):
+                            chromedriver_download_path=os.getcwd(),
+                            alternative_browser_path=False):
         if self.token and self.driver:
             return
 
@@ -657,7 +668,8 @@ class Mint(object):
             wait_for_sync=wait_for_sync,
             wait_for_sync_timeout=wait_for_sync_timeout,
             use_chromedriver_on_path=use_chromedriver_on_path,
-            chromedriver_download_path=chromedriver_download_path)
+            chromedriver_download_path=chromedriver_download_path,
+            alternative_browser_path=alternative_browser_path)
         if self.driver is not None:  # check if sign in failed
             self.token = self.get_token()
 
@@ -1189,6 +1201,7 @@ def parse_arguments(args):
         (('email', ), {'nargs': '?', 'default': None, 'help': 'The e-mail address for your Mint.com account'}),
         (('password', ), {'nargs': '?', 'default': None, 'help': 'The password for your Mint.com account'}),
         (('--accounts', ), {'action': 'store_true', 'dest': 'accounts', 'default': False, 'help': 'Retrieve account information (default if nothing else is specified)'}),
+        (('--alternative-browser-path', ), {'action': 'store_true', 'default': False, 'help': 'Use an alternative to the default browser path'}),
         (('--attention', ), {'action': 'store_true', 'help': 'Display accounts that need attention (None if none).'}),
         (('--budgets', ), {'action': 'store_true', 'dest': 'budgets', 'default': False, 'help': 'Retrieve budget information'}),
         (('--budget_hist', ), {'action': 'store_true', 'dest': 'budget_hist', 'default': None, 'help': 'Retrieve 12-month budget history information'}),
@@ -1347,7 +1360,8 @@ def main():
         wait_for_sync=not options.no_wait_for_sync,
         wait_for_sync_timeout=options.wait_for_sync_timeout,
         use_chromedriver_on_path=options.use_chromedriver_on_path,
-        chromedriver_download_path=options.chromedriver_download_path
+        chromedriver_download_path=options.chromedriver_download_path,
+        alternative_browser_path=options.alternative_browser_path
     )
     atexit.register(mint.close)  # Ensure everything is torn down.
 

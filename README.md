@@ -36,9 +36,11 @@ If you wish to simplify the number of arguments passed in the command line, you 
 
 ### Linux Distributions (including Raspberry Pi OS)
 
-If you're running mintapi in a server environment on an automatic schedule, consider running mintapi in headless mode if you don't need to see the login workflow. In addition, you'll want to use your distribution's package manager to install chromium and chromedriver. Make sure your distribution is up-to-date and then install/update Chromium (debian-family example): `apt install chromium-browser chromium-chromedriver`. Then use the option `use_chromedriver_on_path` either through the CLI or the python api so that mintapi doesn't try to find a matching chromedriver.
+If you're running mintapi in a server environment on an automatic schedule, consider running mintapi in headless mode if you don't need to see the login workflow. In addition, you'll want to use your distribution's package manager to install chromium and chromedriver. Make sure your distribution is up-to-date and then install/update Chromium (debian-family example): `apt install chromium-browser chromium-chromedriver`. Then use the option `use-chromedriver-on-path` either through the CLI or the python api so that mintapi doesn't try to find a matching chromedriver.
 
 If you need to download the chromedriver manually, be sure to get the version that matches your chrome version and make the chromedriver available to your python interpreter either by putting the chromedriver in your python working directory or inside your `PATH` as described in the [python selenium documentation](https://www.selenium.dev/selenium/docs/api/py/index.html#drivers).
+
+For those that run mintapi with a cron job while using other instances of Chrome, you may experience unexpected interactions with your active Chrome browser.  If you run into this situation, you may specify an alternative browser path (by using `alternative-browser-path`) to point to a specific Chrome binary executable.
 
 ### MFA Authentication Methods
 
@@ -85,8 +87,9 @@ make calls to retrieve account/budget information.  We recommend using the
     imap_folder='INBOX',  # IMAP folder that receives MFA email
     wait_for_sync=False,  # do not wait for accounts to sync
     wait_for_sync_timeout=300,  # number of seconds to wait for sync
-	use_chromedriver_on_path=False,  # True will use a system provided chromedriver binary that
-	                                 # is on the PATH (instead of downloading the latest version)
+    use_chromedriver_on_path=False,  # True will use a system provided chromedriver binary that
+  	                                 # is on the PATH (instead of downloading the latest version)
+    alternative_browser_path=False   # True will use a user-specified Chrome binary executable.
   )
 
   # Get basic account information
@@ -140,6 +143,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                    [--include-investment] [--skip-duplicates] [--show-pending]
                    [--filename FILENAME] [--keyring] [--headless] [--attention]
                    [--mfa-method {sms,email,soft-token}]
+                   [--use-chromedriver-on-path] [--alternative-browser-path]
                    email [password]
 
     positional arguments:
@@ -181,9 +185,12 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       --keyring             Use OS keyring for storing password information
       --headless            Whether to execute chromedriver with no visible
                             window.
-	  --use-chromedriver-on-path
+	    --use-chromedriver-on-path
 	  						Whether to use the chromedriver on PATH, instead of
               			  	downloading a local copy.
+      --alternative-browser-path
+                The path to a specific Chrome binary executable to use when
+                running mintapi.
       --mfa-method {sms,email,soft-token}
                             The MFA method to automate.
       --mfa-token      The base32 encoded MFA token.
