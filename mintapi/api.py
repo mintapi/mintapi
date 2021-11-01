@@ -39,7 +39,7 @@ except ImportError:
     pd = None
 
 logger = logging.getLogger('mintapi')
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 
 def assert_pd():
