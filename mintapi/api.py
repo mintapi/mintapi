@@ -689,6 +689,12 @@ class Mint(object):
             headers=self._get_api_key_header()
         ).json()['bills']
 
+    def get_providers(self):
+        return self.get(
+            '{}/mas/v1/providers'.format(MINT_ROOT_URL),
+            headers=self._get_api_key_header()
+        ).json()['providers']
+
     def get_invests_json(self):
         body = self.get(
             '{}/investment.event'.format(MINT_ROOT_URL),
