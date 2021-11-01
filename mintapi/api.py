@@ -629,6 +629,9 @@ class Mint(object):
     def post(self, url, **kwargs):
         return self.driver.request('POST', url, **kwargs)
 
+    def patch(self, url, **kwargs):
+        return self.driver.request('PATCH', url, **kwargs)
+
     def login_and_get_token(self, email, password, mfa_method=None, mfa_token=None,
                             mfa_input_callback=None, intuit_account=None, headless=False,
                             session_path=None, imap_account=None,
