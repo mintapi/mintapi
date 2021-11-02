@@ -1392,26 +1392,37 @@ def main():
         sys.exit()
 
     data = None
-    if options.accounts and options.budgets:
+    accounts = None
+    if options.accounts:
         accounts = _get_accounts(options)
+    if accounts:
+        data['accounts'] = accounts
+
+    budgets = None
+    if options.budgets:
         budgets = _get_budgets()
-        data = {'accounts': accounts, 'budgets': budgets}
-    elif options.budgets:
-        data = _get_budgets()
     elif options.budget_hist:
-        data = _get_budgets(hist=12)
-    elif options.accounts:
-        data = _get_accounts(options)
+        budgets = _get_budgets(hist=12)
+    if budgets:
+        data['budgets'] = budgets
+
+    transactions = None
+    if options.extended_transactions:
+        transactions = _get_detailed_transactions(options)
     elif options.transactions:
-        data = _get_transactions(options)
-    elif options.extended_transactions:
-        data = _get_detailed_transactions(options)
-    elif options.net_worth:
-        data = mint.get_net_worth()
-    elif options.credit_score:
-        data = mint.get_credit_score()
-    elif options.credit_report:
-        data = mint.get_credit_report(details=True)
+        transactions = _get_transactions(options)
+    if data and transactions:
+        data['transactions'] = transactions
+    else
+        data = transaction
+
+    if not data:
+        if options.net_worth:
+            data = mint.get_net_worth()
+        elif options.credit_score:
+            data = mint.get_credit_score()
+        elif options.credit_report:
+            data = mint.get_credit_report(details=True)
 
     # output the data
     if options.transactions or options.extended_transactions:
