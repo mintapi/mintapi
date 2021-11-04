@@ -167,10 +167,10 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                             arguments
       --start-date [START_DATE]
                             Earliest date for which to retrieve transactions.
-                            Used with --extended-transactions. Format: mm/dd/yy
+                            Used with --transactions or --extended-transactions. Format: mm/dd/yy
       --end-date [END_DATE]
                             Latest date for which to retrieve transactions.
-                            Used with --extended-transactions. Format: mm/dd/yy
+                            Used with --transactions or --extended-transactions. Format: mm/dd/yy
       --include-investment  Used with --extended-transactions
       --skip-duplicates     Used with --extended-transactions
       --show-pending        Exclude pending transactions from being retrieved.
