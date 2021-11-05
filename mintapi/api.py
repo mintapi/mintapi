@@ -870,7 +870,7 @@ class Mint(object):
             transaction['parentCategoryId'] = '' if parent['name'] == 'Root' else parent['id']
         return result
 
-    def get_transactions_csv(self, include_investment=False, acct=0):
+    def get_transactions_csv(self, include_investment=False, start_date=None, end_date=None, acct=0):
         """Returns the raw CSV transaction data as downloaded from Mint.
 
         If include_investment == True, also includes transactions that Mint
@@ -882,9 +882,12 @@ class Mint(object):
         # Specifying accountId=0 causes Mint to return investment
         # transactions as well.  Otherwise they are skipped by
         # default.
-        params = None
-        if include_investment or acct > 0:
-            params = {'accountId': acct}
+
+        params = {
+            'accountId': acct if acct > 0 else None,
+            'startDate': convert_date_to_string(convert_mmddyy_to_datetime(start_date)),
+            'endDate': convert_date_to_string(convert_mmddyy_to_datetime(end_date)),
+        }
         result = self.request_and_check(
             '{}/transactionDownload.event'.format(MINT_ROOT_URL),
             params=params,
@@ -903,10 +906,12 @@ class Mint(object):
             for a in account_data if a['isActive']
         ])
 
-    def get_transactions(self, include_investment=False):
+    def get_transactions(self, include_investment=False, start_date=None, end_date=None):
         """Returns the transaction data as a Pandas DataFrame."""
         assert_pd()
         s = StringIO(self.get_transactions_csv(
+            start_date=start_date,
+            end_date=end_date,
             include_investment=include_investment))
         s.seek(0)
         df = pd.read_csv(s, parse_dates=['Date'])
@@ -1193,7 +1198,7 @@ def parse_arguments(args):
         (('--config-file', '-c'), {'required': False, 'is_config_file': True, 'help': 'The path to the config file used.'}),
         (('--credit-report', ), {'action': 'store_true', 'dest': 'credit_report', 'default': False, 'help': 'Retrieve full credit report'}),
         (('--credit-score', ), {'action': 'store_true', 'dest': 'credit_score', 'default': False, 'help': 'Retrieve current credit score'}),
-        (('--end-date', ), {'nargs': '?', 'default': None, 'help': 'Latest date for transactions to be retrieved from. Used with --extended-transactions. Format: mm/dd/yy'}),
+        (('--end-date', ), {'nargs': '?', 'default': None, 'help': 'Latest date for transactions to be retrieved from. Used with --transactions or --extended-transactions. Format: mm/dd/yy'}),
         (('--extended-accounts', ), {'action': 'store_true', 'dest': 'accounts_ext', 'default': False, 'help': 'Retrieve extended account information (slower, implies --accounts)'}),
         (('--extended-transactions', ), {'action': 'store_true', 'default': False, 'help': 'Retrieve transactions with extra information and arguments'}),
         (('--filename', '-f'), {'help': 'write results to file. can be {csv,json} format. default is to write to stdout.'}),
@@ -1213,7 +1218,7 @@ def parse_arguments(args):
         # Displayed to the user as a postive switch, but processed back here as a negative
         (('--show-pending', ), {'action': 'store_false', 'default': True, 'help': 'Exclude pending transactions from being retrieved. Used with --extended-transactions'}),
         (('--skip-duplicates', ), {'action': 'store_true', 'default': False, 'help': 'Used with --extended-transactions'}),
-        (('--start-date', ), {'nargs': '?', 'default': None, 'help': 'Earliest date for transactions to be retrieved from. Used with --extended-transactions. Format: mm/dd/yy'}),
+        (('--start-date', ), {'nargs': '?', 'default': None, 'help': 'Earliest date for transactions to be retrieved from. Used with --transactions or --extended-transactions. Format: mm/dd/yy'}),
         (('--transactions', '-t'), {'action': 'store_true', 'default': False, 'help': 'Retrieve transactions'}),
         (('--use-chromedriver-on-path', ), {'action': 'store_true', 'help': 'Whether to use the chromedriver on PATH, instead of downloading a local copy.'}),
         (('--wait_for_sync_timeout', ), {'type': int, 'default': 5 * 60, 'help': 'Number of seconds to wait for sync.  Default is 5 minutes'}),
@@ -1389,6 +1394,8 @@ def main():
             data = None
     elif options.transactions:
         data = mint.get_transactions(
+            start_date=options.start_date,
+            end_date=options.end_date,
             include_investment=options.include_investment)
     elif options.extended_transactions:
         data = mint.get_detailed_transactions(
