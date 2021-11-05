@@ -1415,7 +1415,6 @@ def main():
     if options.extended_transactions:
         transactions = _get_detailed_transactions(options)
     elif options.transactions:
-<<<<<<< HEAD
         transactions = _get_transactions(options)
     if data and transactions:
         data['transactions'] = transactions
@@ -1429,25 +1428,6 @@ def main():
             data = mint.get_credit_score()
         elif options.credit_report:
             data = mint.get_credit_report(details=True)
-=======
-        data = mint.get_transactions(
-            start_date=options.start_date,
-            end_date=options.end_date,
-            include_investment=options.include_investment)
-    elif options.extended_transactions:
-        data = mint.get_detailed_transactions(
-            start_date=options.start_date,
-            end_date=options.end_date,
-            include_investment=options.include_investment,
-            remove_pending=options.show_pending,
-            skip_duplicates=options.skip_duplicates)
-    elif options.net_worth:
-        data = mint.get_net_worth()
-    elif options.credit_score:
-        data = mint.get_credit_score()
-    elif options.credit_report:
-        data = mint.get_credit_report(details=True)
->>>>>>> main
 
     # output the data
     if options.transactions or options.extended_transactions:
