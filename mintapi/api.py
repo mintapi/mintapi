@@ -1235,6 +1235,27 @@ def parse_arguments(args):
 
     return cmdline.parse_args(args)
 
+    def _get_budgets(self, hist):
+        return mint.get_budgets(hist)
+
+
+    def _get_transactions(self, options):
+        return mint.get_transactions(start_date=options.start_date,
+                                     end_date=options.end_date,
+                                     include_investment=options.include_investment)
+
+
+    def _get_detailed_transactions(self, options):
+        return mint.get_detailed_transactions(start_date=options.start_date,
+                                              end_date=options.end_date,
+                                              include_investment=options.include_investment,
+                                              remove_pending=options.show_pending,
+                                              skip_duplicates=options.skip_duplicates)
+
+
+    def _get_accounts(self, options):
+        return make_accounts_presentable(mint.get_accounts(get_detail=options.accounts_ext))
+
 
 def get_accounts(email, password, get_detail=False):
     mint = Mint.create(email, password)
@@ -1285,38 +1306,13 @@ def initiate_account_refresh(email, password):
     return mint.initiate_account_refresh()
 
 
-def _get_budgets(self, hist):
-    try:
-        mint.get_budgets(hist)
-    except Exception:
-        None
-
-
-def _get_transactions(self, options):
-    try:
-        mint.get_transactions(start_date=options.start_date,
-                              end_date=options.end_date,
-                              include_investment=options.include_investment)
-    except Exception:
-        None
-
-
-def _get_detailed_transactions(self, options):
-    try:
-        mint.get_detailed_transactions(start_date=options.start_date,
-                                       end_date=options.end_date,
-                                       include_investment=options.include_investment,
-                                       remove_pending=options.show_pending,
-                                       skip_duplicates=options.skip_duplicates)
-    except Exception:
-        None
-
-
-def _get_accounts(self, options):
-    try:
-        make_accounts_presentable(mint.get_accounts(get_detail=options.accounts_ext))
-    except Exception:
-        None
+def _process_final_data(key, data, new_data, overlapping_options):
+    if overlapping_options > 1:
+        data[key] = new_data
+    else:
+        data = new_data
+    print(data)
+    return data
 
 def main():
     import getpass
@@ -1397,29 +1393,30 @@ def main():
         sys.exit()
 
     data = None
-    accounts = None
+    overlapping_options = sum((key == "budgets" and value == True) or ((key == "transactions" or key == "extended_transactions") and value == True) or (key == "accounts" and value == True) for key, value in options.__dict__.items())
     if options.accounts:
-        accounts = _get_accounts(options)
-    if accounts:
-        data['accounts'] = accounts
+        accounts = mint._get_accounts(options)
+        if accounts is not None:
+            data = _process_final_data("accounts", data, accounts, overlapping_options)
 
-    budgets = None
     if options.budgets:
-        budgets = _get_budgets()
+        budgets = mint._get_budgets(hist=None)
+        if budgets is not None:
+            data = _process_final_data("budgets", data, budgets, overlapping_options)
     elif options.budget_hist:
-        budgets = _get_budgets(hist=12)
-    if budgets:
-        data['budgets'] = budgets
+        budgets = mint._get_budgets(hist=12)
+        if budgets is not None:
+            data = _process_final_data("budgets", data, budgets, overlapping_options)
 
-    transactions = None
     if options.extended_transactions:
-        transactions = _get_detailed_transactions(options)
+        transactions = mint._get_detailed_transactions(options)
+        print(transactions)
+        if transactions is not None:
+            data = _process_final_data("transactions", data, transactions, overlapping_options)
     elif options.transactions:
-        transactions = _get_transactions(options)
-    if data and transactions:
-        data['transactions'] = transactions
-    else
-        data = transaction
+        transactions = mint._get_transactions(options)
+        if transactions is not None:
+            data = _process_final_data("transactions", data, transactions, overlapping_options)
 
     if not data:
         if options.net_worth:
