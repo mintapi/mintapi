@@ -1,5 +1,6 @@
 import atexit
 import configargparse
+import csv
 from datetime import date, datetime, timedelta
 import io
 import json
@@ -34,7 +35,7 @@ from seleniumrequests import Chrome
 import xmltodict
 
 try:
-    import pandas as pd
+    import pandas, json_normalize as pd
 except ImportError:
     pd = None
 
@@ -1188,6 +1189,24 @@ class Mint(object):
                 })
         return utilization
 
+    def _get_budgets(self, hist):
+        return self.get_budgets(hist)
+
+    def _get_transactions(self, options):
+        return self.get_transactions(start_date=options.start_date,
+                                     end_date=options.end_date,
+                                     include_investment=options.include_investment)
+
+    def _get_detailed_transactions(self, options):
+        return self.get_detailed_transactions(start_date=options.start_date,
+                                              end_date=options.end_date,
+                                              include_investment=options.include_investment,
+                                              remove_pending=options.show_pending,
+                                              skip_duplicates=options.skip_duplicates)
+
+    def _get_accounts(self, options):
+        return make_accounts_presentable(self.get_accounts(get_detail=options.accounts_ext))
+
 
 def parse_arguments(args):
     ARGUMENTS = [
@@ -1234,27 +1253,6 @@ def parse_arguments(args):
         cmdline.add_argument(*argument_commands, **argument_options)
 
     return cmdline.parse_args(args)
-
-    def _get_budgets(self, hist):
-        return mint.get_budgets(hist)
-
-
-    def _get_transactions(self, options):
-        return mint.get_transactions(start_date=options.start_date,
-                                     end_date=options.end_date,
-                                     include_investment=options.include_investment)
-
-
-    def _get_detailed_transactions(self, options):
-        return mint.get_detailed_transactions(start_date=options.start_date,
-                                              end_date=options.end_date,
-                                              include_investment=options.include_investment,
-                                              remove_pending=options.show_pending,
-                                              skip_duplicates=options.skip_duplicates)
-
-
-    def _get_accounts(self, options):
-        return make_accounts_presentable(mint.get_accounts(get_detail=options.accounts_ext))
 
 
 def get_accounts(email, password, get_detail=False):
@@ -1308,11 +1306,18 @@ def initiate_account_refresh(email, password):
 
 def _process_final_data(key, data, new_data, overlapping_options):
     if overlapping_options > 1:
+        # Key assignment cannot be done when data is None; so we initialize if it is None.
+        if data is None:
+            data = {}
         data[key] = new_data
     else:
         data = new_data
-    print(data)
     return data
+
+
+def _process_final_transaction_data(data, transactions, overlapping_options):
+    return _process_final_data("transactions", data, transactions.to_json(orient='records'), overlapping_options)
+
 
 def main():
     import getpass
@@ -1410,13 +1415,14 @@ def main():
 
     if options.extended_transactions:
         transactions = mint._get_detailed_transactions(options)
-        print(transactions)
-        if transactions is not None:
-            data = _process_final_data("transactions", data, transactions, overlapping_options)
+        # Because transactions is a Pandas Data Frame, we have to check for empty.
+        if not transactions.empty:
+            data = _process_final_transaction_data(data, transactions, overlapping_options)
     elif options.transactions:
         transactions = mint._get_transactions(options)
-        if transactions is not None:
-            data = _process_final_data("transactions", data, transactions, overlapping_options)
+        # Because transactions is a Pandas Data Frame, we have to check for empty.
+        if not transactions.empty:
+            data = _process_final_transaction_data(data, transactions, overlapping_options)
 
     if not data:
         if options.net_worth:
@@ -1427,23 +1433,17 @@ def main():
             data = mint.get_credit_report(details=True)
 
     # output the data
-    if options.transactions or options.extended_transactions:
-        if options.filename is None:
-            print(data.to_json(orient='records'))
-        elif options.filename.endswith('.csv'):
-            data.to_csv(options.filename, index=False)
-        elif options.filename.endswith('.json'):
-            data.to_json(options.filename, orient='records')
-        else:
-            raise ValueError('file extension must be either .csv or .json')
+    if options.filename is None:
+        print(json.dumps(data, indent=2))
+    elif options.filename.endswith('.json'):
+        with open(options.filename, 'w+') as f:
+            json.dump(data, f, indent=2)
+    elif (options.transactions or options.extended_transactions) and overlapping_options == 1 and options.filename.endswith('.csv'):
+        print(json_normalize(data))
+        #with open(options.filename, 'w+', newline='') as f:
+        #    csv.writer(f, delimiter=',').writerows(data)
     else:
-        if options.filename is None:
-            print(json.dumps(data, indent=2))
-        elif options.filename.endswith('.json'):
-            with open(options.filename, 'w+') as f:
-                json.dump(data, f, indent=2)
-        else:
-            raise ValueError('file type must be json for non-transaction data')
+        raise ValueError('file type must be json for non-transaction data')
 
     if options.attention:
         attention_msg = mint.get_attention()
