@@ -28,10 +28,6 @@ try:  # read test_args file if supplied
 except (FileNotFoundError, AssertionError):
     test_args = None
 
-MINT_ROOT_URL = 'https://mint.intuit.com'
-MINT_ACCOUNTS_URL = 'https://accounts.intuit.com'
-MINT_CREDIT_URL = 'https://credit.finance.intuit.com'
-
 accounts_example = [{
     "accountName": "Chase Checking",
     "lastUpdated": 1401201492000,
@@ -207,7 +203,7 @@ class MintApiTests(unittest.TestCase):
     def test_build_bundledServiceController_url(self, mock_driver):
         mock_driver.return_value = (TestMock(), "test")
         url = mintapi.Mint.build_bundledServiceController_url(mock_driver)
-        self.assertTrue(MINT_ROOT_URL in url)
+        self.assertTrue(mintapi.api.MINT_ROOT_URL in url)
 
 @unittest.skipIf(test_args is None, "This test requires a sign in")
 class GivenBrowserAtSignInPage(unittest.TestCase):
