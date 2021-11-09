@@ -300,7 +300,6 @@ def _create_web_driver_at_mint_com(headless=False, session_path=None, use_chrome
             executable_path=get_stable_chrome_driver(
                 chromedriver_download_path))
     driver.get("https://www.mint.com")
-    driver.implicitly_wait(20)  # seconds
     return driver
 
 
@@ -313,15 +312,20 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
     """
     Takes in a web driver and gets it through the Mint sign in process
     """
-    try:
-        element = driver.find_element_by_link_text("Sign in")
-    except NoSuchElementException:
-        # when user has cookies, a slightly different front page appears
-        driver.implicitly_wait(0)  # seconds
-        element = driver.find_element_by_link_text("Sign in")
-        driver.implicitly_wait(20)  # seconds
+    driver.implicitly_wait(20)  # seconds
+    element = driver.find_element_by_link_text("Sign in")
     element.click()
-    time.sleep(1)
+
+    WebDriverWait(driver, 20).until(expected_conditions.presence_of_element_located((By.CSS_SELECTOR, "#ius-link-use-a-different-id-known-device, #ius-userid, #ius-identifier, #ius-option-username")))
+    driver.implicitly_wait(0)  # seconds
+
+    # click "Use a different user ID" if needed
+    try:
+        driver.find_element_by_id("ius-link-use-a-different-id-known-device").click()
+        WebDriverWait(driver, 20).until(expected_conditions.presence_of_element_located((By.CSS_SELECTOR, "#ius-userid, #ius-identifier, #ius-option-username")))
+    except NoSuchElementException:
+        pass
+
     try:  # try to enter in credentials if username and password are on same page
         email_input = driver.find_element_by_id("ius-userid")
         if not email_input.is_displayed():
@@ -332,7 +336,6 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
         driver.find_element_by_id("ius-sign-in-submit-btn").submit()
     # try to enter in credentials if username and password are on different pages
     except (ElementNotInteractableException, ElementNotVisibleException):
-        driver.implicitly_wait(0)
         try:
             email_input = driver.find_element_by_id("ius-identifier")
             if not email_input.is_displayed():
@@ -347,7 +350,7 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
                 if username_element.text == email:
                     username_element.click()
                     break
-        driver.implicitly_wait(5)
+        driver.implicitly_wait(20)  # seconds
         try:
             driver.find_element_by_id(
                 "ius-sign-in-mfa-password-collection-current-password").send_keys(password)
@@ -357,12 +360,9 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
             pass  # password may not be here when using MFA
 
     # Wait until logged in, just in case we need to deal with MFA.
+    driver.implicitly_wait(1)  # seconds
     while not driver.current_url.startswith(
             'https://mint.intuit.com/overview.event'):
-        # An implicitly_wait is also necessary here to avoid getting stuck on
-        # find_element_by_id while the page is still in transition.
-        driver.implicitly_wait(1)
-        time.sleep(1)
 
         # bypass "Let's add your current mobile number" interstitial page
         try:
@@ -393,7 +393,7 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
                     pass  # no option to select mfa option
 
                 if mfa_method == 'email' and imap_account:
-                    for element_id in ["ius-mfa-email-otp-card-challenge", "ius-sublabel-mfa-email-otp"]:
+                    for element_id in ["ius-label-mfa-email-otp", "ius-mfa-email-otp-card-challenge", "ius-sublabel-mfa-email-otp"]:
                         try:
                             mfa_email_select = driver.find_element_by_id(element_id)
                             mfa_email_select.click()
@@ -448,9 +448,7 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
             driver.find_element_by_id("ius-sign-in-mfa-password-collection-continue-btn").submit()
         except (NoSuchElementException, ElementNotInteractableException):
             pass  # not on secondary mfa password screen
-
-        finally:
-            driver.implicitly_wait(20)  # seconds
+    driver.implicitly_wait(20)  # seconds
 
 
 def get_web_driver(email, password, headless=False, mfa_method=None, mfa_token=None,
@@ -495,7 +493,10 @@ def get_web_driver(email, password, headless=False, mfa_method=None, mfa_token=N
         driver = None
 
     if status_message is not None and isinstance(status_message, WebElement):
-        status_message = status_message.text
+        try:
+            status_message = status_message.text
+        except StaleElementReferenceException:
+            pass
     return driver, status_message
 
 
@@ -1132,6 +1133,12 @@ class Mint(object):
         # How the "bands" are defined, and other metadata, is available at a
         # /v1/creditscoreproviders/3 endpoint (3 = TransUnion)
         credit_report = dict()
+
+        # Because cookies are involved and you cannot add cookies for another
+        # domain, we have to first load up the MINT_CREDIT_URL.  Once the new
+        # domain has loaded, we can proceed with the pull of credit data.
+        self.driver.get(MINT_CREDIT_URL)
+
         response = self.get(
             '{}/v1/creditreports?limit={}'.format(MINT_CREDIT_URL, limit),
             headers=credit_header)
@@ -1140,25 +1147,21 @@ class Mint(object):
         # If we want details, request the detailed sub-reports
         if details:
             # Get full list of credit inquiries
-            response = self.get(
-                '{}/v1/creditreports/0/inquiries'.format(MINT_CREDIT_URL),
-                headers=credit_header)
+            response = self._get_credit_details('{}/v1/creditreports/0/inquiries', credit_header)
             credit_report['inquiries'] = response.json()
 
             # Get full list of credit accounts
-            response = self.get(
-                '{}/v1/creditreports/0/tradelines'.format(MINT_CREDIT_URL),
-                headers=credit_header)
+            response = self._get_credit_details('{}/v1/creditreports/0/tradelines', credit_header)
             credit_report['accounts'] = response.json()
 
             # Get credit utilization history (~3 months, by account)
-            response = self.get(
-                '{}/v1/creditreports/creditutilizationhistory'.format(MINT_CREDIT_URL),
-                headers=credit_header)
-            clean_data = self.process_utilization(response.json())
-            credit_report['utilization'] = clean_data
+            response = self._get_credit_details('{}/v1/creditreports/creditutilizationhistory', credit_header)
+            credit_report['utilization'] = self.process_utilization(response.json())
 
         return credit_report
+
+    def _get_credit_details(self, url, credit_header):
+        return self.get(url.format(MINT_CREDIT_URL), headers=credit_header)
 
     def process_utilization(self, data):
         # Function to clean up the credit utilization history data
