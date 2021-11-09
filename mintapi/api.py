@@ -1136,6 +1136,12 @@ class Mint(object):
         # How the "bands" are defined, and other metadata, is available at a
         # /v1/creditscoreproviders/3 endpoint (3 = TransUnion)
         credit_report = dict()
+
+        # Because cookies are involved and you cannot add cookies for another
+        # domain, we have to first load up the MINT_CREDIT_URL.  Once the new
+        # domain has loaded, we can proceed with the pull of credit data.
+        self.driver.get(MINT_CREDIT_URL)
+
         response = self.get(
             '{}/v1/creditreports?limit={}'.format(MINT_CREDIT_URL, limit),
             headers=credit_header)
@@ -1144,25 +1150,21 @@ class Mint(object):
         # If we want details, request the detailed sub-reports
         if details:
             # Get full list of credit inquiries
-            response = self.get(
-                '{}/v1/creditreports/0/inquiries'.format(MINT_CREDIT_URL),
-                headers=credit_header)
+            response = self._get_credit_details('{}/v1/creditreports/0/inquiries', credit_header)
             credit_report['inquiries'] = response.json()
 
             # Get full list of credit accounts
-            response = self.get(
-                '{}/v1/creditreports/0/tradelines'.format(MINT_CREDIT_URL),
-                headers=credit_header)
+            response = self._get_credit_details('{}/v1/creditreports/0/tradelines', credit_header)
             credit_report['accounts'] = response.json()
 
             # Get credit utilization history (~3 months, by account)
-            response = self.get(
-                '{}/v1/creditreports/creditutilizationhistory'.format(MINT_CREDIT_URL),
-                headers=credit_header)
-            clean_data = self.process_utilization(response.json())
-            credit_report['utilization'] = clean_data
+            response = self._get_credit_details('{}/v1/creditreports/creditutilizationhistory', credit_header)
+            credit_report['utilization'] = self.process_utilization(response.json())
 
         return credit_report
+
+    def _get_credit_details(self, url, credit_header):
+        return self.get(url.format(MINT_CREDIT_URL), headers=credit_header)
 
     def process_utilization(self, data):
         # Function to clean up the credit utilization history data
