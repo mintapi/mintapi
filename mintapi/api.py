@@ -630,6 +630,15 @@ class Mint(object):
     def post(self, url, **kwargs):
         return self.driver.request('POST', url, **kwargs)
 
+    def make_post_request(self, url, data, convert_to_text=False):
+        response = self.post(url=url, data=data, headers=JSON_HEADER)
+        if convert_to_text:
+            response = response.text
+        return response
+
+    def build_bundledServiceController_url(self):
+        return '{}/bundledServiceController.xevent?legacy=false&token={}'.format(MINT_ROOT_URL, self.token)
+
     def login_and_get_token(self, email, password, mfa_method=None, mfa_token=None,
                             mfa_input_callback=None, intuit_account=None, headless=False,
                             session_path=None, imap_account=None,
@@ -725,14 +734,9 @@ class Mint(object):
         }
 
         data = {'input': json.dumps([input])}
-        account_data_url = (
-            '{}/bundledServiceController.xevent?legacy=false&token={}'.format(
-                MINT_ROOT_URL, self.token))
-        response = self.post(
-            account_data_url,
-            data=data,
-            headers=JSON_HEADER
-        ).text
+        response = self.make_post_request(url=self.build_bundledServiceController_url(),
+                                          data=data,
+                                          convert_to_text=True)
         if req_id not in response:
             raise MintException('Could not parse account data: ' + response)
 
@@ -749,18 +753,14 @@ class Mint(object):
         return accounts
 
     def set_user_property(self, name, value):
-        url = (
-            '{}/bundledServiceController.xevent?legacy=false&token={}'.format(
-                MINT_ROOT_URL, self.token))
         req_id = self.get_request_id_str()
-        result = self.post(
-            url,
-            data={'input': json.dumps([{'args': {'propertyName': name,
-                                                 'propertyValue': value},
-                                        'service': 'MintUserService',
-                                        'task': 'setUserProperty',
-                                        'id': req_id}])},
-            headers=JSON_HEADER)
+        data = {'input': json.dumps([{'args': {'propertyName': name,
+                                               'propertyValue': value},
+                                      'service': 'MintUserService',
+                                      'task': 'setUserProperty',
+                                      'id': req_id}])}
+        result = self.make_post_request(url=self.build_bundledServiceController_url(),
+                                        data=data)
         if result.status_code != 200:
             raise MintException('Received HTTP error %d' % result.status_code)
         response = result.text
@@ -999,11 +999,9 @@ class Mint(object):
                 'task': 'getCategoryTreeDto2'
             }])
         }
-
-        cat_url = (
-            '{}/bundledServiceController.xevent?legacy=false&token={}'.format(
-                MINT_ROOT_URL, self.token))
-        response = self.post(cat_url, data=data, headers=JSON_HEADER).text
+        response = self.make_post_request(url=self.build_bundledServiceController_url(),
+                                          data=data,
+                                          convert_to_text=True)
         if req_id not in response:
             raise MintException(
                 'Could not parse category data: "{}"'.format(response))
@@ -1113,10 +1111,9 @@ class Mint(object):
         return {'parent': 'Unknown', 'name': 'Unknown'}
 
     def initiate_account_refresh(self):
-        self.post(
-            '{}/refreshFILogins.xevent'.format(MINT_ROOT_URL),
-            data={'token': self.token},
-            headers=JSON_HEADER)
+        data = {'token': self.token}
+        self.make_post_request(url='{}/refreshFILogins.xevent'.format(MINT_ROOT_URL),
+                               data=data)
 
     def get_credit_score(self):
         # Request a single credit report, and extract the score

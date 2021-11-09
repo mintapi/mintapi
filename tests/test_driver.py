@@ -199,6 +199,11 @@ class MintApiTests(unittest.TestCase):
         self.assertEqual(arguments.extended_transactions, True)
         config_file.close()
 
+    @patch.object(mintapi.api, 'get_web_driver')
+    def test_build_bundledServiceController_url(self, mock_driver):
+        mock_driver.return_value = (TestMock(), "test")
+        url = mintapi.Mint.build_bundledServiceController_url(mock_driver)
+        self.assertTrue(mintapi.api.MINT_ROOT_URL in url)
 
 @unittest.skipIf(test_args is None, "This test requires a sign in")
 class GivenBrowserAtSignInPage(unittest.TestCase):
