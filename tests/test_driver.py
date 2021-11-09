@@ -195,7 +195,7 @@ class MintApiTests(unittest.TestCase):
         config_file = tempfile.NamedTemporaryFile(mode="wt")
         config_file.write("extended-transactions")
         config_file.flush()
-        arguments = mintapi.Mint().parse_arguments(["-c", config_file.name])
+        arguments = mintapi.api.parse_arguments(["-c", config_file.name])
         self.assertEqual(arguments.extended_transactions, True)
         config_file.close()
 
