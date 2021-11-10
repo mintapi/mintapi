@@ -30,7 +30,6 @@ from selenium.webdriver import ChromeOptions
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.remote.webelement import WebElement
 from seleniumrequests import Chrome
 import xmltodict
 
@@ -578,7 +577,7 @@ def get_web_driver(
 
     status_message = None
     try:
-        sign_in(
+        status_message, _ = sign_in(
             email,
             password,
             driver,
@@ -593,38 +592,11 @@ def get_web_driver(
             imap_server,
             imap_folder,
         )
-
-        # Wait until the overview page has actually loaded, and if wait_for_sync==True, sync has completed.
-        if wait_for_sync:
-            try:
-                # Status message might not be present straight away. Seems to be due
-                # to dynamic content (client side rendering).
-                status_message = WebDriverWait(driver, 30).until(
-                    expected_conditions.visibility_of_element_located(
-                        (By.CSS_SELECTOR, ".SummaryView .message")
-                    )
-                )
-                WebDriverWait(driver, wait_for_sync_timeout).until(
-                    lambda x: "Account refresh complete"
-                    in status_message.get_attribute("innerHTML")
-                )
-            except (TimeoutException, StaleElementReferenceException):
-                logger.warning(
-                    "Mint sync apparently incomplete after timeout. "
-                    "Data retrieved may not be current."
-                )
-        else:
-            driver.find_element_by_id("transaction")
     except Exception as e:
         logger.exception(e)
         driver.quit()
         driver = None
 
-    if status_message is not None and isinstance(status_message, WebElement):
-        try:
-            status_message = status_message.text
-        except StaleElementReferenceException:
-            pass
     return driver, status_message
 
 
