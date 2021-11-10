@@ -129,6 +129,20 @@ make calls to retrieve account/budget information.  We recommend using the
 
   # Initiate an account refresh
   mint.initiate_account_refresh()
+  
+  # you can also use mintapi's login in workflow with your own selenium webdriver
+  # this will allow for more custom selenium driver setups
+  from seleniumrequests import Firefox  # needs to be based on selenium-requests
+  mint = mintapi.Mint()
+  mint.driver = Firefox()
+  mint.status_message, mint.token = mintapi.sign_in(
+    email, password, mint.driver, mfa_method=None, mfa_token=None,
+    mfa_input_callback=None, intuit_account=None, wait_for_sync=True,
+    wait_for_sync_timeout=5 * 60,
+    imap_account=None, imap_password=None,
+    imap_server=None, imap_folder="INBOX",
+  )
+
 ```
 
 ---
