@@ -19,11 +19,6 @@ import email.header
 import sys  # DEBUG
 import warnings
 
-try:
-    from StringIO import StringIO  # Python 2
-except ImportError:
-    from io import BytesIO as StringIO  # Python 3
-
 from selenium.common.exceptions import ElementNotInteractableException, ElementNotVisibleException, NoSuchElementException, StaleElementReferenceException, TimeoutException
 from selenium.webdriver import ChromeOptions
 from selenium.webdriver.common.by import By
@@ -33,22 +28,10 @@ from selenium.webdriver.remote.webelement import WebElement
 from seleniumrequests import Chrome
 import xmltodict
 
-try:
-    import pandas as pd
-except ImportError:
-    pd = None
+import pandas as pd
 
 logger = logging.getLogger('mintapi')
 logger.setLevel(logging.INFO)
-
-
-def assert_pd():
-    # Common function to check if pd is installed
-    if not pd:
-        raise ImportError(
-            'transactions data requires pandas; '
-            'please pip install pandas'
-        )
 
 
 def json_date_to_datetime(dateraw):
@@ -300,7 +283,6 @@ def _create_web_driver_at_mint_com(headless=False, session_path=None, use_chrome
             executable_path=get_stable_chrome_driver(
                 chromedriver_download_path))
     driver.get("https://www.mint.com")
-    driver.implicitly_wait(20)  # seconds
     return driver
 
 
@@ -313,15 +295,20 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
     """
     Takes in a web driver and gets it through the Mint sign in process
     """
-    try:
-        element = driver.find_element_by_link_text("Sign in")
-    except NoSuchElementException:
-        # when user has cookies, a slightly different front page appears
-        driver.implicitly_wait(0)  # seconds
-        element = driver.find_element_by_link_text("Sign in")
-        driver.implicitly_wait(20)  # seconds
+    driver.implicitly_wait(20)  # seconds
+    element = driver.find_element_by_link_text("Sign in")
     element.click()
-    time.sleep(1)
+
+    WebDriverWait(driver, 20).until(expected_conditions.presence_of_element_located((By.CSS_SELECTOR, "#ius-link-use-a-different-id-known-device, #ius-userid, #ius-identifier, #ius-option-username")))
+    driver.implicitly_wait(0)  # seconds
+
+    # click "Use a different user ID" if needed
+    try:
+        driver.find_element_by_id("ius-link-use-a-different-id-known-device").click()
+        WebDriverWait(driver, 20).until(expected_conditions.presence_of_element_located((By.CSS_SELECTOR, "#ius-userid, #ius-identifier, #ius-option-username")))
+    except NoSuchElementException:
+        pass
+
     try:  # try to enter in credentials if username and password are on same page
         email_input = driver.find_element_by_id("ius-userid")
         if not email_input.is_displayed():
@@ -332,7 +319,6 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
         driver.find_element_by_id("ius-sign-in-submit-btn").submit()
     # try to enter in credentials if username and password are on different pages
     except (ElementNotInteractableException, ElementNotVisibleException):
-        driver.implicitly_wait(0)
         try:
             email_input = driver.find_element_by_id("ius-identifier")
             if not email_input.is_displayed():
@@ -347,7 +333,7 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
                 if username_element.text == email:
                     username_element.click()
                     break
-        driver.implicitly_wait(5)
+        driver.implicitly_wait(20)  # seconds
         try:
             driver.find_element_by_id(
                 "ius-sign-in-mfa-password-collection-current-password").send_keys(password)
@@ -357,12 +343,9 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
             pass  # password may not be here when using MFA
 
     # Wait until logged in, just in case we need to deal with MFA.
+    driver.implicitly_wait(1)  # seconds
     while not driver.current_url.startswith(
             'https://mint.intuit.com/overview.event'):
-        # An implicitly_wait is also necessary here to avoid getting stuck on
-        # find_element_by_id while the page is still in transition.
-        driver.implicitly_wait(1)
-        time.sleep(1)
 
         # bypass "Let's add your current mobile number" interstitial page
         try:
@@ -393,7 +376,7 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
                     pass  # no option to select mfa option
 
                 if mfa_method == 'email' and imap_account:
-                    for element_id in ["ius-mfa-email-otp-card-challenge", "ius-sublabel-mfa-email-otp"]:
+                    for element_id in ["ius-label-mfa-email-otp", "ius-mfa-email-otp-card-challenge", "ius-sublabel-mfa-email-otp"]:
                         try:
                             mfa_email_select = driver.find_element_by_id(element_id)
                             mfa_email_select.click()
@@ -448,9 +431,7 @@ def _sign_in(email, password, driver, mfa_method=None, mfa_token=None,
             driver.find_element_by_id("ius-sign-in-mfa-password-collection-continue-btn").submit()
         except (NoSuchElementException, ElementNotInteractableException):
             pass  # not on secondary mfa password screen
-
-        finally:
-            driver.implicitly_wait(20)  # seconds
+    driver.implicitly_wait(20)  # seconds
 
 
 def get_web_driver(email, password, headless=False, mfa_method=None, mfa_token=None,
@@ -495,7 +476,10 @@ def get_web_driver(email, password, headless=False, mfa_method=None, mfa_token=N
         driver = None
 
     if status_message is not None and isinstance(status_message, WebElement):
-        status_message = status_message.text
+        try:
+            status_message = status_message.text
+        except StaleElementReferenceException:
+            pass
     return driver, status_message
 
 
@@ -629,6 +613,15 @@ class Mint(object):
     def post(self, url, **kwargs):
         return self.driver.request('POST', url, **kwargs)
 
+    def make_post_request(self, url, data, convert_to_text=False):
+        response = self.post(url=url, data=data, headers=JSON_HEADER)
+        if convert_to_text:
+            response = response.text
+        return response
+
+    def build_bundledServiceController_url(self):
+        return '{}/bundledServiceController.xevent?legacy=false&token={}'.format(MINT_ROOT_URL, self.token)
+
     def login_and_get_token(self, email, password, mfa_method=None, mfa_token=None,
                             mfa_input_callback=None, intuit_account=None, headless=False,
                             session_path=None, imap_account=None,
@@ -724,14 +717,9 @@ class Mint(object):
         }
 
         data = {'input': json.dumps([input])}
-        account_data_url = (
-            '{}/bundledServiceController.xevent?legacy=false&token={}'.format(
-                MINT_ROOT_URL, self.token))
-        response = self.post(
-            account_data_url,
-            data=data,
-            headers=JSON_HEADER
-        ).text
+        response = self.make_post_request(url=self.build_bundledServiceController_url(),
+                                          data=data,
+                                          convert_to_text=True)
         if req_id not in response:
             raise MintException('Could not parse account data: ' + response)
 
@@ -748,18 +736,14 @@ class Mint(object):
         return accounts
 
     def set_user_property(self, name, value):
-        url = (
-            '{}/bundledServiceController.xevent?legacy=false&token={}'.format(
-                MINT_ROOT_URL, self.token))
         req_id = self.get_request_id_str()
-        result = self.post(
-            url,
-            data={'input': json.dumps([{'args': {'propertyName': name,
-                                                 'propertyValue': value},
-                                        'service': 'MintUserService',
-                                        'task': 'setUserProperty',
-                                        'id': req_id}])},
-            headers=JSON_HEADER)
+        data = {'input': json.dumps([{'args': {'propertyName': name,
+                                               'propertyValue': value},
+                                      'service': 'MintUserService',
+                                      'task': 'setUserProperty',
+                                      'id': req_id}])}
+        result = self.make_post_request(url=self.build_bundledServiceController_url(),
+                                        data=data)
         if result.status_code != 200:
             raise MintException('Received HTTP error %d' % result.status_code)
         response = result.text
@@ -844,8 +828,6 @@ class Mint(object):
         remove_pending to False
 
         """
-        assert_pd()
-
         result = self.get_transactions_json(include_investment,
                                             skip_duplicates,
                                             start_date, end_date)
@@ -870,7 +852,7 @@ class Mint(object):
             transaction['parentCategoryId'] = '' if parent['name'] == 'Root' else parent['id']
         return result
 
-    def get_transactions_csv(self, include_investment=False, acct=0):
+    def get_transactions_csv(self, include_investment=False, start_date=None, end_date=None, acct=0):
         """Returns the raw CSV transaction data as downloaded from Mint.
 
         If include_investment == True, also includes transactions that Mint
@@ -882,9 +864,12 @@ class Mint(object):
         # Specifying accountId=0 causes Mint to return investment
         # transactions as well.  Otherwise they are skipped by
         # default.
-        params = None
-        if include_investment or acct > 0:
-            params = {'accountId': acct}
+
+        params = {
+            'accountId': acct if acct > 0 else None,
+            'startDate': convert_date_to_string(convert_mmddyy_to_datetime(start_date)),
+            'endDate': convert_date_to_string(convert_mmddyy_to_datetime(end_date)),
+        }
         result = self.request_and_check(
             '{}/transactionDownload.event'.format(MINT_ROOT_URL),
             params=params,
@@ -903,11 +888,15 @@ class Mint(object):
             for a in account_data if a['isActive']
         ])
 
-    def get_transactions(self, include_investment=False):
+    def get_transactions(self, include_investment=False, start_date=None, end_date=None):
         """Returns the transaction data as a Pandas DataFrame."""
-        assert_pd()
-        s = StringIO(self.get_transactions_csv(
-            include_investment=include_investment))
+        s = io.BytesIO(
+            self.get_transactions_csv(
+                start_date=start_date,
+                end_date=end_date,
+                include_investment=include_investment,
+            )
+        )
         s.seek(0)
         df = pd.read_csv(s, parse_dates=['Date'])
         df.columns = [c.lower().replace(' ', '_') for c in df.columns]
@@ -993,11 +982,9 @@ class Mint(object):
                 'task': 'getCategoryTreeDto2'
             }])
         }
-
-        cat_url = (
-            '{}/bundledServiceController.xevent?legacy=false&token={}'.format(
-                MINT_ROOT_URL, self.token))
-        response = self.post(cat_url, data=data, headers=JSON_HEADER).text
+        response = self.make_post_request(url=self.build_bundledServiceController_url(),
+                                          data=data,
+                                          convert_to_text=True)
         if req_id not in response:
             raise MintException(
                 'Could not parse category data: "{}"'.format(response))
@@ -1107,10 +1094,9 @@ class Mint(object):
         return {'parent': 'Unknown', 'name': 'Unknown'}
 
     def initiate_account_refresh(self):
-        self.post(
-            '{}/refreshFILogins.xevent'.format(MINT_ROOT_URL),
-            data={'token': self.token},
-            headers=JSON_HEADER)
+        data = {'token': self.token}
+        self.make_post_request(url='{}/refreshFILogins.xevent'.format(MINT_ROOT_URL),
+                               data=data)
 
     def get_credit_score(self):
         # Request a single credit report, and extract the score
@@ -1130,6 +1116,12 @@ class Mint(object):
         # How the "bands" are defined, and other metadata, is available at a
         # /v1/creditscoreproviders/3 endpoint (3 = TransUnion)
         credit_report = dict()
+
+        # Because cookies are involved and you cannot add cookies for another
+        # domain, we have to first load up the MINT_CREDIT_URL.  Once the new
+        # domain has loaded, we can proceed with the pull of credit data.
+        self.driver.get(MINT_CREDIT_URL)
+
         response = self.get(
             '{}/v1/creditreports?limit={}'.format(MINT_CREDIT_URL, limit),
             headers=credit_header)
@@ -1138,25 +1130,21 @@ class Mint(object):
         # If we want details, request the detailed sub-reports
         if details:
             # Get full list of credit inquiries
-            response = self.get(
-                '{}/v1/creditreports/0/inquiries'.format(MINT_CREDIT_URL),
-                headers=credit_header)
+            response = self._get_credit_details('{}/v1/creditreports/0/inquiries', credit_header)
             credit_report['inquiries'] = response.json()
 
             # Get full list of credit accounts
-            response = self.get(
-                '{}/v1/creditreports/0/tradelines'.format(MINT_CREDIT_URL),
-                headers=credit_header)
+            response = self._get_credit_details('{}/v1/creditreports/0/tradelines', credit_header)
             credit_report['accounts'] = response.json()
 
             # Get credit utilization history (~3 months, by account)
-            response = self.get(
-                '{}/v1/creditreports/creditutilizationhistory'.format(MINT_CREDIT_URL),
-                headers=credit_header)
-            clean_data = self.process_utilization(response.json())
-            credit_report['utilization'] = clean_data
+            response = self._get_credit_details('{}/v1/creditreports/creditutilizationhistory', credit_header)
+            credit_report['utilization'] = self.process_utilization(response.json())
 
         return credit_report
+
+    def _get_credit_details(self, url, credit_header):
+        return self.get(url.format(MINT_CREDIT_URL), headers=credit_header)
 
     def process_utilization(self, data):
         # Function to clean up the credit utilization history data
@@ -1196,7 +1184,7 @@ def parse_arguments(args):
         (('--config-file', '-c'), {'required': False, 'is_config_file': True, 'help': 'The path to the config file used.'}),
         (('--credit-report', ), {'action': 'store_true', 'dest': 'credit_report', 'default': False, 'help': 'Retrieve full credit report'}),
         (('--credit-score', ), {'action': 'store_true', 'dest': 'credit_score', 'default': False, 'help': 'Retrieve current credit score'}),
-        (('--end-date', ), {'nargs': '?', 'default': None, 'help': 'Latest date for transactions to be retrieved from. Used with --extended-transactions. Format: mm/dd/yy'}),
+        (('--end-date', ), {'nargs': '?', 'default': None, 'help': 'Latest date for transactions to be retrieved from. Used with --transactions or --extended-transactions. Format: mm/dd/yy'}),
         (('--exclude-inquiries', ), {'action': 'store_true', 'help': 'When accessing credit report details, exclude data related to credit inquiries.  Used with --credit-report.'}),
         (('--extended-accounts', ), {'action': 'store_true', 'dest': 'accounts_ext', 'default': False, 'help': 'Retrieve extended account information (slower, implies --accounts)'}),
         (('--extended-transactions', ), {'action': 'store_true', 'default': False, 'help': 'Retrieve transactions with extra information and arguments'}),
@@ -1217,7 +1205,7 @@ def parse_arguments(args):
         # Displayed to the user as a postive switch, but processed back here as a negative
         (('--show-pending', ), {'action': 'store_false', 'default': True, 'help': 'Exclude pending transactions from being retrieved. Used with --extended-transactions'}),
         (('--skip-duplicates', ), {'action': 'store_true', 'default': False, 'help': 'Used with --extended-transactions'}),
-        (('--start-date', ), {'nargs': '?', 'default': None, 'help': 'Earliest date for transactions to be retrieved from. Used with --extended-transactions. Format: mm/dd/yy'}),
+        (('--start-date', ), {'nargs': '?', 'default': None, 'help': 'Earliest date for transactions to be retrieved from. Used with --transactions or --extended-transactions. Format: mm/dd/yy'}),
         (('--transactions', '-t'), {'action': 'store_true', 'default': False, 'help': 'Retrieve transactions'}),
         (('--use-chromedriver-on-path', ), {'action': 'store_true', 'help': 'Whether to use the chromedriver on PATH, instead of downloading a local copy.'}),
         (('--wait_for_sync_timeout', ), {'type': int, 'default': 5 * 60, 'help': 'Number of seconds to wait for sync.  Default is 5 minutes'}),
@@ -1293,13 +1281,6 @@ def main():
 
     if options.keyring and not keyring:
         raise Exception('--keyring can only be used if the `keyring` library is installed.')
-
-    try:  # python 2.x
-        from __builtin__ import raw_input as input
-    except ImportError:  # python 3
-        from builtins import input
-    except NameError:
-        pass
 
     # Try to get the e-mail and password from the arguments
     email = options.email
@@ -1393,6 +1374,8 @@ def main():
             data = None
     elif options.transactions:
         data = mint.get_transactions(
+            start_date=options.start_date,
+            end_date=options.end_date,
             include_investment=options.include_investment)
     elif options.extended_transactions:
         data = mint.get_detailed_transactions(
