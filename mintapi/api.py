@@ -303,7 +303,6 @@ def _create_web_driver_at_mint_com(
             options=chrome_options,
             executable_path=get_stable_chrome_driver(chromedriver_download_path),
         )
-    driver.get("https://www.mint.com")
     return driver
 
 
@@ -326,6 +325,7 @@ def sign_in(
     Takes in a web driver and gets it through the Mint sign in process
     """
     driver.implicitly_wait(20)  # seconds
+    driver.get("https://www.mint.com")
     element = driver.find_element_by_link_text("Sign in")
     element.click()
 
