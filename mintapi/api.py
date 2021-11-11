@@ -19,11 +19,6 @@ import email.header
 import sys  # DEBUG
 import warnings
 
-try:
-    from StringIO import StringIO  # Python 2
-except ImportError:
-    from io import BytesIO as StringIO  # Python 3
-
 from selenium.common.exceptions import ElementNotInteractableException, ElementNotVisibleException, NoSuchElementException, StaleElementReferenceException, TimeoutException
 from selenium.webdriver import ChromeOptions
 from selenium.webdriver.common.by import By
@@ -33,22 +28,10 @@ from selenium.webdriver.remote.webelement import WebElement
 from seleniumrequests import Chrome
 import xmltodict
 
-try:
-    import pandas as pd
-except ImportError:
-    pd = None
+import pandas as pd
 
 logger = logging.getLogger('mintapi')
 logger.setLevel(logging.INFO)
-
-
-def assert_pd():
-    # Common function to check if pd is installed
-    if not pd:
-        raise ImportError(
-            'transactions data requires pandas; '
-            'please pip install pandas'
-        )
 
 
 def json_date_to_datetime(dateraw):
@@ -845,8 +828,6 @@ class Mint(object):
         remove_pending to False
 
         """
-        assert_pd()
-
         result = self.get_transactions_json(include_investment,
                                             skip_duplicates,
                                             start_date, end_date)
@@ -909,11 +890,13 @@ class Mint(object):
 
     def get_transactions(self, include_investment=False, start_date=None, end_date=None):
         """Returns the transaction data as a Pandas DataFrame."""
-        assert_pd()
-        s = StringIO(self.get_transactions_csv(
-            start_date=start_date,
-            end_date=end_date,
-            include_investment=include_investment))
+        s = io.BytesIO(
+            self.get_transactions_csv(
+                start_date=start_date,
+                end_date=end_date,
+                include_investment=include_investment,
+            )
+        )
         s.seek(0)
         df = pd.read_csv(s, parse_dates=['Date'])
         df.columns = [c.lower().replace(' ', '_') for c in df.columns]
@@ -1297,13 +1280,6 @@ def main():
 
     if options.keyring and not keyring:
         raise Exception('--keyring can only be used if the `keyring` library is installed.')
-
-    try:  # python 2.x
-        from __builtin__ import raw_input as input
-    except ImportError:  # python 3
-        from builtins import input
-    except NameError:
-        pass
 
     # Try to get the e-mail and password from the arguments
     email = options.email
