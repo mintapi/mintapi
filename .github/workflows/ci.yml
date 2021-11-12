@@ -1,4 +1,4 @@
-name: mintapi build 
+name: mintapi build
 
 on: [push, pull_request]
 
@@ -36,3 +36,9 @@ jobs:
       - name: Tests
         run:
           pytest
+      - name: Upload CodeCov Report
+          if: ${{ steps.skipcheck.outputs.RUN_TESTS }}
+          uses: codecov/codecov-action@v1
+          with:
+              token: ${{ secrets.CODECOV_TOKEN }}
+                  # fail_ci_if_error: true # optional (default = false)
