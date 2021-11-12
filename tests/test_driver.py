@@ -181,6 +181,29 @@ class MintApiTests(unittest.TestCase):
         self.assertTrue('parentCategoryName' in results_with_parents)
         self.assertTrue('parentCategoryId' in results_with_parents)
 
+
+    @patch.object(mintapi.Mint, '_get_api_key_header')
+    @patch.object(mintapi.Mint, '_load_mint_credit_url')
+    @patch.object(mintapi.api, 'get_web_driver')
+    @patch.object(mintapi.Mint, '_get_credit_reports')
+    @patch.object(mintapi.Mint, 'get_credit_inquiries')
+    @patch.object(mintapi.Mint, 'get_credit_accounts')
+    @patch.object(mintapi.Mint, 'get_credit_utilization')
+
+    def test_exclude_inquiries(self, mock_get_api_key_header, mock_load_mint_credit_url, mock_driver, mock_get_credit_reports, mock_get_credit_inquiries, mock_get_credit_accounts, mock_get_credit_utilization):
+        mint = mintapi.Mint()
+        test_value = "test"
+        credit_test = {test_value}
+        mock_get_api_key_header.return_value = test_value
+        mock_load_mint_credit_url.return_value = test_value
+        mock_driver.return_value = (TestMock(), "test")
+        mock_get_credit_reports.return_value = credit_test
+        mock_get_credit_inquiries.return_value = credit_test
+        mock_get_credit_accounts.return_value = credit_test
+        mock_get_credit_utilization.return_value = credit_test
+        credit_report = mint.get_credit_report(limit=2, details=True, exclude_inquiries=True)
+        self.assertFalse('inquiries' in credit_report)
+
     @patch.object(mintapi.api, '_create_web_driver_at_mint_com')
     @patch.object(mintapi.api, 'logger')
     @patch.object(mintapi.api, '_sign_in')
