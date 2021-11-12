@@ -1107,7 +1107,7 @@ class Mint(object):
         except (KeyError, IndexError):
             raise Exception('No Credit Score Found')
 
-    def get_credit_report(self, limit=2, details=True, exclude_inquiries):
+    def get_credit_report(self, limit=2, details=True, exclude_inquiries=False):
         # Get the browser API key, build auth header
         credit_header = self._get_api_key_header()
 
@@ -1130,21 +1130,18 @@ class Mint(object):
         # If we want details, request the detailed sub-reports
         if details:
             # Get full list of credit inquiries
-            response = self._get_credit_details('{}/v1/creditreports/0/inquiries', credit_header)
-            credit_report['inquiries'] = response.json()
+            credit_report['inquiries'] = self._get_credit_details('{}/v1/creditreports/0/inquiries', credit_header)
 
             # Get full list of credit accounts
-            response = self._get_credit_details('{}/v1/creditreports/0/tradelines', credit_header)
-            credit_report['accounts'] = response.json()
+            credit_report['accounts'] = self._get_credit_details('{}/v1/creditreports/0/tradelines', credit_header)
 
             # Get credit utilization history (~3 months, by account)
-            response = self._get_credit_details('{}/v1/creditreports/creditutilizationhistory', credit_header)
-            credit_report['utilization'] = self.process_utilization(response.json())
+            credit_report['utilization'] = self.process_utilization(self._get_credit_details('{}/v1/creditreports/creditutilizationhistory', credit_header))
 
         return credit_report
 
     def _get_credit_details(self, url, credit_header):
-        return self.get(url.format(MINT_CREDIT_URL), headers=credit_header)
+        return self.get(url.format(MINT_CREDIT_URL), headers=credit_header).json()
 
     def process_utilization(self, data):
         # Function to clean up the credit utilization history data
