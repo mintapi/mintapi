@@ -683,14 +683,13 @@ class Mint(object):
         ).json()['bills']
 
     def get_invests_json(self):
-        body = self.get(
-            '{}/investment.event'.format(MINT_ROOT_URL),
-        ).text
-        p = re.search(r'<input name="json-import-node" type="hidden" value="json = ([^"]*);"', body)
-        if p:
-            return p.group(1).replace('&quot;', '"')
-        else:
-            logger.error("FAIL2")
+        investments = self.get(
+            '{}/pfm/v1/investments'.format(MINT_ROOT_URL),
+            headers=self._get_api_key_header()
+        ).json()['Investment']
+        for i in investments:
+            i.pop('metaData', None)
+        return investments
 
     def get_accounts(self, get_detail=False):  # {{{
         # Issue service request.
@@ -1194,6 +1193,7 @@ def parse_arguments(args):
         (('--imap-password', ), {'default': None, 'help': 'IMAP login password'}),
         (('--imap-server', ), {'default': None, 'help': 'IMAP server'}),
         (('--imap-test', ), {'action': 'store_true', 'help': 'Test imap login and retrieval.'}),
+        (('--investment', ), {'action': 'store_true', 'default': False, 'help': 'Retrieve data related to your investments, whether they be retirement or personal stock purchases'}),
         (('--include-investment', ), {'action': 'store_true', 'default': False, 'help': 'Used with --extended-transactions'}),
         (('--keyring', ), {'action': 'store_true', 'help': 'Use OS keyring for storing password information'}),
         (('--mfa-method', ), {'choices': ['sms', 'email', 'soft-token'], 'default': 'sms', 'help': 'The MFA method to automate.'}),
@@ -1307,7 +1307,7 @@ def main():
 
     if not any([options.accounts, options.budgets, options.transactions,
                 options.extended_transactions, options.net_worth, options.credit_score,
-                options.credit_report, options.attention]):
+                options.credit_report, options.investment, options.attention]):
         options.accounts = True
 
     if options.session_path == 'None':
@@ -1383,6 +1383,8 @@ def main():
             include_investment=options.include_investment,
             remove_pending=options.show_pending,
             skip_duplicates=options.skip_duplicates)
+    elif options.investment:
+        data = mint.get_invests_json()
     elif options.net_worth:
         data = mint.get_net_worth()
     elif options.credit_score:
