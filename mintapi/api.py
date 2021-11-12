@@ -1128,7 +1128,7 @@ class Mint(object):
                 credit_report['inquiries'] = self.get_credit_inquiries(credit_header)
 
             # Get full list of credit accounts
-            credit_report['accounts'] =  self.get_credit_accounts(credit_header)
+            credit_report['accounts'] = self.get_credit_accounts(credit_header)
 
             # Get credit utilization history (~3 months, by account)
             credit_report['utilization'] = self.get_credit_utilization(credit_header)
