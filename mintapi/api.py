@@ -683,6 +683,21 @@ class Mint(object):
         ).json()['bills']
 
     def get_invests_json(self):
+        warnings.warn(
+            "We will deprecate get_invests_json method in the next major release due to an updated endpoint for"
+            "investment data.  Transition to use the updated get_investment_data_new method, which is also now accessible via command-line.",
+            DeprecationWarning
+        )
+        body = self.get(
+            '{}/investment.event'.format(MINT_ROOT_URL),
+        ).text
+        p = re.search(r'<input name="json-import-node" type="hidden" value="json = ([^"]*);"', body)
+        if p:
+            return p.group(1).replace('&quot;', '"')
+        else:
+            logger.error("FAIL2")
+
+    def get_investment_data_new(self):
         investments = self.get(
             '{}/pfm/v1/investments'.format(MINT_ROOT_URL),
             headers=self._get_api_key_header()
@@ -1384,7 +1399,7 @@ def main():
             remove_pending=options.show_pending,
             skip_duplicates=options.skip_duplicates)
     elif options.investment:
-        data = mint.get_invests_json()
+        data = mint.get_investment_data_new()
     elif options.net_worth:
         data = mint.get_net_worth()
     elif options.credit_score:
