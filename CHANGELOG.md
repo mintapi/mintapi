@@ -1,3 +1,10 @@
+1.57
+---
+- add date range support to --transactions (github#321)
+- improvements for new and existing flows for login and email MFA (github#317)
+- fix invalid cookie domain error when fetching credit information (github#320)
+- minor code cleanups and improvements (github#329, #github#331)
+
 1.56
 ---
 - add columns for parent category to the output of extended-transactions (github#310)
