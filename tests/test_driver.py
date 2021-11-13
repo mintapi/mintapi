@@ -189,7 +189,6 @@ class MintApiTests(unittest.TestCase):
     @patch.object(mintapi.Mint, 'get_credit_inquiries')
     @patch.object(mintapi.Mint, 'get_credit_accounts')
     @patch.object(mintapi.Mint, 'get_credit_utilization')
-
     def test_exclude_inquiries(self, mock_get_api_key_header, mock_load_mint_credit_url, mock_driver, mock_get_credit_reports, mock_get_credit_inquiries, mock_get_credit_accounts, mock_get_credit_utilization):
         mint = mintapi.Mint()
         test_value = "test"

@@ -1154,17 +1154,17 @@ class Mint(object):
         return self._get_credit_details('{}/v1/creditreports/0/tradelines', credit_header)
 
     def get_credit_utilization(self, credit_header):
-        return self.process_utilization(self._get_credit_details('{}/v1/creditreports/creditutilizationhistory', credit_header))
+        return self.__process_utilization(self._get_credit_details('{}/v1/creditreports/creditutilizationhistory', credit_header))
 
-    def process_utilization(self, data):
+    def __process_utilization(self, data):
         # Function to clean up the credit utilization history data
         utilization = []
-        utilization.extend(self.flatten_utilization(data['cumulative']))
+        utilization.extend(self.__flatten_utilization(data['cumulative']))
         for trade in data['tradelines']:
-            utilization.extend(self.flatten_utilization(trade))
+            utilization.extend(self.__flatten_utilization(trade))
         return utilization
 
-    def flatten_utilization(self, data):
+    def __flatten_utilization(self, data):
         # The utilization history data has a nested format, grouped by year
         # and then by month. Let's flatten that into a list of dates.
         utilization = []
