@@ -698,13 +698,16 @@ class Mint(object):
             logger.error("FAIL2")
 
     def get_investment_data_new(self):
-        investments = self.get(
-            '{}/pfm/v1/investments'.format(MINT_ROOT_URL),
-            headers=self._get_api_key_header()
-        ).json()['Investment']
+        investments = self.call_investments_endpoint()['Investment']
         for i in investments:
             i.pop('metaData', None)
         return investments
+
+    def call_investments_endpoint(self):
+        return self.get(
+            '{}/pfm/v1/investments'.format(MINT_ROOT_URL),
+            headers=self._get_api_key_header()
+        ).json()
 
     def get_accounts(self, get_detail=False):  # {{{
         # Issue service request.
