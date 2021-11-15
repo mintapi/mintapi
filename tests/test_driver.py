@@ -12,10 +12,7 @@ import pandas as pd
 import requests
 import tempfile
 
-try:
-    from mock import patch  # Python 2
-except ImportError:
-    from unittest.mock import patch  # Python 3
+from unittest.mock import patch
 
 # add mintapi to path so it can be accessed even if not running from mintapi folder
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))

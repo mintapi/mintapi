@@ -12,7 +12,7 @@ An unofficial screen-scraping API for Mint.com.
 Please [join us on Discord](https://discord.gg/YjJEuJRAu9) to get help or just chat with fellow mintapi users :)
 
 ## Installation
-Ensure you have Python 2 or 3 and pip (`easy_install pip`) and then:
+Ensure you have Python 3 and pip (`easy_install pip`) and then:
 
 ```shell
 pip install mintapi
