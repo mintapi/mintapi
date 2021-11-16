@@ -837,7 +837,7 @@ class Mint(object):
         warnings.warn(
             "We will deprecate get_invests_json method in the next major release due to an updated endpoint for"
             "investment data.  Transition to use the updated get_investment_data_new method, which is also now accessible via command-line.",
-            DeprecationWarning
+            DeprecationWarning,
         )
         body = self.get(
             "{}/investment.event".format(MINT_ROOT_URL),
@@ -852,15 +852,15 @@ class Mint(object):
             logger.error("FAIL2")
 
     def get_investment_data_new(self):
-        investments = self.call_investments_endpoint()['Investment']
+        investments = self.call_investments_endpoint()["Investment"]
         for i in investments:
-            i.pop('metaData', None)
+            i.pop("metaData", None)
         return investments
 
     def call_investments_endpoint(self):
         return self.get(
-            '{}/pfm/v1/investments'.format(MINT_ROOT_URL),
-            headers=self._get_api_key_header()
+            "{}/pfm/v1/investments".format(MINT_ROOT_URL),
+            headers=self._get_api_key_header(),
         ).json()
 
     def get_accounts(self, get_detail=False):  # {{{
@@ -1527,8 +1527,8 @@ def parse_arguments(args):
             {
                 "action": "store_true",
                 "default": False,
-                "help": "Retrieve data related to your investments, whether they be retirement or personal stock purchases"
-            }
+                "help": "Retrieve data related to your investments, whether they be retirement or personal stock purchases",
+            },
         ),
         (
             ("--include-investment",),

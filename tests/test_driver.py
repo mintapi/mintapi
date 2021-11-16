@@ -108,29 +108,26 @@ detailed_transactions_example = [
 transactions_example = b'"Date","Description","Original Description","Amount","Transaction Type","Category","Account Name","Labels","Notes"\n"5/14/2020","Safeway","SAFEWAY.COM # 3031","88.09","debit","Groceries","CREDIT CARD","",""\n'
 
 investments_example = {
-    "Investment":
-    [
-      {
-        "accountId": "1",
-        "cpSrcElementId": "2",
-        "description": "TEST",
-        "cpAssetClass": "UNKNOWN",
-        "holdingType": "UNKNOWN",
-        "initialTotalCost": 0.0,
-        "inceptionDate": "2011-01-03T07:00:00Z",
-        "initialQuantity": 0.0,
-        "currentQuantity": 0.0,
-        "currentPrice": 10.0,
-        "currentValue": 1414.12,
-        "averagePricePaid": 0.0,
-        "id": "3",
-        "metaData": {
-            "id": "4",
-            "description": "METADATA TEST"
+    "Investment": [
+        {
+            "accountId": "1",
+            "cpSrcElementId": "2",
+            "description": "TEST",
+            "cpAssetClass": "UNKNOWN",
+            "holdingType": "UNKNOWN",
+            "initialTotalCost": 0.0,
+            "inceptionDate": "2011-01-03T07:00:00Z",
+            "initialQuantity": 0.0,
+            "currentQuantity": 0.0,
+            "currentPrice": 10.0,
+            "currentValue": 1414.12,
+            "averagePricePaid": 0.0,
+            "id": "3",
+            "metaData": {"id": "4", "description": "METADATA TEST"},
         }
-      }
     ]
 }
+
 
 class Attribute:
     text = json.dumps({"response": {"42": {"response": accounts_example}}})
@@ -238,6 +235,7 @@ class MintApiTests(unittest.TestCase):
         mock_call_investments_endpoint.return_value = investments_example
         investment_data = mintapi.Mint().get_investment_data_new()[0]
         self.assertFalse("metaData" in investment_data)
+
 
 @unittest.skipIf(test_args is None, "This test requires a sign in")
 class GivenBrowserAtSignInPage(unittest.TestCase):
