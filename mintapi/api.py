@@ -1334,19 +1334,30 @@ class Mint(object):
         return self.driver.get(MINT_CREDIT_URL)
 
     def _get_credit_reports(self, limit, credit_header):
-        return self.get("{}/v1/creditreports?limit={}".format(MINT_CREDIT_URL, limit), headers=credit_header).json()
+        return self.get(
+            "{}/v1/creditreports?limit={}".format(MINT_CREDIT_URL, limit),
+            headers=credit_header,
+        ).json()
 
     def _get_credit_details(self, url, credit_header):
         return self.get(url.format(MINT_CREDIT_URL), headers=credit_header).json()
 
     def get_credit_inquiries(self, credit_header):
-        return self._get_credit_details("{}/v1/creditreports/0/inquiries", credit_header)
+        return self._get_credit_details(
+            "{}/v1/creditreports/0/inquiries", credit_header
+        )
 
     def get_credit_accounts(self, credit_header):
-        return self._get_credit_details("{}/v1/creditreports/0/tradelines", credit_header)
+        return self._get_credit_details(
+            "{}/v1/creditreports/0/tradelines", credit_header
+        )
 
     def get_credit_utilization(self, credit_header):
-        return self.__process_utilization(self._get_credit_details("{}/v1/creditreports/creditutilizationhistory", credit_header))
+        return self.__process_utilization(
+            self._get_credit_details(
+                "{}/v1/creditreports/creditutilizationhistory", credit_header
+            )
+        )
 
     def __process_utilization(self, data):
         # Function to clean up the credit utilization history data
@@ -1810,8 +1821,9 @@ def main():
     elif options.credit_score:
         data = mint.get_credit_score()
     elif options.credit_report:
-        data = mint.get_credit_report(details=True,
-                                      exclude_inquiries=options.exclude_inquiries)
+        data = mint.get_credit_report(
+            details=True, exclude_inquiries=options.exclude_inquiries
+        )
 
     # output the data
     if options.transactions or options.extended_transactions:
