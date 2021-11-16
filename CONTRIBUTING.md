@@ -1,0 +1,2 @@
+# Formatting
+The CI pipeline for this package uses the [black](https://black.readthedocs.io/en/stable/) formatting package. You will need to use it else the CI pipeline will fail. You can find instructions on how to use it [in black's documentation](https://black.readthedocs.io/en/stable/getting_started.html). 
