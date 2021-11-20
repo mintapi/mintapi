@@ -12,7 +12,7 @@ import pandas as pd
 import requests
 import tempfile
 
-from unittest.mock import patch
+from unittest.mock import patch, DEFAULT
 
 # add mintapi to path so it can be accessed even if not running from mintapi folder
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -194,30 +194,16 @@ class MintApiTests(unittest.TestCase):
         mintapi.Mint("test", "test")
         mock_logger.exception.assert_called_with(test_exception)
 
-    @patch.object(mintapi.Mint, "_get_api_key_header")
-    @patch.object(mintapi.Mint, "_load_mint_credit_url")
-    @patch.object(mintapi.api, "get_web_driver")
-    @patch.object(mintapi.Mint, "_get_credit_reports")
-    @patch.object(mintapi.Mint, "get_credit_accounts")
-    @patch.object(mintapi.Mint, "get_credit_utilization")
-    def test_exclude_inquiries(
-        self,
-        mock_get_credit_utilization,
-        mock_get_credit_accounts,
-        mock_get_credit_reports,
-        mock_driver,
-        mock_load_mint_credit_url,
-        mock_get_api_key_header,
-    ):
+    @patch.multiple(
+        mintapi.Mint,
+        _get_api_key_header=DEFAULT,
+        _load_mint_credit_url=DEFAULT,
+        _get_credit_reports=DEFAULT,
+        get_credit_accounts=DEFAULT,
+        get_credit_utilization=DEFAULT,
+    )
+    def test_exclude_inquiries(self, **_):
         mint = mintapi.Mint()
-        test_value = "test"
-        credit_test = {test_value}
-        mock_get_api_key_header.return_value = test_value
-        mock_load_mint_credit_url.return_value = test_value
-        mock_driver.return_value = (TestMock(), "test")
-        mock_get_credit_reports.return_value = credit_test
-        mock_get_credit_accounts.return_value = credit_test
-        mock_get_credit_utilization.return_value = credit_test
         credit_report = mint.get_credit_report(
             limit=2, details=True, exclude_inquiries=True
         )
