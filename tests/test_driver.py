@@ -12,7 +12,7 @@ import pandas as pd
 import requests
 import tempfile
 
-from unittest.mock import patch
+from unittest.mock import patch, DEFAULT
 
 # add mintapi to path so it can be accessed even if not running from mintapi folder
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -193,6 +193,21 @@ class MintApiTests(unittest.TestCase):
         mock_sign_in.side_effect = test_exception
         mintapi.Mint("test", "test")
         mock_logger.exception.assert_called_with(test_exception)
+
+    @patch.multiple(
+        mintapi.Mint,
+        _get_api_key_header=DEFAULT,
+        _load_mint_credit_url=DEFAULT,
+        _get_credit_reports=DEFAULT,
+        get_credit_accounts=DEFAULT,
+        get_credit_utilization=DEFAULT,
+    )
+    def test_exclude_inquiries(self, **_):
+        mint = mintapi.Mint()
+        credit_report = mint.get_credit_report(
+            limit=2, details=True, exclude_inquiries=True
+        )
+        self.assertFalse("inquiries" in credit_report)
 
     def test_config_file(self):
         # verify parsing from config file

@@ -1292,14 +1292,14 @@ class Mint(object):
 
     def get_credit_score(self):
         # Request a single credit report, and extract the score
-        report = self.get_credit_report(limit=1, details=False)
+        report = self.get_credit_report(limit=1, details=False, exclude_inquiries=False)
         try:
             vendor = report["reports"]["vendorReports"][0]
             return vendor["creditReportList"][0]["creditScore"]
         except (KeyError, IndexError):
             raise Exception("No Credit Score Found")
 
-    def get_credit_report(self, limit=2, details=True):
+    def get_credit_report(self, limit=2, details=True, exclude_inquiries=False):
         # Get the browser API key, build auth header
         credit_header = self._get_api_key_header()
 
@@ -1309,51 +1309,65 @@ class Mint(object):
         # /v1/creditscoreproviders/3 endpoint (3 = TransUnion)
         credit_report = dict()
 
-        # Because cookies are involved and you cannot add cookies for another
-        # domain, we have to first load up the MINT_CREDIT_URL.  Once the new
-        # domain has loaded, we can proceed with the pull of credit data.
-        self.driver.get(MINT_CREDIT_URL)
+        self._load_mint_credit_url()
 
-        response = self.get(
-            "{}/v1/creditreports?limit={}".format(MINT_CREDIT_URL, limit),
-            headers=credit_header,
-        )
-        credit_report["reports"] = response.json()
+        credit_report["reports"] = self._get_credit_reports(limit, credit_header)
 
         # If we want details, request the detailed sub-reports
         if details:
             # Get full list of credit inquiries
-            response = self._get_credit_details(
-                "{}/v1/creditreports/0/inquiries", credit_header
-            )
-            credit_report["inquiries"] = response.json()
+            if not exclude_inquiries:
+                credit_report["inquiries"] = self.get_credit_inquiries(credit_header)
 
             # Get full list of credit accounts
-            response = self._get_credit_details(
-                "{}/v1/creditreports/0/tradelines", credit_header
-            )
-            credit_report["accounts"] = response.json()
+            credit_report["accounts"] = self.get_credit_accounts(credit_header)
 
             # Get credit utilization history (~3 months, by account)
-            response = self._get_credit_details(
-                "{}/v1/creditreports/creditutilizationhistory", credit_header
-            )
-            credit_report["utilization"] = self.process_utilization(response.json())
+            credit_report["utilization"] = self.get_credit_utilization(credit_header)
 
         return credit_report
 
-    def _get_credit_details(self, url, credit_header):
-        return self.get(url.format(MINT_CREDIT_URL), headers=credit_header)
+    def _load_mint_credit_url(self):
+        # Because cookies are involved and you cannot add cookies for another
+        # domain, we have to first load up the MINT_CREDIT_URL.  Once the new
+        # domain has loaded, we can proceed with the pull of credit data.
+        return self.driver.get(MINT_CREDIT_URL)
 
-    def process_utilization(self, data):
+    def _get_credit_reports(self, limit, credit_header):
+        return self.get(
+            "{}/v1/creditreports?limit={}".format(MINT_CREDIT_URL, limit),
+            headers=credit_header,
+        ).json()
+
+    def _get_credit_details(self, url, credit_header):
+        return self.get(url.format(MINT_CREDIT_URL), headers=credit_header).json()
+
+    def get_credit_inquiries(self, credit_header):
+        return self._get_credit_details(
+            "{}/v1/creditreports/0/inquiries", credit_header
+        )
+
+    def get_credit_accounts(self, credit_header):
+        return self._get_credit_details(
+            "{}/v1/creditreports/0/tradelines", credit_header
+        )
+
+    def get_credit_utilization(self, credit_header):
+        return self.__process_utilization(
+            self._get_credit_details(
+                "{}/v1/creditreports/creditutilizationhistory", credit_header
+            )
+        )
+
+    def __process_utilization(self, data):
         # Function to clean up the credit utilization history data
         utilization = []
-        utilization.extend(self.flatten_utilization(data["cumulative"]))
+        utilization.extend(self.__flatten_utilization(data["cumulative"]))
         for trade in data["tradelines"]:
-            utilization.extend(self.flatten_utilization(trade))
+            utilization.extend(self.__flatten_utilization(trade))
         return utilization
 
-    def flatten_utilization(self, data):
+    def __flatten_utilization(self, data):
         # The utilization history data has a nested format, grouped by year
         # and then by month. Let's flatten that into a list of dates.
         utilization = []
@@ -1474,6 +1488,14 @@ def parse_arguments(args):
                 "dest": "accounts_ext",
                 "default": False,
                 "help": "Retrieve extended account information (slower, implies --accounts)",
+            },
+        ),
+        (
+            ("--exclude-inquiries",),
+            {
+                "action": "store_true",
+                "default": False,
+                "help": "When accessing credit report details, exclude data related to credit inquiries.  Used with --credit-report.",
             },
         ),
         (
@@ -1799,7 +1821,9 @@ def main():
     elif options.credit_score:
         data = mint.get_credit_score()
     elif options.credit_report:
-        data = mint.get_credit_report(details=True)
+        data = mint.get_credit_report(
+            details=True, exclude_inquiries=options.exclude_inquiries
+        )
 
     # output the data
     if options.transactions or options.extended_transactions:
