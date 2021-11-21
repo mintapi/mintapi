@@ -137,7 +137,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
 ```shell
     usage: mintapi [-h] [--session-path [SESSION_PATH]] [--accounts]
                    [--budgets | --budget_hist] [--net-worth] [--extended-accounts] [--transactions]
-                   [--extended-transactions] [--credit-score] [--credit-report]
+                   [--extended-transactions] [--credit-score] [--credit-report] [--exclude-inquiries]
                    [--start-date [START_DATE]] [--end-date [END_DATE]]
                    [--include-investment] [--skip-duplicates] [--show-pending]
                    [--filename FILENAME] [--keyring] [--headless] [--attention]
@@ -161,6 +161,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       --config-file, -c     File used to store arguments
       --credit-score        Retrieve credit score
       --credit-report       Retrieve full credit report & history
+      --exclude-inquiries   Used in conjunction with --credit-report, ignores credit inquiry data.
       --net-worth           Retrieve net worth information
       --extended-accounts   Retrieve extended account information (slower, implies --accounts)
       --transactions, -t    Retrieve transactions
