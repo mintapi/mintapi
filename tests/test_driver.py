@@ -123,7 +123,10 @@ investments_example = {
             "currentValue": 1414.12,
             "averagePricePaid": 0.0,
             "id": "3",
-            "metaData": {"id": "4", "description": "METADATA TEST"},
+            "metaData": {
+                "lastUpdatedDate": "2011-11-03T07:00:00Z",
+                "link": [{"id": "4", "description": "METADATA TEST"}],
+            },
         }
     ]
 }
@@ -245,11 +248,12 @@ class MintApiTests(unittest.TestCase):
         url = mintapi.Mint.build_bundledServiceController_url(mock_driver)
         self.assertTrue(mintapi.api.MINT_ROOT_URL in url)
 
-    @patch.object(mintapi.Mint, "call_investments_endpoint")
+    @patch.object(mintapi.Mint, "_Mint__call_investments_endpoint")
     def test_get_investment_data_new(self, mock_call_investments_endpoint):
         mock_call_investments_endpoint.return_value = investments_example
-        investment_data = mintapi.Mint().get_investment_data_new()[0]
+        investment_data = mintapi.Mint().get_investment_data()[0]
         self.assertFalse("metaData" in investment_data)
+        self.assertTrue("lastUpdatedDate" in investment_data)
 
 
 @unittest.skipIf(test_args is None, "This test requires a sign in")

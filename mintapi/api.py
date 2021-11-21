@@ -836,7 +836,7 @@ class Mint(object):
     def get_invests_json(self):
         warnings.warn(
             "We will deprecate get_invests_json method in the next major release due to an updated endpoint for"
-            "investment data.  Transition to use the updated get_investment_data_new method, which is also now accessible via command-line.",
+            "investment data.  Transition to use the updated get_investment_data method, which is also now accessible via command-line.",
             DeprecationWarning,
         )
         body = self.get(
@@ -851,13 +851,14 @@ class Mint(object):
         else:
             logger.error("FAIL2")
 
-    def get_investment_data_new(self):
-        investments = self.call_investments_endpoint()["Investment"]
+    def get_investment_data(self):
+        investments = self.__call_investments_endpoint()["Investment"]
         for i in investments:
+            i["lastUpdatedDate"] = i["metaData"]["lastUpdatedDate"]
             i.pop("metaData", None)
         return investments
 
-    def call_investments_endpoint(self):
+    def __call_investments_endpoint(self):
         return self.get(
             "{}/pfm/v1/investments".format(MINT_ROOT_URL),
             headers=self._get_api_key_header(),
@@ -1843,7 +1844,7 @@ def main():
             skip_duplicates=options.skip_duplicates,
         )
     elif options.investment:
-        data = mint.get_investment_data_new()
+        data = mint.get_investment_data()
     elif options.net_worth:
         data = mint.get_net_worth()
     elif options.credit_score:
