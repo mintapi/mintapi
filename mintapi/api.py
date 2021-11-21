@@ -1021,9 +1021,9 @@ class Mint(object):
         # the transaction category ID
         categories = self.get_categories()
         for transaction in result:
-            parent = self.get_category_object_from_id(transaction["categoryId"], categories)[
-                "parent"
-            ]
+            parent = self.get_category_object_from_id(
+                transaction["categoryId"], categories
+            )["parent"]
             transaction["parentCategoryName"] = (
                 "" if parent["name"] == "Root" else parent["name"]
             )
@@ -1233,7 +1233,9 @@ class Mint(object):
             for month in budgets.keys():
                 for direction in budgets[month]:
                     for budget in budgets[month][direction]:
-                        category = self.get_category_object_from_id(budget["cat"], categories)
+                        category = self.get_category_object_from_id(
+                            budget["cat"], categories
+                        )
                         budget["cat"] = category["name"]
                         budget["parent"] = category["parent"]["name"]
 
@@ -1251,7 +1253,9 @@ class Mint(object):
             # Fill in the return structure
             for direction in budgets.keys():
                 for budget in budgets[direction]:
-                    category = self.get_category_object_from_id(budget["cat"], categories)
+                    category = self.get_category_object_from_id(
+                        budget["cat"], categories
+                    )
                     budget["cat"] = category["name"]
                     # Uncategorized budget's parent is a string: 'Uncategorized'
                     if isinstance(category["parent"], dict):
