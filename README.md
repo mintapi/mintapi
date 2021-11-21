@@ -2,6 +2,8 @@
 
 [![Build Status](https://github.com/mintapi/mintapi/actions/workflows/ci.yml/badge.svg)](https://github.com/mintapi/mintapi/actions)
 [![PyPI Version](https://img.shields.io/pypi/v/mintapi)](https://pypi.org/project/mintapi/)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
 
 An unofficial screen-scraping API for Mint.com.
 
@@ -10,7 +12,7 @@ An unofficial screen-scraping API for Mint.com.
 Please [join us on Discord](https://discord.gg/YjJEuJRAu9) to get help or just chat with fellow mintapi users :)
 
 ## Installation
-Ensure you have Python 2 or 3 and pip (`easy_install pip`) and then:
+Ensure you have Python 3 and pip (`easy_install pip`) and then:
 
 ```shell
 pip install mintapi
@@ -135,7 +137,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
 ```shell
     usage: mintapi [-h] [--session-path [SESSION_PATH]] [--accounts]
                    [--budgets | --budget_hist] [--net-worth] [--extended-accounts] [--transactions]
-                   [--extended-transactions] [--credit-score] [--credit-report]
+                   [--extended-transactions] [--credit-score] [--credit-report] [--exclude-inquiries]
                    [--start-date [START_DATE]] [--end-date [END_DATE]]
                    [--include-investment] [--skip-duplicates] [--show-pending]
                    [--filename FILENAME] [--keyring] [--headless] [--attention]
@@ -159,6 +161,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       --config-file, -c     File used to store arguments
       --credit-score        Retrieve credit score
       --credit-report       Retrieve full credit report & history
+      --exclude-inquiries   Used in conjunction with --credit-report, ignores credit inquiry data.
       --net-worth           Retrieve net worth information
       --extended-accounts   Retrieve extended account information (slower, implies --accounts)
       --transactions, -t    Retrieve transactions
