@@ -19,14 +19,13 @@ setuptools.setup(
     url="https://github.com/mintapi/mintapi",
     install_requires=[
         "configargparse",
-        "future",
-        "mock",
         "oathtool",
         "pandas>=1.0",
         "requests",
         "selenium",
         "selenium-requests>=1.3.3",
         "xmltodict",
+        "keyring",
     ],
     python_requires=">=3.6",
     entry_points=dict(
