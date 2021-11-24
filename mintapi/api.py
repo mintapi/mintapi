@@ -1037,10 +1037,11 @@ class Mint(object):
     def add_parent_category_to_result(self, result):
         # Finds the parent category name from the categories object based on
         # the transaction category ID
+        categories = self.get_categories()
         for transaction in result:
-            parent = self.get_category_object_from_id(transaction["categoryId"])[
-                "parent"
-            ]
+            parent = self.get_category_object_from_id(
+                transaction["categoryId"], categories
+            )["parent"]
             transaction["parentCategoryName"] = (
                 "" if parent["name"] == "Root" else parent["name"]
             )
@@ -1215,7 +1216,7 @@ class Mint(object):
             "rnd": Mint.get_rnd(),
         }
         response = json.loads(self.get(url, params=params, headers=JSON_HEADER).text)
-
+        categories = self.get_categories()
         if hist is not None:  # version proofing api
 
             def mos_to_yrmo(mos_frm_zero):
@@ -1250,7 +1251,9 @@ class Mint(object):
             for month in budgets.keys():
                 for direction in budgets[month]:
                     for budget in budgets[month][direction]:
-                        category = self.get_category_object_from_id(budget["cat"])
+                        category = self.get_category_object_from_id(
+                            budget["cat"], categories
+                        )
                         budget["cat"] = category["name"]
                         budget["parent"] = category["parent"]["name"]
 
@@ -1268,7 +1271,9 @@ class Mint(object):
             # Fill in the return structure
             for direction in budgets.keys():
                 for budget in budgets[direction]:
-                    category = self.get_category_object_from_id(budget["cat"])
+                    category = self.get_category_object_from_id(
+                        budget["cat"], categories
+                    )
                     budget["cat"] = category["name"]
                     # Uncategorized budget's parent is a string: 'Uncategorized'
                     if isinstance(category["parent"], dict):
@@ -1278,19 +1283,10 @@ class Mint(object):
 
         return budgets
 
-    def get_category_from_id(self, cid):
-        category = self.get_category_object_from_id(cid)
-        return category["name"]
-
-    def get_category_parent_from_id(self, cid):
-        category = self.get_category_object_from_id(cid)
-        return category["parent"]["name"]
-
-    def get_category_object_from_id(self, cid):
+    def get_category_object_from_id(self, cid, categories):
         if cid == 0:
             return {"parent": "Uncategorized", "name": "Uncategorized"}
 
-        categories = self.get_categories()
         for i in categories:
             if categories[i]["id"] == cid:
                 return categories[i]
