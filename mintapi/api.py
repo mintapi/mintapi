@@ -852,13 +852,13 @@ class Mint(object):
             logger.error("FAIL2")
 
     def get_investment_data(self):
-        investments = self._call_investments_endpoint()["Investment"]
+        investments = self.__call_investments_endpoint()["Investment"]
         for i in investments:
             i["lastUpdatedDate"] = i["metaData"]["lastUpdatedDate"]
             i.pop("metaData", None)
         return investments
 
-    def _call_investments_endpoint(self):
+    def __call_investments_endpoint(self):
         return self.get(
             "{}/pfm/v1/investments".format(MINT_ROOT_URL),
             headers=self._get_api_key_header(),
