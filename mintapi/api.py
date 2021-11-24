@@ -852,13 +852,13 @@ class Mint(object):
             logger.error("FAIL2")
 
     def get_investment_data(self):
-        investments = self.__call_investments_endpoint()["Investment"]
+        investments = self._call_investments_endpoint()["Investment"]
         for i in investments:
             i["lastUpdatedDate"] = i["metaData"]["lastUpdatedDate"]
             i.pop("metaData", None)
         return investments
 
-    def __call_investments_endpoint(self):
+    def _call_investments_endpoint(self):
         return self.get(
             "{}/pfm/v1/investments".format(MINT_ROOT_URL),
             headers=self._get_api_key_header(),
@@ -1367,21 +1367,21 @@ class Mint(object):
         )
 
     def get_credit_utilization(self, credit_header):
-        return self.__process_utilization(
+        return self._process_utilization(
             self._get_credit_details(
                 "{}/v1/creditreports/creditutilizationhistory", credit_header
             )
         )
 
-    def __process_utilization(self, data):
+    def _process_utilization(self, data):
         # Function to clean up the credit utilization history data
         utilization = []
-        utilization.extend(self.__flatten_utilization(data["cumulative"]))
+        utilization.extend(self._flatten_utilization(data["cumulative"]))
         for trade in data["tradelines"]:
-            utilization.extend(self.__flatten_utilization(trade))
+            utilization.extend(self._flatten_utilization(trade))
         return utilization
 
-    def __flatten_utilization(self, data):
+    def _flatten_utilization(self, data):
         # The utilization history data has a nested format, grouped by year
         # and then by month. Let's flatten that into a list of dates.
         utilization = []
