@@ -238,7 +238,7 @@ class MintApiTests(unittest.TestCase):
         url = mintapi.Mint.build_bundledServiceController_url(mock_driver)
         self.assertTrue(mintapi.api.MINT_ROOT_URL in url)
 
-    @patch.object(mintapi.Mint, "_Mint__call_investments_endpoint")
+    @patch.object(mintapi.Mint, "_call_investments_endpoint")
     def test_get_investment_data_new(self, mock_call_investments_endpoint):
         mock_call_investments_endpoint.return_value = investments_example
         investment_data = mintapi.Mint().get_investment_data()[0]
