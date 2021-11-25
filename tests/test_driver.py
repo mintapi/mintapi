@@ -129,9 +129,11 @@ class TestMock:
 
 
 class MintApiTests(unittest.TestCase):
-    @patch.object(mintapi.api, "get_web_driver")
-    def test_accounts(self, mock_driver):
-        mock_driver.return_value = (TestMock(), "test")
+    @patch.object(mintapi.api, "sign_in")
+    @patch.object(mintapi.api, "_create_web_driver_at_mint_com")
+    def test_accounts(self, mock_driver, mock_sign_in):
+        mock_driver.return_value = TestMock()
+        mock_sign_in.return_value = ("test", "token")
         accounts = mintapi.get_accounts("foo", "bar")
 
         self.assertFalse("lastUpdatedInDate" in accounts)
@@ -185,7 +187,7 @@ class MintApiTests(unittest.TestCase):
 
     @patch.object(mintapi.api, "_create_web_driver_at_mint_com")
     @patch.object(mintapi.api, "logger")
-    @patch.object(mintapi.api, "_sign_in")
+    @patch.object(mintapi.api, "sign_in")
     def test_when_sign_in_fails_then_logs_exception(
         self, mock_sign_in, mock_logger, *_
     ):
@@ -257,7 +259,7 @@ class GivenBrowserAtSignInPage(unittest.TestCase):
         self.driver.close()
 
     def test_sign_in(self):
-        mintapi.api._sign_in(test_args["username"], test_args["password"], self.driver)
+        mintapi.api.sign_in(test_args["username"], test_args["password"], self.driver)
         self.assertTrue(
             self.driver.current_url.startswith("https://mint.intuit.com/overview.event")
         )
