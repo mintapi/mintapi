@@ -30,7 +30,6 @@ from selenium.webdriver import ChromeOptions
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.remote.webelement import WebElement
 from seleniumrequests import Chrome
 import xmltodict
 
@@ -304,11 +303,10 @@ def _create_web_driver_at_mint_com(
             options=chrome_options,
             executable_path=get_stable_chrome_driver(chromedriver_download_path),
         )
-    driver.get("https://www.mint.com")
     return driver
 
 
-def _sign_in(
+def sign_in(
     email,
     password,
     driver,
@@ -327,6 +325,7 @@ def _sign_in(
     Takes in a web driver and gets it through the Mint sign in process
     """
     driver.implicitly_wait(20)  # seconds
+    driver.get("https://www.mint.com")
     element = driver.find_element_by_link_text("Sign in")
     element.click()
 
@@ -518,6 +517,29 @@ def _sign_in(
             pass  # not on secondary mfa password screen
     driver.implicitly_wait(20)  # seconds
 
+    # Wait until the overview page has actually loaded, and if wait_for_sync==True, sync has completed.
+    status_message = None
+    if wait_for_sync:
+        try:
+            # Status message might not be present straight away. Seems to be due
+            # to dynamic content (client side rendering).
+            status_web_element = WebDriverWait(driver, 30).until(
+                expected_conditions.visibility_of_element_located(
+                    (By.CSS_SELECTOR, ".SummaryView .message")
+                )
+            )
+            WebDriverWait(driver, wait_for_sync_timeout).until(
+                lambda x: "Account refresh complete"
+                in status_web_element.get_attribute("innerHTML")
+            )
+            status_message = status_web_element.text
+        except (TimeoutException, StaleElementReferenceException):
+            logger.warning(
+                "Mint sync apparently incomplete after timeout. "
+                "Data retrieved may not be current."
+            )
+    return status_message, get_token(driver)
+
 
 def get_web_driver(
     email,
@@ -537,6 +559,11 @@ def get_web_driver(
     use_chromedriver_on_path=False,
     chromedriver_download_path=os.getcwd(),
 ):
+    warnings.warn(
+        "get_web_driver instance function is going to be deprecated in the next major release"
+        "please use login_and_get_token or sign_in",
+        DeprecationWarning,
+    )
     if headless and mfa_method is None:
         logger.warning(
             "Using headless mode without specifying an MFA method "
@@ -550,7 +577,7 @@ def get_web_driver(
 
     status_message = None
     try:
-        _sign_in(
+        status_message, _ = sign_in(
             email,
             password,
             driver,
@@ -565,38 +592,11 @@ def get_web_driver(
             imap_server,
             imap_folder,
         )
-
-        # Wait until the overview page has actually loaded, and if wait_for_sync==True, sync has completed.
-        if wait_for_sync:
-            try:
-                # Status message might not be present straight away. Seems to be due
-                # to dynamic content (client side rendering).
-                status_message = WebDriverWait(driver, 30).until(
-                    expected_conditions.visibility_of_element_located(
-                        (By.CSS_SELECTOR, ".SummaryView .message")
-                    )
-                )
-                WebDriverWait(driver, wait_for_sync_timeout).until(
-                    lambda x: "Account refresh complete"
-                    in status_message.get_attribute("innerHTML")
-                )
-            except (TimeoutException, StaleElementReferenceException):
-                logger.warning(
-                    "Mint sync apparently incomplete after timeout. "
-                    "Data retrieved may not be current."
-                )
-        else:
-            driver.find_element_by_id("transaction")
     except Exception as e:
         logger.exception(e)
         driver.quit()
         driver = None
 
-    if status_message is not None and isinstance(status_message, WebElement):
-        try:
-            status_message = status_message.text
-        except StaleElementReferenceException:
-            pass
     return driver, status_message
 
 
@@ -667,6 +667,9 @@ class Mint(object):
         use_chromedriver_on_path=False,
         chromedriver_download_path=os.getcwd(),
     ):
+        self.driver = None
+        self.status_message = None
+
         if email and password:
             self.login_and_get_token(
                 email,
@@ -686,10 +689,6 @@ class Mint(object):
                 use_chromedriver_on_path=use_chromedriver_on_path,
                 chromedriver_download_path=chromedriver_download_path,
             )
-
-    @classmethod
-    def create(cls, email, password, **opts):
-        return Mint(email, password, **opts)
 
     @classmethod
     def get_rnd(cls):  # {{{
@@ -780,35 +779,30 @@ class Mint(object):
         use_chromedriver_on_path=False,
         chromedriver_download_path=os.getcwd(),
     ):
-        if self.token and self.driver:
-            return
 
-        self.driver, self.status_message = get_web_driver(
-            email,
-            password,
-            mfa_method=mfa_method,
-            mfa_token=mfa_token,
-            mfa_input_callback=mfa_input_callback,
-            intuit_account=intuit_account,
-            headless=headless,
-            session_path=session_path,
-            imap_account=imap_account,
-            imap_password=imap_password,
-            imap_server=imap_server,
-            imap_folder=imap_folder,
-            wait_for_sync=wait_for_sync,
-            wait_for_sync_timeout=wait_for_sync_timeout,
-            use_chromedriver_on_path=use_chromedriver_on_path,
-            chromedriver_download_path=chromedriver_download_path,
+        self.driver = _create_web_driver_at_mint_com(
+            headless, session_path, use_chromedriver_on_path, chromedriver_download_path
         )
-        if self.driver is not None:  # check if sign in failed
-            self.token = self.get_token()
 
-    def get_token(self):
-        value_json = self.driver.find_element_by_name("javascript-user").get_attribute(
-            "value"
-        )
-        return json.loads(value_json)["token"]
+        try:
+            self.status_message, self.token = sign_in(
+                email,
+                password,
+                self.driver,
+                mfa_method,
+                mfa_token,
+                mfa_input_callback,
+                intuit_account,
+                wait_for_sync,
+                wait_for_sync_timeout,
+                imap_account,
+                imap_password,
+                imap_server,
+                imap_folder,
+            )
+        except Exception as e:
+            logger.exception(e)
+            self.driver.quit()
 
     def get_request_id_str(self):
         req_id = self.request_id
@@ -1630,13 +1624,18 @@ def parse_arguments(args):
     return cmdline.parse_args(args)
 
 
+def get_token(driver: Chrome):
+    value_json = driver.find_element_by_name("javascript-user").get_attribute("value")
+    return json.loads(value_json)["token"]
+
+
 def get_accounts(email, password, get_detail=False):
-    mint = Mint.create(email, password)
+    mint = Mint(email, password)
     return mint.get_accounts(get_detail=get_detail)
 
 
 def get_net_worth(email, password):
-    mint = Mint.create(email, password)
+    mint = Mint(email, password)
     account_data = mint.get_accounts()
     return mint.get_net_worth(account_data)
 
@@ -1660,22 +1659,22 @@ def print_accounts(accounts):
 
 
 def get_budgets(email, password):
-    mint = Mint.create(email, password)
+    mint = Mint(email, password)
     return mint.get_budgets()
 
 
 def get_credit_score(email, password):
-    mint = Mint.create(email, password)
+    mint = Mint(email, password)
     return mint.get_credit_score()
 
 
 def get_credit_report(email, password):
-    mint = Mint.create(email, password)
+    mint = Mint(email, password)
     return mint.get_credit_report()
 
 
 def initiate_account_refresh(email, password):
-    mint = Mint.create(email, password)
+    mint = Mint(email, password)
     return mint.initiate_account_refresh()
 
 
@@ -1737,7 +1736,7 @@ def main():
     else:
         session_path = options.session_path
 
-    mint = Mint.create(
+    mint = Mint(
         email,
         password,
         mfa_method=options.mfa_method,
