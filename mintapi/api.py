@@ -852,10 +852,13 @@ class Mint(object):
             logger.error("FAIL2")
 
     def get_investment_data(self):
-        investments = self.__call_investments_endpoint()["Investment"]
-        for i in investments:
-            i["lastUpdatedDate"] = i["metaData"]["lastUpdatedDate"]
-            i.pop("metaData", None)
+        try:
+            investments = self.__call_investments_endpoint()["Investment"]
+            for i in investments:
+                i["lastUpdatedDate"] = i["metaData"]["lastUpdatedDate"]
+                i.pop("metaData", None)
+        except Exception:
+            investments = None
         return investments
 
     def __call_investments_endpoint(self):
@@ -1542,7 +1545,7 @@ def parse_arguments(args):
             {"action": "store_true", "help": "Test imap login and retrieval."},
         ),
         (
-            ("--investment",),
+            ("--investments",),
             {
                 "action": "store_true",
                 "default": False,
@@ -1753,7 +1756,7 @@ def main():
             options.net_worth,
             options.credit_score,
             options.credit_report,
-            options.investment,
+            options.investments,
             options.attention,
         ]
     ):
@@ -1839,7 +1842,7 @@ def main():
             remove_pending=options.show_pending,
             skip_duplicates=options.skip_duplicates,
         )
-    elif options.investment:
+    elif options.investments:
         data = mint.get_investment_data()
     elif options.net_worth:
         data = mint.get_net_worth()

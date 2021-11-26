@@ -174,7 +174,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       --end-date [END_DATE]
                             Latest date for which to retrieve transactions.
                             Used with --transactions or --extended-transactions. Format: mm/dd/yy
-      --investment          Retrieve data related to your investments, whether they be retirement or         personal stock purchases
+      --investments         Retrieve data related to your investments, whether they be retirement or         personal stock purchases
       --include-investment  Used with --extended-transactions
       --skip-duplicates     Used with --extended-transactions
       --show-pending        Exclude pending transactions from being retrieved.
