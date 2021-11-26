@@ -8,8 +8,16 @@ import mintapi.api
 
 USERNAME = os.environ.get("MINTAPI_USERNAME", None)
 PASSWORD = os.environ.get("MINTAPI_PASSWORD", None)
-HEADLESS = os.environ.get("MINTAPI_HEADLESS", True)
-USE_CHROMEDRIVER_ON_PATH = os.environ.get("MINTAPI_CHROMEDRIVER_ON_PATH", False)
+HEADLESS = os.environ.get("MINTAPI_HEADLESS", "True") in [
+    "true",
+    "True",
+]  # convert to boolean, defaults to true
+USE_CHROMEDRIVER_ON_PATH = not os.environ.get(
+    "MINTAPI_CHROMEDRIVER_ON_PATH", "False"
+) in [
+    "False",
+    "false",
+]  # convert to boolean, defaults to false
 SESSION_PATH = os.environ.get("MINTAPI_SESSION", None)
 MFA_METHOD = os.environ.get("MINTAPI_MFA_METHOD", None)
 MFA_TOKEN = os.environ.get("MINTAPI_MFA_TOKEN", None)
