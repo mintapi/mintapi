@@ -216,7 +216,7 @@ class MintApiTests(unittest.TestCase):
         _get_api_key_header=DEFAULT,
         _load_mint_credit_url=DEFAULT,
         _get_credit_reports=DEFAULT,
-        get_credit_accounts=DEFAULT,
+        get_credit_inquiries=DEFAULT,
         get_credit_utilization=DEFAULT,
     )
     def test_exclude_accounts(self, **_):

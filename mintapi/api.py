@@ -1282,14 +1282,18 @@ class Mint(object):
 
     def get_credit_score(self):
         # Request a single credit report, and extract the score
-        report = self.get_credit_report(limit=1, details=False, exclude_inquiries=False, exclude_accounts=False)
+        report = self.get_credit_report(
+            limit=1, details=False, exclude_inquiries=False, exclude_accounts=False
+        )
         try:
             vendor = report["reports"]["vendorReports"][0]
             return vendor["creditReportList"][0]["creditScore"]
         except (KeyError, IndexError):
             raise Exception("No Credit Score Found")
 
-    def get_credit_report(self, limit=2, details=True, exclude_inquiries=False, exclude_accounts=False):
+    def get_credit_report(
+        self, limit=2, details=True, exclude_inquiries=False, exclude_accounts=False
+    ):
         # Get the browser API key, build auth header
         credit_header = self._get_api_key_header()
 
@@ -1301,7 +1305,7 @@ class Mint(object):
 
         self._load_mint_credit_url()
 
-        # credit_report["reports"] = self._get_credit_reports(limit, credit_header)
+        credit_report["reports"] = self._get_credit_reports(limit, credit_header)
 
         # If we want details, request the detailed sub-reports
         if details:
@@ -1828,7 +1832,7 @@ def main():
         data = mint.get_credit_report(
             details=True,
             exclude_inquiries=options.exclude_inquiries,
-            exclude_accounts=options.exclude_accounts
+            exclude_accounts=options.exclude_accounts,
         )
 
     # output the data
