@@ -42,6 +42,23 @@ If you're running mintapi in a server environment on an automatic schedule, cons
 
 If you need to download the chromedriver manually, be sure to get the version that matches your chrome version and make the chromedriver available to your python interpreter either by putting the chromedriver in your python working directory or inside your `PATH` as described in the [python selenium documentation](https://www.selenium.dev/selenium/docs/api/py/index.html#drivers).
 
+### General Automation Scenarios
+When running this inside of a cron job or other long-term automation scripts, it might be helpful to specify chrome and chromedriver executables so as not to conflict with other chrome versions you may have. Selenium by default just gets these from your `PATH` environment variable, so customizing your environment can force a deterministic behavior from mintapi. To use a different browser besides Chrome or Chromium, see the [python api](#from-python). Below are two examples.
+
+#### Unix Environment
+If I wanted to make sure that mintapi used the chromium executable in my /usr/bin directory when executing a cron job, I could write the following cron line:
+```cron
+0 7 * * FRI PATH=/usr/bin:$PATH mintapi --headless john@example.com my_password
+```
+where prepending the /usr/bin path to path will make those binaries found first. This will only affect the cron job and will not change the environment for any other process.
+
+#### Windows Environment
+You can do a similar thing in windows by executing the following in Powershell.
+```powershell
+$ENV:PATH = "C:\Program Files\Google\Chrome;$ENV:PATH"
+mintapi --headless john@example.com my_password
+```
+
 ### MFA Authentication Methods
 
 If mfa-method is email and your email host provides IMAP access, you can specify your IMAP login details.
@@ -129,6 +146,25 @@ make calls to retrieve account/budget information.  We recommend using the
 
   # Initiate an account refresh
   mint.initiate_account_refresh()
+  
+  # you can also use mintapi's login in workflow with your own selenium webdriver
+  # this will allow for more custom selenium driver setups
+  # one caveat is that it must be based on seleniumrequests currently
+  # seleniumrequests has most browsers already
+  # it also has mixins for any browsers it doesn't have so the sky is the limit!
+  from seleniumrequests import Firefox
+  mint = mintapi.Mint()
+  mint.driver = Firefox()
+  mint.status_message, mint.token = mintapi.sign_in(
+    email, password, mint.driver, mfa_method=None, mfa_token=None,
+    mfa_input_callback=None, intuit_account=None, wait_for_sync=True,
+    wait_for_sync_timeout=5 * 60,
+    imap_account=None, imap_password=None,
+    imap_server=None, imap_folder="INBOX",
+  )
+  # now you can do all the normal api calls
+  # ex:
+  mint.get_transactions()
 ```
 
 ---
