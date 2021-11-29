@@ -636,6 +636,7 @@ MINT_ACCOUNTS_URL = "https://accounts.intuit.com"
 MINT_CREDIT_URL = "https://credit.finance.intuit.com"
 
 JSON_HEADER = {"accept": "application/json"}
+CATEGORY_PREFIX = "10740790_"
 
 
 class MintException(Exception):
@@ -840,6 +841,19 @@ class Mint(object):
         else:
             logger.error("FAIL2")
 
+    def get_category_data(self):
+        try:
+            categories = self.__call_categories_endpoint()["Category"]
+        except Exception:
+            categories = None
+        return categories
+
+    def __call_categories_endpoint(self):
+        return self.get(
+            "{}/pfm/v1/categories".format(MINT_ROOT_URL),
+            headers=self._get_api_key_header(),
+        ).json()
+
     def get_accounts(self, get_detail=False):  # {{{
         # Issue service request.
         req_id = self.get_request_id_str()
@@ -1013,17 +1027,20 @@ class Mint(object):
     def add_parent_category_to_result(self, result):
         # Finds the parent category name from the categories object based on
         # the transaction category ID
-        categories = self.get_categories()
+        categories = self.get_category_data()
         for transaction in result:
-            parent = self.get_category_object_from_id(
+            category = self.get_category_object_from_id(
                 transaction["categoryId"], categories
-            )["parent"]
-            transaction["parentCategoryName"] = (
-                "" if parent["name"] == "Root" else parent["name"]
             )
             transaction["parentCategoryId"] = (
-                "" if parent["name"] == "Root" else parent["id"]
+                "" if category["depth"] == 1 else self.__format_category_id(category["parentId"])
             )
+            transaction["parentCategoryName"] = (
+                "" if category["depth"] == 1 else self.get_category_object_from_id(
+                    category["parentId"], categories
+                )["name"]
+            )
+
         return result
 
     def get_transactions_csv(
@@ -1263,16 +1280,14 @@ class Mint(object):
         if cid == 0:
             return {"parent": "Uncategorized", "name": "Uncategorized"}
 
-        for i in categories:
-            if categories[i]["id"] == cid:
-                return categories[i]
+        for category in categories:
+            if str(category["id"]) == self.__format_category_id(cid):
+                return category
 
-            if "children" in categories[i]:
-                for j in categories[i]["children"]:
-                    if categories[i][j]["id"] == cid:
-                        return categories[i][j]
+        return {"parent": "Unknown", "depth": 1, "name": "Unknown"}
 
-        return {"parent": "Unknown", "name": "Unknown"}
+    def __format_category_id(self, cid):
+        return cid if str(cid).find("_") == "-1" else str(cid)[str(cid).find("_") + 1:]
 
     def initiate_account_refresh(self):
         data = {"token": self.token}
@@ -1518,6 +1533,14 @@ def parse_arguments(args):
             {"action": "store_true", "help": "Test imap login and retrieval."},
         ),
         (
+            ("--categories",),
+            {
+                "action": "store_true",
+                "default": False,
+                "help": "Retrieve data related to your categories",
+            },
+        ),
+        (
             ("--include-investment",),
             {
                 "action": "store_true",
@@ -1727,6 +1750,7 @@ def main():
             options.credit_score,
             options.credit_report,
             options.attention,
+            options.categories,
         ]
     ):
         options.accounts = True
@@ -1811,6 +1835,8 @@ def main():
             remove_pending=options.show_pending,
             skip_duplicates=options.skip_duplicates,
         )
+    elif options.categories:
+        data = mint.get_category_data()
     elif options.net_worth:
         data = mint.get_net_worth()
     elif options.credit_score:
