@@ -211,6 +211,21 @@ class MintApiTests(unittest.TestCase):
         )
         self.assertFalse("inquiries" in credit_report)
 
+    @patch.multiple(
+        mintapi.Mint,
+        _get_api_key_header=DEFAULT,
+        _load_mint_credit_url=DEFAULT,
+        _get_credit_reports=DEFAULT,
+        get_credit_inquiries=DEFAULT,
+        get_credit_utilization=DEFAULT,
+    )
+    def test_exclude_accounts(self, **_):
+        mint = mintapi.Mint()
+        credit_report = mint.get_credit_report(
+            limit=2, details=True, exclude_accounts=True
+        )
+        self.assertFalse("accounts" in credit_report)
+
     def test_config_file(self):
         # verify parsing from config file
         config_file = tempfile.NamedTemporaryFile(mode="wt")
