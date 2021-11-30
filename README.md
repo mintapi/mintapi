@@ -174,7 +174,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
     usage: mintapi [-h] [--session-path [SESSION_PATH]] [--accounts]
                    [--budgets | --budget_hist] [--net-worth] [--extended-accounts] [--transactions]
                    [--extended-transactions] [--credit-score] [--credit-report]
-                   [--exclude-inquiries] [--exclude-accounts]
+                   [--exclude-inquiries] [--exclude-accounts] [--exclude-utilization]
                    [--start-date [START_DATE]] [--end-date [END_DATE]]
                    [--include-investment] [--skip-duplicates] [--show-pending]
                    [--filename FILENAME] [--keyring] [--headless] [--attention]
@@ -200,6 +200,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       --credit-report       Retrieve full credit report & history
       --exclude-inquiries   Used in conjunction with --credit-report, ignores credit inquiry data.
       --exclude-accounts    Used in conjunction with --credit-report, ignores credit account data.
+      --exclude-utilization Used in conjunction with --credit-report, ignores credit utilization data.
       --net-worth           Retrieve net worth information
       --extended-accounts   Retrieve extended account information (slower, implies --accounts)
       --transactions, -t    Retrieve transactions
