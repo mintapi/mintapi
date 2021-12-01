@@ -34,36 +34,34 @@ accounts_example = [
     }
 ]
 
-category_example = {
-    708: {
+category_example = [
+    {
+        "type": "Category",
+        "name": "Entertainment",
+        "depth": 1,
         "categoryType": "EXPENSE",
-        "parent": {
-            "categoryType": "EXPENSE",
-            "parent": {
-                "categoryType": "NO_CATEGORY",
-                "parent": None,
-                "depth": 0,
-                "name": "Root",
-                "id": 0,
-                "notificationName": "Everything Else",
-                "parentId": 0,
-                "precedence": 100,
-            },
-            "depth": 1,
-            "name": "Food & Dining",
-            "id": 7,
-            "notificationName": "Food & Dining",
-            "parentId": 0,
-            "precedence": 30,
+        "isBusiness": "false",
+        "isCustom": "false",
+        "isUnassignable": "false",
+        "isUnbudgetable": "false",
+        "isUntrendable": "false",
+        "isIgnored": "false",
+        "isEditable": "false",
+        "isDeleted": "false",
+        "discretionaryType": "DISCRETIONARY",
+        "metaData": {
+          "lastUpdatedDate": "2020-11-18T07:31:47Z",
+          "link": [
+            {
+              "otherAttributes": {},
+              "href": "/v1/categories/10740790_1",
+              "rel": "self"
+            }
+          ]
         },
-        "depth": 2,
-        "name": "Alcohol & Bars",
-        "id": 708,
-        "notificationName": "Alcohol & Bars",
-        "parentId": 7,
-        "precedence": 20,
+        "id": "10740790_1"
     }
-}
+]
 
 detailed_transactions_example = [
     {
@@ -176,9 +174,9 @@ class MintApiTests(unittest.TestCase):
         transactions_df = mint.get_transactions()
         assert isinstance(transactions_df, pd.DataFrame)
 
-    @patch.object(mintapi.Mint, "get_categories")
-    def test_detailed_transactions_with_parents(self, mock_get_categories):
-        mock_get_categories.return_value = category_example
+    @patch.object(mintapi.Mint, "get_category_data")
+    def test_detailed_transactions_with_parents(self, mock_get_category_data):
+        mock_get_category_data.return_value = category_example
         results_with_parents = mintapi.Mint().add_parent_category_to_result(
             detailed_transactions_example
         )[0]

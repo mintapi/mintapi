@@ -636,7 +636,6 @@ MINT_ACCOUNTS_URL = "https://accounts.intuit.com"
 MINT_CREDIT_URL = "https://credit.finance.intuit.com"
 
 JSON_HEADER = {"accept": "application/json"}
-CATEGORY_PREFIX = "10740790_"
 
 
 class MintException(Exception):
@@ -841,7 +840,7 @@ class Mint(object):
         else:
             logger.error("FAIL2")
 
-    def get_category_data(self):
+    def get_categories(self):
         try:
             categories = self.__call_categories_endpoint()["Category"]
         except Exception:
@@ -1027,19 +1026,14 @@ class Mint(object):
     def add_parent_category_to_result(self, result):
         # Finds the parent category name from the categories object based on
         # the transaction category ID
-        categories = self.get_category_data()
+        categories = self.get_categories()
         for transaction in result:
             category = self.get_category_object_from_id(
                 transaction["categoryId"], categories
             )
-            transaction["parentCategoryId"] = (
-                "" if category["depth"] == 1 else self.__format_category_id(category["parentId"])
-            )
-            transaction["parentCategoryName"] = (
-                "" if category["depth"] == 1 else self.get_category_object_from_id(
-                    category["parentId"], categories
-                )["name"]
-            )
+            parent = self._find_parent_from_category(category)
+            transaction["parentCategoryId"] = parent["id"]
+            transaction["parentCategoryName"] = parent["name"]
 
         return result
 
@@ -1162,42 +1156,6 @@ class Mint(object):
 
         return accounts
 
-    def get_categories(self):  # {{{
-        # Get category metadata.
-        req_id = self.get_request_id_str()
-        data = {
-            "input": json.dumps(
-                [
-                    {
-                        "args": {
-                            "excludedCategories": [],
-                            "sortByPrecedence": False,
-                            "categoryTypeFilter": "FREE",
-                        },
-                        "id": req_id,
-                        "service": "MintCategoryService",
-                        "task": "getCategoryTreeDto2",
-                    }
-                ]
-            )
-        }
-        response = self.make_post_request(
-            url=self.build_bundledServiceController_url(),
-            data=data,
-            convert_to_text=True,
-        )
-        if req_id not in response:
-            raise MintException('Could not parse category data: "{}"'.format(response))
-        response = json.loads(response)
-        response = response["response"][req_id]["response"]
-
-        # Build category list
-        categories = {}
-        for category in response["allCategories"]:
-            categories[category["id"]] = category
-
-        return categories
-
     def get_budgets(self, hist=None):  # {{{
         # Issue request for budget utilization
         first_of_this_month = date.today().replace(day=1)
@@ -1248,6 +1206,11 @@ class Mint(object):
                             budget["cat"], categories
                         )
                         budget["cat"] = category["name"]
+                        budget["parent"] = (
+                            "" if category["depth"] == 1 else self.get_category_object_from_id(
+                                self.__format_category_id(category["parentId"]), categories
+                            )["name"]
+                        )
                         budget["parent"] = category["parent"]["name"]
 
         else:
@@ -1278,16 +1241,23 @@ class Mint(object):
 
     def get_category_object_from_id(self, cid, categories):
         if cid == 0:
-            return {"parent": "Uncategorized", "name": "Uncategorized"}
+            return {"parent": "Uncategorized", "depth": 1, "name": "Uncategorized"}
 
-        for category in categories:
-            if str(category["id"]) == self.__format_category_id(cid):
-                return category
-
-        return {"parent": "Unknown", "depth": 1, "name": "Unknown"}
+        result = filter(lambda category: self.__format_category_id(category["id"]) == str(cid), categories)
+        category = list(result)
+        return category[0] if len(category) > 0 else {"parent": "Unknown", "depth": 1, "name": "Unknown"}
 
     def __format_category_id(self, cid):
         return cid if str(cid).find("_") == "-1" else str(cid)[str(cid).find("_") + 1:]
+
+    def _find_parent_from_category(self, category):
+        if category["depth"] == 1
+            return {"id": "", "name": ""}
+
+        parent = self.get_category_object_from_id(
+                    self.__format_category_id(category["parentId"]), categories
+                 )
+        return {"id": parent["id"], "name": parent["name"]}
 
     def initiate_account_refresh(self):
         data = {"token": self.token}
@@ -1836,7 +1806,7 @@ def main():
             skip_duplicates=options.skip_duplicates,
         )
     elif options.categories:
-        data = mint.get_category_data()
+        data = mint.get_categories()
     elif options.net_worth:
         data = mint.get_net_worth()
     elif options.credit_score:
