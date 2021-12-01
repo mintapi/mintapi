@@ -1,4 +1,5 @@
 import atexit
+import getpass
 import configargparse
 from datetime import date, datetime, timedelta
 import io
@@ -16,7 +17,7 @@ import zipfile
 import imaplib
 import email
 import email.header
-import sys  # DEBUG
+import sys
 import warnings
 
 from selenium.common.exceptions import (
@@ -34,6 +35,8 @@ from seleniumrequests import Chrome
 import xmltodict
 
 import pandas as pd
+import oathtool
+import keyring
 
 logger = logging.getLogger("mintapi")
 logger.setLevel(logging.INFO)
@@ -407,10 +410,13 @@ def sign_in(
         # mfa screen
         try:
             if mfa_method == "soft-token":
-                import oathtool
-
                 mfa_token_input = driver.find_element_by_id("ius-mfa-soft-token")
-                mfa_code = oathtool.generate_otp(mfa_token)
+                if mfa_input_callback is not None:
+                    mfa_code = mfa_input_callback(
+                        "Please enter your 6-digit MFA code: "
+                    )
+                else:
+                    mfa_code = oathtool.generate_otp(mfa_token)
                 mfa_token_input.send_keys(mfa_code)
                 mfa_token_submit = driver.find_element_by_id(
                     "ius-mfa-soft-token-submit-btn"
@@ -1721,19 +1727,7 @@ def initiate_account_refresh(email, password):
 
 
 def main():
-    import getpass
-
-    try:
-        import keyring
-    except ImportError:
-        keyring = None
-
     options = parse_arguments(sys.argv[1:])
-
-    if options.keyring and not keyring:
-        raise Exception(
-            "--keyring can only be used if the `keyring` library is installed."
-        )
 
     # Try to get the e-mail and password from the arguments
     email = options.email

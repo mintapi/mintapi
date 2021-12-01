@@ -1,3 +1,11 @@
+1.58
+---
+- expose sign_in as a public method to allow custom WebDrivers (#336)
+- add command-line option to exclude credit inquiries from credit report data (#340)
+- add command-line option to exclude credit accounts from credit report (#351)
+- fix performance degradation on extended transactions (#348)
+- remove support for Python 2.x
+
 1.57
 ---
 - add date range support to --transactions (github#321)

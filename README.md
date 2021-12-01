@@ -83,7 +83,7 @@ make calls to retrieve account/budget information.  We recommend using the
                        # if mintapi detects an MFA request, it will trigger the requested method
                        # and prompt on the command line.
     mfa_input_callback=None,  # see MFA Methods section
-                              # used with mfa_method = 'sms' or 'email'
+                              # can be used with any mfa_method
                               # A callback accepting a single argument (the prompt)
                               # which returns the user-inputted 2FA code. By default
                               # the default Python `input` function is used.
