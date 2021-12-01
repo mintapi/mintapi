@@ -1293,7 +1293,7 @@ class Mint(object):
             details=False,
             exclude_inquiries=False,
             exclude_accounts=False,
-            exclude_utilization=False
+            exclude_utilization=False,
         )
         try:
             vendor = report["reports"]["vendorReports"][0]
@@ -1307,7 +1307,7 @@ class Mint(object):
         details=True,
         exclude_inquiries=False,
         exclude_accounts=False,
-        exclude_utilization=False
+        exclude_utilization=False,
     ):
         # Get the browser API key, build auth header
         credit_header = self._get_api_key_header()
@@ -1334,7 +1334,9 @@ class Mint(object):
 
             # Get credit utilization history (~3 months, by account)
             if not exclude_utilization:
-                credit_report["utilization"] = self.get_credit_utilization(credit_header)
+                credit_report["utilization"] = self.get_credit_utilization(
+                    credit_header
+                )
 
         return credit_report
 
@@ -1845,7 +1847,7 @@ def main():
             details=True,
             exclude_inquiries=options.exclude_inquiries,
             exclude_accounts=options.exclude_accounts,
-            exclude_utilization=options.exclude_utilization
+            exclude_utilization=options.exclude_utilization,
         )
 
     # output the data
