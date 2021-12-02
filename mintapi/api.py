@@ -1310,7 +1310,11 @@ class Mint(object):
     def get_credit_score(self):
         # Request a single credit report, and extract the score
         report = self.get_credit_report(
-            limit=1, details=False, exclude_inquiries=False, exclude_accounts=False
+            limit=1,
+            details=False,
+            exclude_inquiries=False,
+            exclude_accounts=False,
+            exclude_utilization=False,
         )
         try:
             vendor = report["reports"]["vendorReports"][0]
@@ -1319,7 +1323,12 @@ class Mint(object):
             raise Exception("No Credit Score Found")
 
     def get_credit_report(
-        self, limit=2, details=True, exclude_inquiries=False, exclude_accounts=False
+        self,
+        limit=2,
+        details=True,
+        exclude_inquiries=False,
+        exclude_accounts=False,
+        exclude_utilization=False,
     ):
         # Get the browser API key, build auth header
         credit_header = self._get_api_key_header()
@@ -1345,7 +1354,10 @@ class Mint(object):
                 credit_report["accounts"] = self.get_credit_accounts(credit_header)
 
             # Get credit utilization history (~3 months, by account)
-            credit_report["utilization"] = self.get_credit_utilization(credit_header)
+            if not exclude_utilization:
+                credit_report["utilization"] = self.get_credit_utilization(
+                    credit_header
+                )
 
         return credit_report
 
@@ -1526,6 +1538,14 @@ def parse_arguments(args):
                 "action": "store_true",
                 "default": False,
                 "help": "When accessing credit report details, exclude data related to credit inquiries.  Used with --credit-report.",
+            },
+        ),
+        (
+            ("--exclude-utilization",),
+            {
+                "action": "store_true",
+                "default": False,
+                "help": "When accessing credit report details, exclude data related to credit utilization.  Used with --credit-report.",
             },
         ),
         (
@@ -1859,6 +1879,7 @@ def main():
             details=True,
             exclude_inquiries=options.exclude_inquiries,
             exclude_accounts=options.exclude_accounts,
+            exclude_utilization=options.exclude_utilization,
         )
 
     # output the data
