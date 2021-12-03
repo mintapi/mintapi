@@ -1,23 +1,21 @@
 import atexit
-import getpass
 import configargparse
 from datetime import date, datetime, timedelta
+import email
+import email.header
+import getpass
+import imaplib
 import io
 import json
 import logging
 import os
-import os.path
 import random
 import re
 import requests
 import subprocess
-from sys import platform as _platform
+import sys
 import time
 import zipfile
-import imaplib
-import email
-import email.header
-import sys
 import warnings
 
 from selenium.common.exceptions import (
@@ -34,9 +32,9 @@ from selenium.webdriver.support.ui import WebDriverWait
 from seleniumrequests import Chrome
 import xmltodict
 
-import pandas as pd
-import oathtool
 import keyring
+import oathtool
+import pandas as pd
 
 logger = logging.getLogger("mintapi")
 logger.setLevel(logging.INFO)
@@ -227,7 +225,7 @@ def get_latest_chrome_driver_version():
 
 def get_stable_chrome_driver(download_directory=os.getcwd()):
     chromedriver_name = "chromedriver"
-    if _platform in ["win32", "win64"]:
+    if sys.platform in ["win32", "win64"]:
         chromedriver_name += ".exe"
 
     local_executable_path = os.path.join(download_directory, chromedriver_name)
@@ -264,7 +262,7 @@ def get_stable_chrome_driver(download_directory=os.getcwd()):
     logger.info(
         "Downloading version {} of Chromedriver".format(latest_chrome_driver_version)
     )
-    zip_file_url = get_chrome_driver_url(latest_chrome_driver_version, _platform)
+    zip_file_url = get_chrome_driver_url(latest_chrome_driver_version, sys.platform)
     request = requests.get(zip_file_url)
 
     if request.status_code != 200:
