@@ -850,14 +850,14 @@ class Mint(object):
             logger.error("FAIL2")
 
     def get_investment_data(self):
-        try:
-            investments = self.__call_investments_endpoint()["Investment"]
-            for i in investments:
+        investments = self.__call_investments_endpoint()
+        if "Investment" in investments.keys():
+            for i in investments["Investment"]:
                 i["lastUpdatedDate"] = i["metaData"]["lastUpdatedDate"]
                 i.pop("metaData", None)
-        except Exception:
-            investments = None
-        return investments
+        else:
+            raise MintException("Cannot find investment data")
+        return investments["Investment"]
 
     def __call_investments_endpoint(self):
         return self.get(
