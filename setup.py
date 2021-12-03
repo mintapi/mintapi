@@ -30,7 +30,7 @@ setuptools.setup(
     python_requires=">=3.6",
     entry_points=dict(
         console_scripts=[
-            "mintapi = mintapi.api:main",
+            "mintapi = mintapi.cli:main",
         ],
     ),
 )

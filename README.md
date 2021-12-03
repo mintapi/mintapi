@@ -26,7 +26,7 @@ pip install mintapi
 
 From the command line, the most automated invocation will be:
 
-    python mintapi/api.py --keyring --headless you@example.com
+    python mintapi --keyring --headless you@example.com
 
 This will store your credentials securely in your system keyring, and use a
 headless (invisible) browser to log in and grab the account data. If this triggers
@@ -256,4 +256,4 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
 ```
 
 If you need to avoid using pip or setup.py, you can also clone/download
-this repository and run: ``python mintapi/api.py``
+this repository and run: ``python mintapi``
