@@ -1,10 +1,9 @@
 import mintapi.api
-import mintapi
+import mintapi.cli
 import copy
 import datetime
 import json
 import unittest
-import os
 
 import pandas as pd
 
@@ -162,7 +161,7 @@ class MintApiTests(unittest.TestCase):
 
         # ensure everything is json serializable as this is the command-line
         # behavior.
-        mintapi.print_accounts(accounts)
+        mintapi.cli.print_accounts(accounts)
 
     def test_chrome_driver_links(self):
         latest_version = mintapi.api.get_latest_chrome_driver_version()
@@ -251,7 +250,7 @@ class MintApiTests(unittest.TestCase):
         config_file = tempfile.NamedTemporaryFile(mode="wt")
         config_file.write("extended-transactions")
         config_file.flush()
-        arguments = mintapi.api.parse_arguments(["-c", config_file.name])
+        arguments = mintapi.cli.parse_arguments(["-c", config_file.name])
         self.assertEqual(arguments.extended_transactions, True)
         config_file.close()
 

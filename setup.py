@@ -28,9 +28,4 @@ setuptools.setup(
         "keyring",
     ],
     python_requires=">=3.6",
-    entry_points=dict(
-        console_scripts=[
-            "mintapi = mintapi.api:main",
-        ],
-    ),
 )
