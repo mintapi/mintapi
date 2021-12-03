@@ -832,6 +832,11 @@ class Mint(object):
         ).json()["bills"]
 
     def get_invests_json(self):
+        warnings.warn(
+            "We will deprecate get_invests_json method in the next major release due to an updated endpoint for"
+            "investment data.  Transition to use the updated get_investment_data method, which is also now accessible via command-line.",
+            DeprecationWarning,
+        )
         body = self.get(
             "{}/investment.event".format(MINT_ROOT_URL),
         ).text
@@ -843,6 +848,22 @@ class Mint(object):
             return p.group(1).replace("&quot;", '"')
         else:
             logger.error("FAIL2")
+
+    def get_investment_data(self):
+        investments = self.__call_investments_endpoint()
+        if "Investment" in investments.keys():
+            for i in investments["Investment"]:
+                i["lastUpdatedDate"] = i["metaData"]["lastUpdatedDate"]
+                i.pop("metaData", None)
+        else:
+            raise MintException("Cannot find investment data")
+        return investments["Investment"]
+
+    def __call_investments_endpoint(self):
+        return self.get(
+            "{}/pfm/v1/investments".format(MINT_ROOT_URL),
+            headers=self._get_api_key_header(),
+        ).json()
 
     def get_accounts(self, get_detail=False):  # {{{
         # Issue service request.
@@ -1364,21 +1385,21 @@ class Mint(object):
         )
 
     def get_credit_utilization(self, credit_header):
-        return self.__process_utilization(
+        return self._process_utilization(
             self._get_credit_details(
                 "{}/v1/creditreports/creditutilizationhistory", credit_header
             )
         )
 
-    def __process_utilization(self, data):
+    def _process_utilization(self, data):
         # Function to clean up the credit utilization history data
         utilization = []
-        utilization.extend(self.__flatten_utilization(data["cumulative"]))
+        utilization.extend(self._flatten_utilization(data["cumulative"]))
         for trade in data["tradelines"]:
-            utilization.extend(self.__flatten_utilization(trade))
+            utilization.extend(self._flatten_utilization(trade))
         return utilization
 
-    def __flatten_utilization(self, data):
+    def _flatten_utilization(self, data):
         # The utilization history data has a nested format, grouped by year
         # and then by month. Let's flatten that into a list of dates.
         utilization = []
@@ -1553,6 +1574,14 @@ def parse_arguments(args):
         (
             ("--imap-test",),
             {"action": "store_true", "help": "Test imap login and retrieval."},
+        ),
+        (
+            ("--investments",),
+            {
+                "action": "store_true",
+                "default": False,
+                "help": "Retrieve data related to your investments, whether they be retirement or personal stock purchases",
+            },
         ),
         (
             ("--include-investment",),
@@ -1751,6 +1780,7 @@ def main():
             options.net_worth,
             options.credit_score,
             options.credit_report,
+            options.investments,
             options.attention,
         ]
     ):
@@ -1836,6 +1866,8 @@ def main():
             remove_pending=options.show_pending,
             skip_duplicates=options.skip_duplicates,
         )
+    elif options.investments:
+        data = mint.get_investment_data()
     elif options.net_worth:
         data = mint.get_net_worth()
     elif options.credit_score:

@@ -4,7 +4,6 @@ import copy
 import datetime
 import json
 import unittest
-import sys
 import os
 
 import pandas as pd
@@ -14,15 +13,6 @@ import tempfile
 
 from unittest.mock import patch, DEFAULT
 
-# add mintapi to path so it can be accessed even if not running from mintapi folder
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
-try:  # read test_args file if supplied
-    with open(os.path.join(os.path.dirname(__file__), "test_args.json")) as file:
-        test_args = json.load(file)
-    assert "username" in test_args and "password" in test_args
-except (FileNotFoundError, AssertionError):
-    test_args = None
 
 accounts_example = [
     {
@@ -106,6 +96,30 @@ detailed_transactions_example = [
 ]
 
 transactions_example = b'"Date","Description","Original Description","Amount","Transaction Type","Category","Account Name","Labels","Notes"\n"5/14/2020","Safeway","SAFEWAY.COM # 3031","88.09","debit","Groceries","CREDIT CARD","",""\n'
+
+investments_example = {
+    "Investment": [
+        {
+            "accountId": "1",
+            "cpSrcElementId": "2",
+            "description": "TEST",
+            "cpAssetClass": "UNKNOWN",
+            "holdingType": "UNKNOWN",
+            "initialTotalCost": 0.0,
+            "inceptionDate": "2011-01-03T07:00:00Z",
+            "initialQuantity": 0.0,
+            "currentQuantity": 0.0,
+            "currentPrice": 10.0,
+            "currentValue": 1414.12,
+            "averagePricePaid": 0.0,
+            "id": "3",
+            "metaData": {
+                "lastUpdatedDate": "2011-11-03T07:00:00Z",
+                "link": [{"id": "4", "description": "METADATA TEST"}],
+            },
+        }
+    ]
+}
 
 
 class Attribute:
@@ -247,28 +261,12 @@ class MintApiTests(unittest.TestCase):
         url = mintapi.Mint.build_bundledServiceController_url(mock_driver)
         self.assertTrue(mintapi.api.MINT_ROOT_URL in url)
 
-
-@unittest.skipIf(test_args is None, "This test requires a sign in")
-class GivenBrowserAtSignInPage(unittest.TestCase):
-    """
-    Set up gives mint.com sign page given by clicking "Sign In"
-    """
-
-    def setUp(self):
-        if "headless" in test_args:
-            headless = test_args["headless"]
-        else:
-            headless = False
-        self.driver = mintapi.api._create_web_driver_at_mint_com(headless)
-
-    def tearDown(self) -> None:
-        self.driver.close()
-
-    def test_sign_in(self):
-        mintapi.api.sign_in(test_args["username"], test_args["password"], self.driver)
-        self.assertTrue(
-            self.driver.current_url.startswith("https://mint.intuit.com/overview.event")
-        )
+    @patch.object(mintapi.Mint, "_Mint__call_investments_endpoint")
+    def test_get_investment_data_new(self, mock_call_investments_endpoint):
+        mock_call_investments_endpoint.return_value = investments_example
+        investment_data = mintapi.Mint().get_investment_data()[0]
+        self.assertFalse("metaData" in investment_data)
+        self.assertTrue("lastUpdatedDate" in investment_data)
 
 
 if __name__ == "__main__":

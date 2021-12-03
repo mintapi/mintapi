@@ -171,7 +171,7 @@ make calls to retrieve account/budget information.  We recommend using the
 Run it as a sub-process from your favorite language; `pip install mintapi` creates a binary in your $PATH. From the command-line, the output is JSON:
 
 ```shell
-    usage: mintapi [-h] [--session-path [SESSION_PATH]] [--accounts]
+    usage: mintapi [-h] [--session-path [SESSION_PATH]] [--accounts] [--investment]
                    [--budgets | --budget_hist] [--net-worth] [--extended-accounts] [--transactions]
                    [--extended-transactions] [--credit-score] [--credit-report]
                    [--exclude-inquiries] [--exclude-accounts] [--exclude-utilization]
@@ -213,6 +213,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       --end-date [END_DATE]
                             Latest date for which to retrieve transactions.
                             Used with --transactions or --extended-transactions. Format: mm/dd/yy
+      --investments         Retrieve data related to your investments, whether they be retirement or         personal stock purchases
       --include-investment  Used with --extended-transactions
       --skip-duplicates     Used with --extended-transactions
       --show-pending        Exclude pending transactions from being retrieved.
