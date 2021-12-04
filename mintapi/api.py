@@ -80,7 +80,11 @@ def get_email_code(
             DeprecationWarning,
         )
     code = None
-    imap_client = imaplib.IMAP4_SSL(imap_server)
+    try:
+        imap_client = imaplib.IMAP4_SSL(imap_server)
+    except imaplib.IMAP4.error:
+        logger.error("ERROR: Unable to establish IMAP Client")
+        return ""
 
     try:
         rv, data = imap_client.login(imap_account, imap_password)
@@ -1744,29 +1748,48 @@ def initiate_account_refresh(email, password):
     return mint.initiate_account_refresh()
 
 
+def handle_password(type, prompt, email, password, use_keyring=False):
+    if use_keyring and not password:
+        # If we don't yet have a password, try prompting for it
+        password = keyring.get_password(type, email)
+
+    if not password:
+        # If we still don't have a password, prompt for it
+        password = getpass.getpass("Mint password: ")
+
+    if use_keyring:
+        # If keyring option is specified, save the password in the keyring
+        keyring.set_password(type, email, password)
+
+    return password
+
+
 def main():
     options = parse_arguments(sys.argv[1:])
 
     # Try to get the e-mail and password from the arguments
     email = options.email
     password = options.password
+    imap_account = options.imap_account
+    imap_password = options.imap_password
+    mfa_method = options.mfa_method
 
     if not email:
         # If the user did not provide an e-mail, prompt for it
         email = input("Mint e-mail: ")
 
-    if keyring and not password:
-        # If the keyring module is installed and we don't yet have
-        # a password, try prompting for it
-        password = keyring.get_password("mintapi", email)
+    password = handle_password(
+        "mintapi", "Mint password: ", email, password, options.keyring
+    )
 
-    if not password:
-        # If we still don't have a password, prompt for it
-        password = getpass.getpass("Mint password: ")
-
-    if options.keyring:
-        # If keyring option is specified, save the password in the keyring
-        keyring.set_password("mintapi", email, password)
+    if mfa_method == "email" and imap_account:
+        imap_password = handle_password(
+            "imap",
+            "IMAP password: ",
+            imap_account,
+            imap_password,
+            options.keyring,
+        )
 
     if options.accounts_ext:
         options.accounts = True
@@ -1794,12 +1817,12 @@ def main():
     mint = Mint(
         email,
         password,
-        mfa_method=options.mfa_method,
+        mfa_method=mfa_method,
         mfa_token=options.mfa_token,
         session_path=session_path,
         headless=options.headless,
-        imap_account=options.imap_account,
-        imap_password=options.imap_password,
+        imap_account=imap_account,
+        imap_password=imap_password,
         imap_server=options.imap_server,
         imap_folder=options.imap_folder,
         wait_for_sync=not options.no_wait_for_sync,
@@ -1811,8 +1834,8 @@ def main():
 
     if options.imap_test:
         mfa_code = get_email_code(
-            options.imap_account,
-            options.imap_password,
+            imap_account,
+            imap_password,
             options.imap_server,
             imap_folder=options.imap_folder,
             delete=False,
