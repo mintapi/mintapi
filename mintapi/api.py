@@ -849,8 +849,32 @@ class Mint(object):
         else:
             logger.error("FAIL2")
 
+    def get_investment_data(self):
+        investments = self.__call_investments_endpoint()
+        if "Investment" in investments.keys():
+            for i in investments["Investment"]:
+                i["lastUpdatedDate"] = i["metaData"]["lastUpdatedDate"]
+                i.pop("metaData", None)
+        else:
+            raise MintException("Cannot find investment data")
+        return investments["Investment"]
+
+    def __call_investments_endpoint(self):
+        return self.get(
+            "{}/pfm/v1/investments".format(MINT_ROOT_URL),
             headers=self._get_api_key_header(),
         ).json()
+
+    def get_categories(self):
+        try:
+            categories = self.__call_categories_endpoint()["Category"]
+        except Exception:
+            categories = None
+        return categories
+
+    def __call_categories_endpoint(self):
+        return self.get(
+            "{}/pfm/v1/categories".format(MINT_ROOT_URL),
             headers=self._get_api_key_header(),
         ).json()
 
@@ -1203,16 +1227,7 @@ class Mint(object):
             for month in budgets.keys():
                 for direction in budgets[month]:
                     for budget in budgets[month][direction]:
-                        category = self.get_category_object_from_id(
-                            budget["cat"], categories
-                        )
-                        budget["cat"] = category["name"]
-                        budget["parent"] = (
-                            "" if category["depth"] == 1 else self.get_category_object_from_id(
-                                self.__format_category_id(category["parentId"]), categories
-                            )["name"]
-                        )
-                        budget["parent"] = category["parent"]["name"]
+                        budget = self.__format_budget_categories(budget, categories)
 
         else:
             # Make the skeleton return structure
@@ -1228,36 +1243,42 @@ class Mint(object):
             # Fill in the return structure
             for direction in budgets.keys():
                 for budget in budgets[direction]:
-                    category = self.get_category_object_from_id(
-                        budget["cat"], categories
-                    )
-                    budget["cat"] = category["name"]
-                    # Uncategorized budget's parent is a string: 'Uncategorized'
-                    if isinstance(category["parent"], dict):
-                        budget["parent"] = category["parent"]["name"]
-                    else:
-                        budget["parent"] = category["parent"]
+                    budget = self.__format_budget_categories(budget, categories)
 
         return budgets
+
+    def __format_budget_categories(self, budget, categories):
+        category = self.get_category_object_from_id(budget["cat"], categories)
+        budget["cat"] = category["name"]
+        parent = self._find_parent_from_category(category)
+        budget["parent"] = parent["name"]
+        return budget
 
     def get_category_object_from_id(self, cid, categories):
         if cid == 0:
             return {"parent": "Uncategorized", "depth": 1, "name": "Uncategorized"}
 
-        result = filter(lambda category: self.__format_category_id(category["id"]) == str(cid), categories)
+        result = filter(
+            lambda category: self.__format_category_id(category["id"]) == str(cid),
+            categories,
+        )
         category = list(result)
-        return category[0] if len(category) > 0 else {"parent": "Unknown", "depth": 1, "name": "Unknown"}
+        return (
+            category[0]
+            if len(category) > 0
+            else {"parent": "Unknown", "depth": 1, "name": "Unknown"}
+        )
 
     def __format_category_id(self, cid):
-        return cid if str(cid).find("_") == "-1" else str(cid)[str(cid).find("_") + 1:]
+        return cid if str(cid).find("_") == "-1" else str(cid)[str(cid).find("_") + 1 :]
 
     def _find_parent_from_category(self, category):
-        if category["depth"] == 1
+        if category["depth"] == 1:
             return {"id": "", "name": ""}
 
         parent = self.get_category_object_from_id(
-                    self.__format_category_id(category["parentId"]), categories
-                 )
+            self.__format_category_id(category["parentId"]), categories
+        )
         return {"id": parent["id"], "name": parent["name"]}
 
     def initiate_account_refresh(self):
@@ -1544,12 +1565,13 @@ def parse_arguments(args):
                 "help": "Retrieve data related to your categories",
             },
         ),
+        (
             ("--investments",),
             {
                 "action": "store_true",
                 "default": False,
                 "help": "Retrieve data related to your investments, whether they be retirement or personal stock purchases",
-            }
+            },
         ),
         (
             ("--include-investment",),

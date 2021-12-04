@@ -40,16 +40,16 @@ category_example = [
         "isDeleted": "false",
         "discretionaryType": "DISCRETIONARY",
         "metaData": {
-          "lastUpdatedDate": "2020-11-18T07:31:47Z",
-          "link": [
-            {
-              "otherAttributes": {},
-              "href": "/v1/categories/10740790_1",
-              "rel": "self"
-            }
-          ]
+            "lastUpdatedDate": "2020-11-18T07:31:47Z",
+            "link": [
+                {
+                    "otherAttributes": {},
+                    "href": "/v1/categories/10740790_1",
+                    "rel": "self",
+                }
+            ],
         },
-        "id": "10740790_1"
+        "id": "10740790_1",
     }
 ]
 
@@ -188,9 +188,9 @@ class MintApiTests(unittest.TestCase):
         transactions_df = mint.get_transactions()
         assert isinstance(transactions_df, pd.DataFrame)
 
-    @patch.object(mintapi.Mint, "get_category_data")
-    def test_detailed_transactions_with_parents(self, mock_get_category_data):
-        mock_get_category_data.return_value = category_example
+    @patch.object(mintapi.Mint, "get_categories")
+    def test_detailed_transactions_with_parents(self, mock_get_categories):
+        mock_get_categories.return_value = category_example
         results_with_parents = mintapi.Mint().add_parent_category_to_result(
             detailed_transactions_example
         )[0]
