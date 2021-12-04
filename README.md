@@ -83,7 +83,7 @@ make calls to retrieve account/budget information.  We recommend using the
                        # if mintapi detects an MFA request, it will trigger the requested method
                        # and prompt on the command line.
     mfa_input_callback=None,  # see MFA Methods section
-                              # used with mfa_method = 'sms' or 'email'
+                              # can be used with any mfa_method
                               # A callback accepting a single argument (the prompt)
                               # which returns the user-inputted 2FA code. By default
                               # the default Python `input` function is used.
@@ -146,7 +146,7 @@ make calls to retrieve account/budget information.  We recommend using the
 
   # Initiate an account refresh
   mint.initiate_account_refresh()
-  
+
   # you can also use mintapi's login in workflow with your own selenium webdriver
   # this will allow for more custom selenium driver setups
   # one caveat is that it must be based on seleniumrequests currently
@@ -171,9 +171,10 @@ make calls to retrieve account/budget information.  We recommend using the
 Run it as a sub-process from your favorite language; `pip install mintapi` creates a binary in your $PATH. From the command-line, the output is JSON:
 
 ```shell
-    usage: mintapi [-h] [--session-path [SESSION_PATH]] [--accounts]
+    usage: mintapi [-h] [--session-path [SESSION_PATH]] [--accounts] [--investment]
                    [--budgets | --budget_hist] [--net-worth] [--extended-accounts] [--transactions]
-                   [--extended-transactions] [--credit-score] [--credit-report] [--exclude-inquiries]
+                   [--extended-transactions] [--credit-score] [--credit-report]
+                   [--exclude-inquiries] [--exclude-accounts] [--exclude-utilization]
                    [--start-date [START_DATE]] [--end-date [END_DATE]]
                    [--include-investment] [--skip-duplicates] [--show-pending]
                    [--filename FILENAME] [--keyring] [--headless] [--attention]
@@ -198,6 +199,8 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       --credit-score        Retrieve credit score
       --credit-report       Retrieve full credit report & history
       --exclude-inquiries   Used in conjunction with --credit-report, ignores credit inquiry data.
+      --exclude-accounts    Used in conjunction with --credit-report, ignores credit account data.
+      --exclude-utilization Used in conjunction with --credit-report, ignores credit utilization data.
       --net-worth           Retrieve net worth information
       --extended-accounts   Retrieve extended account information (slower, implies --accounts)
       --transactions, -t    Retrieve transactions
@@ -210,6 +213,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       --end-date [END_DATE]
                             Latest date for which to retrieve transactions.
                             Used with --transactions or --extended-transactions. Format: mm/dd/yy
+      --investments         Retrieve data related to your investments, whether they be retirement or         personal stock purchases
       --include-investment  Used with --extended-transactions
       --skip-duplicates     Used with --extended-transactions
       --show-pending        Exclude pending transactions from being retrieved.

@@ -1,22 +1,21 @@
 import atexit
 import configargparse
 from datetime import date, datetime, timedelta
+import email
+import email.header
+import getpass
+import imaplib
 import io
 import json
 import logging
 import os
-import os.path
 import random
 import re
 import requests
 import subprocess
-from sys import platform as _platform
+import sys
 import time
 import zipfile
-import imaplib
-import email
-import email.header
-import sys  # DEBUG
 import warnings
 
 from selenium.common.exceptions import (
@@ -33,6 +32,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from seleniumrequests import Chrome
 import xmltodict
 
+import keyring
+import oathtool
 import pandas as pd
 
 logger = logging.getLogger("mintapi")
@@ -224,7 +225,7 @@ def get_latest_chrome_driver_version():
 
 def get_stable_chrome_driver(download_directory=os.getcwd()):
     chromedriver_name = "chromedriver"
-    if _platform in ["win32", "win64"]:
+    if sys.platform in ["win32", "win64"]:
         chromedriver_name += ".exe"
 
     local_executable_path = os.path.join(download_directory, chromedriver_name)
@@ -261,7 +262,7 @@ def get_stable_chrome_driver(download_directory=os.getcwd()):
     logger.info(
         "Downloading version {} of Chromedriver".format(latest_chrome_driver_version)
     )
-    zip_file_url = get_chrome_driver_url(latest_chrome_driver_version, _platform)
+    zip_file_url = get_chrome_driver_url(latest_chrome_driver_version, sys.platform)
     request = requests.get(zip_file_url)
 
     if request.status_code != 200:
@@ -407,10 +408,13 @@ def sign_in(
         # mfa screen
         try:
             if mfa_method == "soft-token":
-                import oathtool
-
                 mfa_token_input = driver.find_element_by_id("ius-mfa-soft-token")
-                mfa_code = oathtool.generate_otp(mfa_token)
+                if mfa_input_callback is not None:
+                    mfa_code = mfa_input_callback(
+                        "Please enter your 6-digit MFA code: "
+                    )
+                else:
+                    mfa_code = oathtool.generate_otp(mfa_token)
                 mfa_token_input.send_keys(mfa_code)
                 mfa_token_submit = driver.find_element_by_id(
                     "ius-mfa-soft-token-submit-btn"
@@ -828,6 +832,11 @@ class Mint(object):
         ).json()["bills"]
 
     def get_invests_json(self):
+        warnings.warn(
+            "We will deprecate get_invests_json method in the next major release due to an updated endpoint for"
+            "investment data.  Transition to use the updated get_investment_data method, which is also now accessible via command-line.",
+            DeprecationWarning,
+        )
         body = self.get(
             "{}/investment.event".format(MINT_ROOT_URL),
         ).text
@@ -840,16 +849,8 @@ class Mint(object):
         else:
             logger.error("FAIL2")
 
-    def get_categories(self):
-        try:
-            categories = self.__call_categories_endpoint()["Category"]
-        except Exception:
-            categories = None
-        return categories
-
-    def __call_categories_endpoint(self):
-        return self.get(
-            "{}/pfm/v1/categories".format(MINT_ROOT_URL),
+            headers=self._get_api_key_header(),
+        ).json()
             headers=self._get_api_key_header(),
         ).json()
 
@@ -1267,14 +1268,27 @@ class Mint(object):
 
     def get_credit_score(self):
         # Request a single credit report, and extract the score
-        report = self.get_credit_report(limit=1, details=False, exclude_inquiries=False)
+        report = self.get_credit_report(
+            limit=1,
+            details=False,
+            exclude_inquiries=False,
+            exclude_accounts=False,
+            exclude_utilization=False,
+        )
         try:
             vendor = report["reports"]["vendorReports"][0]
             return vendor["creditReportList"][0]["creditScore"]
         except (KeyError, IndexError):
             raise Exception("No Credit Score Found")
 
-    def get_credit_report(self, limit=2, details=True, exclude_inquiries=False):
+    def get_credit_report(
+        self,
+        limit=2,
+        details=True,
+        exclude_inquiries=False,
+        exclude_accounts=False,
+        exclude_utilization=False,
+    ):
         # Get the browser API key, build auth header
         credit_header = self._get_api_key_header()
 
@@ -1295,10 +1309,14 @@ class Mint(object):
                 credit_report["inquiries"] = self.get_credit_inquiries(credit_header)
 
             # Get full list of credit accounts
-            credit_report["accounts"] = self.get_credit_accounts(credit_header)
+            if not exclude_accounts:
+                credit_report["accounts"] = self.get_credit_accounts(credit_header)
 
             # Get credit utilization history (~3 months, by account)
-            credit_report["utilization"] = self.get_credit_utilization(credit_header)
+            if not exclude_utilization:
+                credit_report["utilization"] = self.get_credit_utilization(
+                    credit_header
+                )
 
         return credit_report
 
@@ -1328,21 +1346,21 @@ class Mint(object):
         )
 
     def get_credit_utilization(self, credit_header):
-        return self.__process_utilization(
+        return self._process_utilization(
             self._get_credit_details(
                 "{}/v1/creditreports/creditutilizationhistory", credit_header
             )
         )
 
-    def __process_utilization(self, data):
+    def _process_utilization(self, data):
         # Function to clean up the credit utilization history data
         utilization = []
-        utilization.extend(self.__flatten_utilization(data["cumulative"]))
+        utilization.extend(self._flatten_utilization(data["cumulative"]))
         for trade in data["tradelines"]:
-            utilization.extend(self.__flatten_utilization(trade))
+            utilization.extend(self._flatten_utilization(trade))
         return utilization
 
-    def __flatten_utilization(self, data):
+    def _flatten_utilization(self, data):
         # The utilization history data has a nested format, grouped by year
         # and then by month. Let's flatten that into a list of dates.
         utilization = []
@@ -1466,11 +1484,27 @@ def parse_arguments(args):
             },
         ),
         (
+            ("--exclude-accounts",),
+            {
+                "action": "store_true",
+                "default": False,
+                "help": "When accessing credit report details, exclude data related to credit accounts.  Used with --credit-report.",
+            },
+        ),
+        (
             ("--exclude-inquiries",),
             {
                 "action": "store_true",
                 "default": False,
                 "help": "When accessing credit report details, exclude data related to credit inquiries.  Used with --credit-report.",
+            },
+        ),
+        (
+            ("--exclude-utilization",),
+            {
+                "action": "store_true",
+                "default": False,
+                "help": "When accessing credit report details, exclude data related to credit utilization.  Used with --credit-report.",
             },
         ),
         (
@@ -1509,6 +1543,13 @@ def parse_arguments(args):
                 "default": False,
                 "help": "Retrieve data related to your categories",
             },
+        ),
+            ("--investments",),
+            {
+                "action": "store_true",
+                "default": False,
+                "help": "Retrieve data related to your investments, whether they be retirement or personal stock purchases",
+            }
         ),
         (
             ("--include-investment",),
@@ -1672,19 +1713,7 @@ def initiate_account_refresh(email, password):
 
 
 def main():
-    import getpass
-
-    try:
-        import keyring
-    except ImportError:
-        keyring = None
-
     options = parse_arguments(sys.argv[1:])
-
-    if options.keyring and not keyring:
-        raise Exception(
-            "--keyring can only be used if the `keyring` library is installed."
-        )
 
     # Try to get the e-mail and password from the arguments
     email = options.email
@@ -1719,6 +1748,7 @@ def main():
             options.net_worth,
             options.credit_score,
             options.credit_report,
+            options.investments,
             options.attention,
             options.categories,
         ]
@@ -1807,13 +1837,18 @@ def main():
         )
     elif options.categories:
         data = mint.get_categories()
+    elif options.investments:
+        data = mint.get_investment_data()
     elif options.net_worth:
         data = mint.get_net_worth()
     elif options.credit_score:
         data = mint.get_credit_score()
     elif options.credit_report:
         data = mint.get_credit_report(
-            details=True, exclude_inquiries=options.exclude_inquiries
+            details=True,
+            exclude_inquiries=options.exclude_inquiries,
+            exclude_accounts=options.exclude_accounts,
+            exclude_utilization=options.exclude_utilization,
         )
 
     # output the data

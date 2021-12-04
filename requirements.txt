@@ -1,5 +1,6 @@
 configargparse==1.5.3
 future==0.18.2
+keyring==23.2.1
 mock==4.0.2
 oathtool==2.3.0
 pandas==1.1.4
