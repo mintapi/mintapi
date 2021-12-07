@@ -33,7 +33,6 @@ import oathtool
 import pandas as pd
 
 logger = logging.getLogger("mintapi")
-logger.setLevel(logging.INFO)
 
 
 def json_date_to_datetime(dateraw):

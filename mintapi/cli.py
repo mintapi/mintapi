@@ -12,7 +12,6 @@ import configargparse
 from mintapi.api import Mint, get_email_code
 
 logger = logging.getLogger("mintapi")
-logger.setLevel(logging.INFO)
 
 
 def parse_arguments(args):
