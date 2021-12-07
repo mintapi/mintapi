@@ -1784,7 +1784,7 @@ def main():
 
     if mfa_method == "email" and imap_account:
         imap_password = handle_password(
-            "imap",
+            "mintapi_imap",
             "IMAP password: ",
             imap_account,
             imap_password,
