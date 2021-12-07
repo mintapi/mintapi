@@ -76,7 +76,11 @@ def get_email_code(
             DeprecationWarning,
         )
     code = None
-    imap_client = imaplib.IMAP4_SSL(imap_server)
+    try:
+        imap_client = imaplib.IMAP4_SSL(imap_server)
+    except imaplib.IMAP4.error:
+        logger.error("ERROR: Unable to establish IMAP Client")
+        return ""
 
     try:
         rv, data = imap_client.login(imap_account, imap_password)
