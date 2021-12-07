@@ -10,7 +10,7 @@ with open(readme, "r") as fh:
 setuptools.setup(
     name="mintapi",
     description="a screen-scraping API for Mint.com",
-    long_description="https://github.com/mintapi/mintapi/",
+    long_description=long_description,
     version="1.58",
     packages=["mintapi"],
     license="The MIT License",
@@ -30,7 +30,7 @@ setuptools.setup(
     python_requires=">=3.6",
     entry_points=dict(
         console_scripts=[
-            "mintapi = mintapi.api:main",
+            "mintapi = mintapi.cli:main",
         ],
     ),
 )
