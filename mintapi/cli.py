@@ -67,6 +67,14 @@ def parse_arguments(args):
             },
         ),
         (
+            ("--categories",),
+            {
+                "action": "store_true",
+                "default": False,
+                "help": "Retrieve category definitions as configured in Mint",
+            },
+        ),
+        (
             ("--chromedriver-download-path",),
             {
                 "default": os.getcwd(),
@@ -359,6 +367,7 @@ def main():
             options.credit_report,
             options.investments,
             options.attention,
+            options.categories,
         ]
     ):
         options.accounts = True
@@ -443,6 +452,8 @@ def main():
             remove_pending=options.show_pending,
             skip_duplicates=options.skip_duplicates,
         )
+    elif options.categories:
+        data = mint.get_categories()
     elif options.investments:
         data = mint.get_investment_data()
     elif options.net_worth:

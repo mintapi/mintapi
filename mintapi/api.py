@@ -865,17 +865,10 @@ class Mint(object):
         ).json()
 
     def get_categories(self):
-        try:
-            categories = self.__call_categories_endpoint()["Category"]
-        except Exception:
-            categories = None
-        return categories
-
-    def __call_categories_endpoint(self):
         return self.get(
             "{}/pfm/v1/categories".format(MINT_ROOT_URL),
             headers=self._get_api_key_header(),
-        ).json()
+        ).json()["Category"]
 
     def get_accounts(self, get_detail=False):  # {{{
         # Issue service request.
@@ -1055,8 +1048,8 @@ class Mint(object):
             category = self.get_category_object_from_id(
                 transaction["categoryId"], categories
             )
-            parent = self._find_parent_from_category(category)
-            transaction["parentCategoryId"] = parent["id"]
+            parent = self._find_parent_from_category(category, categories)
+            transaction["parentCategoryId"] = self.__format_category_id(parent["id"])
             transaction["parentCategoryName"] = parent["name"]
 
         return result
@@ -1249,7 +1242,7 @@ class Mint(object):
     def __format_budget_categories(self, budget, categories):
         category = self.get_category_object_from_id(budget["cat"], categories)
         budget["cat"] = category["name"]
-        parent = self._find_parent_from_category(category)
+        parent = self._find_parent_from_category(category, categories)
         budget["parent"] = parent["name"]
         return budget
 
@@ -1271,7 +1264,7 @@ class Mint(object):
     def __format_category_id(self, cid):
         return cid if str(cid).find("_") == "-1" else str(cid)[str(cid).find("_") + 1 :]
 
-    def _find_parent_from_category(self, category):
+    def _find_parent_from_category(self, category, categories):
         if category["depth"] == 1:
             return {"id": "", "name": ""}
 
