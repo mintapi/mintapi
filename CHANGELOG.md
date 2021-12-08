@@ -1,3 +1,13 @@
+1.59
+---
+- Moved to newest Mint investments endpoint (#342)
+- Added command-line support for investment data (#342)
+- alphabetize imports and consolidate (#355)
+- Adding new option to exclude credit utilization history data (#356)
+- refactor: Split up cli code from api.py (#358)
+- Use keyring for IMAP password (#360)
+- Move Black linter to a separate step in the GitHub flow (#361)
+
 1.58
 ---
 - expose sign_in as a public method to allow custom WebDrivers (#336)
