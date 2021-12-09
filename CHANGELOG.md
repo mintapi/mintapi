@@ -1,12 +1,9 @@
 1.59
 ---
-- Moved to newest Mint investments endpoint (#342)
-- Added command-line support for investment data (#342)
-- alphabetize imports and consolidate (#355)
-- Adding new option to exclude credit utilization history data (#356)
-- refactor: Split up cli code from api.py (#358)
-- Use keyring for IMAP password (#360)
-- Move Black linter to a separate step in the GitHub flow (#361)
+- moved to newest Mint investments endpoint (#342)
+- added command-line support for investment data (#342)
+- added new option to exclude credit utilization history data (#356)
+- allow use of keyring for IMAP password (#360)
 
 1.58
 ---
