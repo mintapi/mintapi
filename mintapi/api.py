@@ -474,9 +474,15 @@ def sign_in(
                         )
                     mfa_code_input.send_keys(mfa_code)
 
-                    mfa_code_submit = driver.find_element_by_id(
-                        "ius-mfa-otp-submit-btn"
-                    )
+                    try:
+                        mfa_code_submit = driver.find_element_by_id(
+                            "ius-mfa-otp-submit-btn"
+                        )
+                    except NoSuchElementException:
+                        mfa_code_submit = driver.find_element_by_css_selector(
+                            '[data-testid="VerifyOtpSubmitButton"]'
+                        )
+
                     mfa_code_submit.click()
                 except (NoSuchElementException, ElementNotInteractableException):
                     pass  # we're not on mfa input screen
