@@ -4,6 +4,7 @@ import pytest
 
 import mintapi
 import mintapi.api
+import mintapi.sign_in_mod
 
 
 USERNAME = os.environ.get("MINTAPI_USERNAME", None)
@@ -30,7 +31,7 @@ pytestmark = pytest.mark.skipif(
 @pytest.fixture
 def get_mint_driver() -> mintapi.Mint:
     mint = mintapi.Mint()
-    mint.driver = mintapi.api._create_web_driver_at_mint_com(
+    mint.driver = mintapi.sign_in_mod._create_web_driver_at_mint_com(
         HEADLESS,
         SESSION_PATH,
         USE_CHROMEDRIVER_ON_PATH,
@@ -41,7 +42,7 @@ def get_mint_driver() -> mintapi.Mint:
 
 @pytest.fixture
 def do_sign_in(get_mint_driver: mintapi.Mint) -> mintapi.Mint:
-    mintapi.api._sign_in(
+    mintapi.sign_in(
         USERNAME,
         PASSWORD,
         get_mint_driver.driver,
@@ -53,7 +54,7 @@ def do_sign_in(get_mint_driver: mintapi.Mint) -> mintapi.Mint:
 
 
 def test_sign_in(get_mint_driver: mintapi.Mint):
-    mintapi.api._sign_in(
+    mintapi.sign_in(
         USERNAME,
         PASSWORD,
         get_mint_driver.driver,

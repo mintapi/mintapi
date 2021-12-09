@@ -12,7 +12,7 @@ import warnings
 import xmltodict
 import pandas as pd
 
-from mintapi.sign_in import sign_in, _create_web_driver_at_mint_com
+from mintapi.sign_in_mod import sign_in, _create_web_driver_at_mint_com
 
 
 logger = logging.getLogger("mintapi")

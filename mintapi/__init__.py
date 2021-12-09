@@ -1,7 +1,7 @@
 import logging
 
 from mintapi.api import *
-from mintapi.sign_in import *
+from mintapi.sign_in_mod import *
 
 
 logging.getLogger("mintapi").setLevel(logging.INFO)
