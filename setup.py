@@ -10,7 +10,8 @@ with open(readme, "r") as fh:
 setuptools.setup(
     name="mintapi",
     description="a screen-scraping API for Mint.com",
-    long_description="https://github.com/mintapi/mintapi/",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     version="1.59",
     packages=["mintapi"],
     license="The MIT License",
