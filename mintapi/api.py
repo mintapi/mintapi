@@ -407,7 +407,8 @@ def sign_in(
         # mfa screen
         try:
             if mfa_method == "soft-token":
-                mfa_token_input = driver.find_element_by_id("ius-mfa-soft-token")
+                mfa_token_input = driver.find_element_by_id(
+                    "iux-mfa-soft-token-verification-code")
                 if mfa_input_callback is not None:
                     mfa_code = mfa_input_callback(
                         "Please enter your 6-digit MFA code: "
@@ -415,9 +416,14 @@ def sign_in(
                 else:
                     mfa_code = oathtool.generate_otp(mfa_token)
                 mfa_token_input.send_keys(mfa_code)
-                mfa_token_submit = driver.find_element_by_id(
-                    "ius-mfa-soft-token-submit-btn"
-                )
+                try:
+                    mfa_token_submit = driver.find_element_by_id(
+                        "ius-mfa-soft-token-submit-btn"
+                    )
+                except NoSuchElementException:
+                    mfa_token_submit = driver.find_element_by_xpath(
+                        '//*[@id="ius-mfa-soft-token-section"]/form/div[2]/div[2]/button'
+                    )
                 mfa_token_submit.click()
             else:
                 try:
