@@ -1173,18 +1173,11 @@ class Mint(object):
 
         return accounts
 
-    def get_budgets(self, hist=None):  # {{{
-        # Issue request for budget utilization
-        first_of_this_month = date.today().replace(day=1)
-        eleven_months_ago = (first_of_this_month - timedelta(days=330)).replace(day=1)
-        url = "{}/getBudget.xevent".format(MINT_ROOT_URL)
-        params = {
-            "startDate": convert_date_to_string(eleven_months_ago),
-            "endDate": convert_date_to_string(first_of_this_month),
-            "rnd": Mint.get_rnd(),
-        }
-        response = json.loads(self.get(url, params=params, headers=JSON_HEADER).text)
+    def get_budgets(self, hist=None):
+        response = self.__call_budgets_endpoint()
         categories = self.get_categories()
+        income = response["data"]["income"]
+        spending = response["data"]["spending"]
         if hist is not None:  # version proofing api
 
             def mos_to_yrmo(mos_frm_zero):
@@ -1198,7 +1191,7 @@ class Mint(object):
             elif hist < 1:
                 hist = 1
 
-            bgt_cur_mo = max(map(int, response["data"]["income"].keys()))
+            bgt_cur_mo = max(map(int, income.keys()))
             min_mo_hist = bgt_cur_mo - hist
 
             # Initialize and populate dictionary for return
@@ -1208,12 +1201,8 @@ class Mint(object):
             budgets = {}
             for months in range(bgt_cur_mo, min_mo_hist, -1):
                 budgets[mos_to_yrmo(months)] = {}
-                budgets[mos_to_yrmo(months)]["income"] = response["data"]["income"][
-                    str(months)
-                ]["bu"]
-                budgets[mos_to_yrmo(months)]["spending"] = response["data"]["spending"][
-                    str(months)
-                ]["bu"]
+                budgets[mos_to_yrmo(months)]["income"] = income[str(months)]["bu"]
+                budgets[mos_to_yrmo(months)]["spending"] = spending[str(months)]["bu"]
 
             # Fill in the return structure
             for month in budgets.keys():
@@ -1224,12 +1213,8 @@ class Mint(object):
         else:
             # Make the skeleton return structure
             budgets = {
-                "income": response["data"]["income"][
-                    str(max(map(int, response["data"]["income"].keys())))
-                ]["bu"],
-                "spend": response["data"]["spending"][
-                    str(max(map(int, response["data"]["spending"].keys())))
-                ]["bu"],
+                "income": income[str(max(map(int, income.keys())))]["bu"],
+                "spend": spending[str(max(map(int, spending.keys())))]["bu"],
             }
 
             # Fill in the return structure
@@ -1238,6 +1223,18 @@ class Mint(object):
                     budget = self.__format_budget_categories(budget, categories)
 
         return budgets
+
+    def __call_budgets_endpoint(self):
+        # Issue request for budget utilization
+        first_of_this_month = date.today().replace(day=1)
+        eleven_months_ago = (first_of_this_month - timedelta(days=330)).replace(day=1)
+        url = "{}/getBudget.xevent".format(MINT_ROOT_URL)
+        params = {
+            "startDate": convert_date_to_string(eleven_months_ago),
+            "endDate": convert_date_to_string(first_of_this_month),
+            "rnd": Mint.get_rnd(),
+        }
+        return json.loads(self.get(url, params=params, headers=JSON_HEADER).text)
 
     def __format_budget_categories(self, budget, categories):
         category = self.get_category_object_from_id(budget["cat"], categories)
