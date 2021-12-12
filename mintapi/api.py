@@ -496,16 +496,11 @@ def sign_in(
                 )
                 account_input.click()
 
-            try:
-                continue_btn = driver.find_element_by_id(
-                    "ius-sign-in-mfa-select-account-continue-btn"
-                )
-                continue_btn.submit()
-            except NoSuchElementException:
-                continue_btn = driver.find_element_by_css_selector(
-                    '[data-testid="SelectAccountContinueButton"]'
-                )
-                continue_btn.click()
+            mfa_code_submit = driver.find_element_by_css_selector(
+               '#ius-sign-in-mfa-select-account-continue-btn, [data-testid="SelectAccountContinueButton"]'
+            )
+            continue_btn.click()
+
         except NoSuchElementException:
             pass  # not on account selection screen
 
