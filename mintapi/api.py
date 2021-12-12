@@ -497,7 +497,7 @@ def sign_in(
                 account_input.click()
 
             mfa_code_submit = driver.find_element_by_css_selector(
-               '#ius-sign-in-mfa-select-account-continue-btn, [data-testid="SelectAccountContinueButton"]'
+                '#ius-sign-in-mfa-select-account-continue-btn, [data-testid="SelectAccountContinueButton"]'
             )
             continue_btn.click()
 
