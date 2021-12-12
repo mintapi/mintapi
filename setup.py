@@ -11,7 +11,7 @@ setuptools.setup(
     name="mintapi",
     description="a screen-scraping API for Mint.com",
     long_description=long_description,
-    version="1.58",
+    version="1.59",
     packages=["mintapi"],
     license="The MIT License",
     author="Michael Rooney",
