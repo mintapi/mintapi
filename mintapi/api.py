@@ -408,7 +408,8 @@ def sign_in(
         try:
             if mfa_method == "soft-token":
                 mfa_token_input = driver.find_element_by_css_selector(
-                    '#iux-mfa-soft-token-verification-code, #ius-mfa-soft-token')
+                    "#iux-mfa-soft-token-verification-code, #ius-mfa-soft-token"
+                )
                 if mfa_input_callback is not None:
                     mfa_code = mfa_input_callback(
                         "Please enter your 6-digit MFA code: "
@@ -421,7 +422,7 @@ def sign_in(
                         '#ius-mfa-soft-token-submit-btn, [data-testid="VerifySoftTokenSubmitButton"]'
                     )
                 except NoSuchElementException:
-                    pass # no option to select mfa token
+                    pass  # no option to select mfa token
                 mfa_token_submit.click()
 
             else:
