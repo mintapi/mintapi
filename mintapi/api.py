@@ -474,9 +474,10 @@ def sign_in(
                         )
                     mfa_code_input.send_keys(mfa_code)
 
-                    mfa_code_submit = driver.find_element_by_id(
-                        "ius-mfa-otp-submit-btn"
+                    mfa_code_submit = driver.find_element_by_css_selector(
+                        '#ius-mfa-otp-submit-btn, [data-testid="VerifyOtpSubmitButton"]'
                     )
+
                     mfa_code_submit.click()
                 except (NoSuchElementException, ElementNotInteractableException):
                     pass  # we're not on mfa input screen
@@ -495,16 +496,11 @@ def sign_in(
                 )
                 account_input.click()
 
-            try:
-                continue_btn = driver.find_element_by_id(
-                    "ius-sign-in-mfa-select-account-continue-btn"
-                )
-                continue_btn.submit()
-            except NoSuchElementException:
-                continue_btn = driver.find_element_by_css_selector(
-                    '[data-testid="SelectAccountContinueButton"]'
-                )
-                continue_btn.click()
+            mfa_code_submit = driver.find_element_by_css_selector(
+                '#ius-sign-in-mfa-select-account-continue-btn, [data-testid="SelectAccountContinueButton"]'
+            )
+            continue_btn.click()
+
         except NoSuchElementException:
             pass  # not on account selection screen
 
