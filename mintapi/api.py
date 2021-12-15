@@ -421,9 +421,9 @@ def sign_in(
                     mfa_token_submit = driver.find_element_by_css_selector(
                         '#ius-mfa-soft-token-submit-btn, [data-testid="VerifySoftTokenSubmitButton"]'
                     )
+                    mfa_token_submit.click()
                 except NoSuchElementException:
                     pass  # no option to select mfa token
-                mfa_token_submit.click()
 
             else:
                 try:
