@@ -863,6 +863,12 @@ class Mint(object):
             headers=self._get_api_key_header(),
         ).json()
 
+    def get_categories(self):
+        return self.get(
+            "{}/pfm/v1/categories".format(MINT_ROOT_URL),
+            headers=self._get_api_key_header(),
+        ).json()["Category"]
+
     def get_accounts(self, get_detail=False):  # {{{
         # Issue service request.
         req_id = self.get_request_id_str()
@@ -1038,15 +1044,13 @@ class Mint(object):
         # the transaction category ID
         categories = self.get_categories()
         for transaction in result:
-            parent = self.get_category_object_from_id(
+            category = self.get_category_object_from_id(
                 transaction["categoryId"], categories
-            )["parent"]
-            transaction["parentCategoryName"] = (
-                "" if parent["name"] == "Root" else parent["name"]
             )
-            transaction["parentCategoryId"] = (
-                "" if parent["name"] == "Root" else parent["id"]
-            )
+            parent = self._find_parent_from_category(category, categories)
+            transaction["parentCategoryId"] = self.__format_category_id(parent["id"])
+            transaction["parentCategoryName"] = parent["name"]
+
         return result
 
     def get_transactions_csv(
@@ -1168,54 +1172,11 @@ class Mint(object):
 
         return accounts
 
-    def get_categories(self):  # {{{
-        # Get category metadata.
-        req_id = self.get_request_id_str()
-        data = {
-            "input": json.dumps(
-                [
-                    {
-                        "args": {
-                            "excludedCategories": [],
-                            "sortByPrecedence": False,
-                            "categoryTypeFilter": "FREE",
-                        },
-                        "id": req_id,
-                        "service": "MintCategoryService",
-                        "task": "getCategoryTreeDto2",
-                    }
-                ]
-            )
-        }
-        response = self.make_post_request(
-            url=self.build_bundledServiceController_url(),
-            data=data,
-            convert_to_text=True,
-        )
-        if req_id not in response:
-            raise MintException('Could not parse category data: "{}"'.format(response))
-        response = json.loads(response)
-        response = response["response"][req_id]["response"]
-
-        # Build category list
-        categories = {}
-        for category in response["allCategories"]:
-            categories[category["id"]] = category
-
-        return categories
-
-    def get_budgets(self, hist=None):  # {{{
-        # Issue request for budget utilization
-        first_of_this_month = date.today().replace(day=1)
-        eleven_months_ago = (first_of_this_month - timedelta(days=330)).replace(day=1)
-        url = "{}/getBudget.xevent".format(MINT_ROOT_URL)
-        params = {
-            "startDate": convert_date_to_string(eleven_months_ago),
-            "endDate": convert_date_to_string(first_of_this_month),
-            "rnd": Mint.get_rnd(),
-        }
-        response = json.loads(self.get(url, params=params, headers=JSON_HEADER).text)
+    def get_budgets(self, hist=None):
+        response = self.__call_budgets_endpoint()
         categories = self.get_categories()
+        income = response["data"]["income"]
+        spending = response["data"]["spending"]
         if hist is not None:  # version proofing api
 
             def mos_to_yrmo(mos_frm_zero):
@@ -1229,7 +1190,7 @@ class Mint(object):
             elif hist < 1:
                 hist = 1
 
-            bgt_cur_mo = max(map(int, response["data"]["income"].keys()))
+            bgt_cur_mo = max(map(int, income.keys()))
             min_mo_hist = bgt_cur_mo - hist
 
             # Initialize and populate dictionary for return
@@ -1239,63 +1200,74 @@ class Mint(object):
             budgets = {}
             for months in range(bgt_cur_mo, min_mo_hist, -1):
                 budgets[mos_to_yrmo(months)] = {}
-                budgets[mos_to_yrmo(months)]["income"] = response["data"]["income"][
-                    str(months)
-                ]["bu"]
-                budgets[mos_to_yrmo(months)]["spending"] = response["data"]["spending"][
-                    str(months)
-                ]["bu"]
+                budgets[mos_to_yrmo(months)]["income"] = income[str(months)]["bu"]
+                budgets[mos_to_yrmo(months)]["spending"] = spending[str(months)]["bu"]
 
             # Fill in the return structure
             for month in budgets.keys():
                 for direction in budgets[month]:
                     for budget in budgets[month][direction]:
-                        category = self.get_category_object_from_id(
-                            budget["cat"], categories
-                        )
-                        budget["cat"] = category["name"]
-                        budget["parent"] = category["parent"]["name"]
+                        budget = self.__format_budget_categories(budget, categories)
 
         else:
             # Make the skeleton return structure
             budgets = {
-                "income": response["data"]["income"][
-                    str(max(map(int, response["data"]["income"].keys())))
-                ]["bu"],
-                "spend": response["data"]["spending"][
-                    str(max(map(int, response["data"]["spending"].keys())))
-                ]["bu"],
+                "income": income[str(max(map(int, income.keys())))]["bu"],
+                "spend": spending[str(max(map(int, spending.keys())))]["bu"],
             }
 
             # Fill in the return structure
             for direction in budgets.keys():
                 for budget in budgets[direction]:
-                    category = self.get_category_object_from_id(
-                        budget["cat"], categories
-                    )
-                    budget["cat"] = category["name"]
-                    # Uncategorized budget's parent is a string: 'Uncategorized'
-                    if isinstance(category["parent"], dict):
-                        budget["parent"] = category["parent"]["name"]
-                    else:
-                        budget["parent"] = category["parent"]
+                    budget = self.__format_budget_categories(budget, categories)
 
         return budgets
 
+    def __call_budgets_endpoint(self):
+        # Issue request for budget utilization
+        first_of_this_month = date.today().replace(day=1)
+        eleven_months_ago = (first_of_this_month - timedelta(days=330)).replace(day=1)
+        url = "{}/getBudget.xevent".format(MINT_ROOT_URL)
+        params = {
+            "startDate": convert_date_to_string(eleven_months_ago),
+            "endDate": convert_date_to_string(first_of_this_month),
+            "rnd": Mint.get_rnd(),
+        }
+        return json.loads(self.get(url, params=params, headers=JSON_HEADER).text)
+
+    def __format_budget_categories(self, budget, categories):
+        category = self.get_category_object_from_id(budget["cat"], categories)
+        budget["cat"] = category["name"]
+        parent = self._find_parent_from_category(category, categories)
+        budget["parent"] = parent["name"]
+        return budget
+
     def get_category_object_from_id(self, cid, categories):
         if cid == 0:
-            return {"parent": "Uncategorized", "name": "Uncategorized"}
+            return {"parent": "Uncategorized", "depth": 1, "name": "Uncategorized"}
 
-        for i in categories:
-            if categories[i]["id"] == cid:
-                return categories[i]
+        result = filter(
+            lambda category: self.__format_category_id(category["id"]) == str(cid),
+            categories,
+        )
+        category = list(result)
+        return (
+            category[0]
+            if len(category) > 0
+            else {"parent": "Unknown", "depth": 1, "name": "Unknown"}
+        )
 
-            if "children" in categories[i]:
-                for j in categories[i]["children"]:
-                    if categories[i][j]["id"] == cid:
-                        return categories[i][j]
+    def __format_category_id(self, cid):
+        return cid if str(cid).find("_") == "-1" else str(cid)[str(cid).find("_") + 1 :]
 
-        return {"parent": "Unknown", "name": "Unknown"}
+    def _find_parent_from_category(self, category, categories):
+        if category["depth"] == 1:
+            return {"id": "", "name": ""}
+
+        parent = self.get_category_object_from_id(
+            self.__format_category_id(category["parentId"]), categories
+        )
+        return {"id": parent["id"], "name": parent["name"]}
 
     def initiate_account_refresh(self):
         data = {"token": self.token}
@@ -1456,7 +1428,7 @@ def initiate_account_refresh(email, password):
 
 if __name__ == "__main__":
     warnings.warn(
-        "Calling command line code from api.py is will be deprecated in a future release.\n"
+        "Calling command line code from api.py will be deprecated in a future release.\n"
         "Please call mintapi directly. For examples, see the README.md",
         DeprecationWarning,
     )

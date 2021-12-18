@@ -5,6 +5,8 @@ import pytest
 import mintapi
 import mintapi.api
 
+from tests.test_driver import category_example
+
 
 USERNAME = os.environ.get("MINTAPI_USERNAME", None)
 PASSWORD = os.environ.get("MINTAPI_PASSWORD", None)
@@ -41,7 +43,7 @@ def get_mint_driver() -> mintapi.Mint:
 
 @pytest.fixture
 def do_sign_in(get_mint_driver: mintapi.Mint) -> mintapi.Mint:
-    mintapi.api._sign_in(
+    mintapi.api.sign_in(
         USERNAME,
         PASSWORD,
         get_mint_driver.driver,
@@ -53,7 +55,7 @@ def do_sign_in(get_mint_driver: mintapi.Mint) -> mintapi.Mint:
 
 
 def test_sign_in(get_mint_driver: mintapi.Mint):
-    mintapi.api._sign_in(
+    mintapi.api.sign_in(
         USERNAME,
         PASSWORD,
         get_mint_driver.driver,
@@ -70,3 +72,9 @@ def test_investment_endpoint(do_sign_in: mintapi.Mint):
     investment_data = do_sign_in.get_investment_data()[0]
     assert "metaData" not in investment_data
     assert "lastUpdatedDate" in investment_data
+
+
+def test_get_categories(do_sign_in: mintapi.Mint):
+    categories = do_sign_in.get_categories()
+    for key in category_example[0].keys():
+        assert key in categories[0].keys()
