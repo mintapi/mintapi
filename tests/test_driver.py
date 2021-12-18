@@ -348,10 +348,8 @@ class MintApiTests(unittest.TestCase):
 
     def test_config_file(self):
         # verify parsing from config file
-        config_file = tempfile.NamedTemporaryFile(mode="wt")
-        config_file.write("extended-transactions")
-        config_file.flush()
-        arguments = mintapi.cli.parse_arguments(["-c", config_file.name])
+        config_file = write_extended_transactions_file()
+        arguments = parse_arguments_file(config_file)
         self.assertEqual(arguments.extended_transactions, True)
         config_file.close()
 
@@ -382,6 +380,41 @@ class MintApiTests(unittest.TestCase):
         spending_budget = budgets["spend"][0]
         self.assertTrue("parent" in spending_budget)
         self.assertTrue(spending_budget["cat"] == spending_budget["catName"])
+
+    def test_validate_file_extensions(self):
+        config_file = write_extended_transactions_file()
+        config_file.write("filename=/tmp/transactions.txt")
+        arguments = parse_arguments_file(config_file)
+        self.assertRaises(ValueError, mintapi.cli.validate_file_extensions, arguments)
+        config_file = write_extended_transactions_file()
+        config_file.write("filename=/tmp/transactions.csv")
+        arguments = parse_arguments_file(config_file)
+        self.assertEqual(mintapi.cli.validate_file_extensions(arguments), None)
+        config_file = write_accounts_file()
+        config_file.write("filename=/tmp/accounts.csv")
+        arguments = parse_arguments_file(config_file)
+        self.assertRaises(ValueError, mintapi.cli.validate_file_extensions, arguments)
+        config_file = write_accounts_file()
+        config_file.write("filename=/tmp/accounts.json")
+        arguments = parse_arguments_file(config_file)
+        self.assertEqual(mintapi.cli.validate_file_extensions(arguments), None)
+
+
+def write_extended_transactions_file():
+    config_file = tempfile.NamedTemporaryFile(mode="wt")
+    config_file.write("extended-transactions\n")
+    return config_file
+
+
+def write_accounts_file():
+    config_file = tempfile.NamedTemporaryFile(mode="wt")
+    config_file.write("accounts\n")
+    return config_file
+
+
+def parse_arguments_file(config_file):
+    config_file.flush()
+    return mintapi.cli.parse_arguments(["-c", config_file.name])
 
 
 if __name__ == "__main__":
