@@ -4,7 +4,7 @@ import pytest
 
 import mintapi
 import mintapi.api
-import mintapi.sign_in_mod
+import mintapi.signIn
 
 from tests.test_driver import category_example
 
@@ -33,7 +33,7 @@ pytestmark = pytest.mark.skipif(
 @pytest.fixture
 def get_mint_driver() -> mintapi.Mint:
     mint = mintapi.Mint()
-    mint.driver = mintapi.sign_in_mod._create_web_driver_at_mint_com(
+    mint.driver = mintapi.signIn._create_web_driver_at_mint_com(
         HEADLESS,
         SESSION_PATH,
         USE_CHROMEDRIVER_ON_PATH,
