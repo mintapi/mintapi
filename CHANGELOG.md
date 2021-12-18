@@ -1,3 +1,10 @@
+1.59
+---
+- moved to newest Mint investments endpoint (#342)
+- added command-line support for investment data (#342)
+- added new option to exclude credit utilization history data (#356)
+- allow use of keyring for IMAP password (#360)
+
 1.58
 ---
 - expose sign_in as a public method to allow custom WebDrivers (#336)

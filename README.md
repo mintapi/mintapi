@@ -179,6 +179,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                    [--include-investment] [--skip-duplicates] [--show-pending]
                    [--filename FILENAME] [--keyring] [--headless] [--attention]
                    [--mfa-method {sms,email,soft-token}]
+                   [--categories]
                    email [password]
 
     positional arguments:
@@ -195,6 +196,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                             profile.
       --budgets             Retrieve budget information for current month
       --budget_hist         Retrieve historical budget information (past 12 months)
+      --categories          Retrieve your configured Mint categories
       --config-file, -c     File used to store arguments
       --credit-score        Retrieve credit score
       --credit-report       Retrieve full credit report & history

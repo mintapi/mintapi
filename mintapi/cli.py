@@ -68,6 +68,14 @@ def parse_arguments(args):
             },
         ),
         (
+            ("--categories",),
+            {
+                "action": "store_true",
+                "default": False,
+                "help": "Retrieve category definitions as configured in Mint",
+            },
+        ),
+        (
             ("--chromedriver-download-path",),
             {
                 "default": os.getcwd(),
@@ -319,6 +327,54 @@ def handle_password(type, prompt, email, password, use_keyring=False):
     return password
 
 
+def validate_file_extensions(options):
+    if any(
+        [
+            options.transactions,
+            options.extended_transactions,
+        ]
+    ):
+        if not any(
+            [
+                options.filename is None,
+                options.filename.endswith(".csv"),
+                options.filename.endswith(".json"),
+            ]
+        ):
+            raise ValueError(
+                "File extension must be either .csv or .json for transaction data"
+            )
+    else:
+        if not any([options.filename is None, options.filename.endswith(".json")]):
+            raise ValueError("File extension must be .json for non-transaction data")
+
+
+def output_data(options, data, attention_msg=None):
+    # output the data
+    if options.transactions or options.extended_transactions:
+        if options.filename is None:
+            print(data.to_json(orient="records"))
+        elif options.filename.endswith(".csv"):
+            data.to_csv(options.filename, index=False)
+        elif options.filename.endswith(".json"):
+            data.to_json(options.filename, orient="records")
+    else:
+        if options.filename is None:
+            print(json.dumps(data, indent=2))
+        elif options.filename.endswith(".json"):
+            with open(options.filename, "w+") as f:
+                json.dump(data, f, indent=2)
+
+    if options.attention:
+        if attention_msg is None or attention_msg == "":
+            attention_msg = "no messages"
+        if options.filename is None:
+            print(attention_msg)
+        else:
+            with open(options.filename, "w+") as f:
+                f.write(attention_msg)
+
+
 def main():
     options = parse_arguments(sys.argv[1:])
 
@@ -328,6 +384,8 @@ def main():
     imap_account = options.imap_account
     imap_password = options.imap_password
     mfa_method = options.mfa_method
+
+    validate_file_extensions(options)
 
     if not email:
         # If the user did not provide an e-mail, prompt for it
@@ -360,6 +418,7 @@ def main():
             options.credit_report,
             options.investments,
             options.attention,
+            options.categories,
         ]
     ):
         options.accounts = True
@@ -444,6 +503,8 @@ def main():
             remove_pending=options.show_pending,
             skip_duplicates=options.skip_duplicates,
         )
+    elif options.categories:
+        data = mint.get_categories()
     elif options.investments:
         data = mint.get_investment_data()
     elif options.net_worth:
@@ -458,31 +519,6 @@ def main():
             exclude_utilization=options.exclude_utilization,
         )
 
-    # output the data
-    if options.transactions or options.extended_transactions:
-        if options.filename is None:
-            print(data.to_json(orient="records"))
-        elif options.filename.endswith(".csv"):
-            data.to_csv(options.filename, index=False)
-        elif options.filename.endswith(".json"):
-            data.to_json(options.filename, orient="records")
-        else:
-            raise ValueError("file extension must be either .csv or .json")
-    else:
-        if options.filename is None:
-            print(json.dumps(data, indent=2))
-        elif options.filename.endswith(".json"):
-            with open(options.filename, "w+") as f:
-                json.dump(data, f, indent=2)
-        else:
-            raise ValueError("file type must be json for non-transaction data")
-
     if options.attention:
         attention_msg = mint.get_attention()
-        if attention_msg is None or attention_msg == "":
-            attention_msg = "no messages"
-        if options.filename is None:
-            print(attention_msg)
-        else:
-            with open(options.filename, "w+") as f:
-                f.write(attention_msg)
+    output_data(options, data, attention_msg)
