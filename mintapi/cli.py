@@ -9,7 +9,8 @@ import getpass
 import keyring
 import configargparse
 
-from mintapi.api import Mint, get_email_code
+from mintapi.api import Mint
+from mintapi.signIn import get_email_code
 
 logger = logging.getLogger("mintapi")
 

@@ -1,5 +1,6 @@
 import mintapi.api
 import mintapi.cli
+import mintapi.signIn
 import copy
 import datetime
 import json
@@ -265,10 +266,10 @@ class MintApiTests(unittest.TestCase):
         mintapi.cli.print_accounts(accounts)
 
     def test_chrome_driver_links(self):
-        latest_version = mintapi.api.get_latest_chrome_driver_version()
-        for platform in mintapi.api.CHROME_ZIP_TYPES:
+        latest_version = mintapi.signIn.get_latest_chrome_driver_version()
+        for platform in mintapi.signIn.CHROME_ZIP_TYPES:
             request = requests.get(
-                mintapi.api.get_chrome_driver_url(latest_version, platform)
+                mintapi.signIn.get_chrome_driver_url(latest_version, platform)
             )
             self.assertEqual(request.status_code, 200)
 
@@ -353,7 +354,7 @@ class MintApiTests(unittest.TestCase):
         self.assertEqual(arguments.extended_transactions, True)
         config_file.close()
 
-    @patch.object(mintapi.api, "get_web_driver")
+    @patch.object(mintapi.signIn, "get_web_driver")
     def test_build_bundledServiceController_url(self, mock_driver):
         mock_driver.return_value = (TestMock(), "test")
         url = mintapi.Mint.build_bundledServiceController_url(mock_driver)
