@@ -62,7 +62,7 @@ def get_email_code(
 
         rv, data = imap_client.search(None, "ALL")
         if rv != "OK":
-            raise RuntimeError("Unable to search the Email folder")
+            raise RuntimeError("Unable to search the Email folder: " + rv)
 
         count = 0
         for num in data[0].split()[::-1]:
@@ -71,7 +71,7 @@ def get_email_code(
                 break
             rv, data = imap_client.fetch(num, "(RFC822)")
             if rv != "OK":
-                raise RuntimeError("Unable to complete due to error message " + num)
+                raise RuntimeError("Unable to complete due to error message: " + rv)
 
             msg = email.message_from_bytes(data[0][1])
 
