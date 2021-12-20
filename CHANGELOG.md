@@ -1,3 +1,11 @@
+1.60
+---
+- improve handling for new login OTP/soft token selectors (#367, #370)
+- use new categories endpoint, add support for pulling categories from CLI (#359)
+- better long description for pypi
+- refactor sign-in code to its own file (#366)
+- update pandas to latest version
+
 1.59
 ---
 - moved to newest Mint investments endpoint (#342)
