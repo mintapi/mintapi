@@ -312,6 +312,43 @@ def sign_in(
     )
     driver.implicitly_wait(0)  # seconds
 
+    user_selection_page(driver)
+
+    try:  # try to enter in credentials if username and password are on same page
+        handle_same_page_username_password(driver, email, password)
+    # try to enter in credentials if username and password are on different pages
+    except (ElementNotInteractableException, ElementNotVisibleException):
+        handle_different_page_username_password(driver, email, password)
+        driver.implicitly_wait(20)  # seconds
+        password_page(driver, password)
+
+    # Wait until logged in, just in case we need to deal with MFA.
+    driver.implicitly_wait(1)  # seconds
+    while not driver.current_url.startswith("https://mint.intuit.com/overview.event"):
+        bypass_verified_user_page(driver)
+        mfa_page(
+            driver,
+            mfa_method,
+            mfa_token,
+            mfa_input_callback,
+            imap_account,
+            imap_password,
+            imap_server,
+            imap_folder,
+        )
+        account_selection_page(driver, intuit_account)
+        password_page(driver, password)
+
+    driver.implicitly_wait(20)  # seconds
+
+    # Wait until the overview page has actually loaded, and if wait_for_sync==True, sync has completed.
+    status_message = None
+    if wait_for_sync:
+        handle_wait_for_sync(driver, wait_for_sync_timeout)
+    return status_message, get_token(driver)
+
+
+def user_selection_page(driver):
     # click "Use a different user ID" if needed
     try:
         driver.find_element_by_id("ius-link-use-a-different-id-known-device").click()
@@ -323,194 +360,190 @@ def sign_in(
     except NoSuchElementException:
         pass
 
-    try:  # try to enter in credentials if username and password are on same page
-        email_input = driver.find_element_by_id("ius-userid")
+
+def handle_same_page_username_password(driver, email, password):
+    email_input = driver.find_element_by_id("ius-userid")
+    if not email_input.is_displayed():
+        raise ElementNotVisibleException()
+    email_input.clear()  # clear email and user specified email
+    email_input.send_keys(email)
+    driver.find_element_by_id("ius-password").send_keys(password)
+    driver.find_element_by_id("ius-sign-in-submit-btn").submit()
+
+
+def handle_different_page_username_password(driver, email, password):
+    try:
+        email_input = driver.find_element_by_id("ius-identifier")
         if not email_input.is_displayed():
             raise ElementNotVisibleException()
-        email_input.clear()  # clear email and user specified email
+        email_input.clear()  # clear email and use specified email
         email_input.send_keys(email)
-        driver.find_element_by_id("ius-password").send_keys(password)
-        driver.find_element_by_id("ius-sign-in-submit-btn").submit()
-    # try to enter in credentials if username and password are on different pages
+        driver.find_element_by_id("ius-sign-in-submit-btn").click()
+    # click on username if on the saved usernames page
     except (ElementNotInteractableException, ElementNotVisibleException):
-        try:
-            email_input = driver.find_element_by_id("ius-identifier")
-            if not email_input.is_displayed():
-                raise ElementNotVisibleException()
-            email_input.clear()  # clear email and use specified email
-            email_input.send_keys(email)
-            driver.find_element_by_id("ius-sign-in-submit-btn").click()
-        # click on username if on the saved usernames page
-        except (ElementNotInteractableException, ElementNotVisibleException):
-            username_elements = driver.find_elements_by_class_name(
-                "ius-option-username"
+        username_elements = driver.find_elements_by_class_name("ius-option-username")
+        for username_element in username_elements:
+            if username_element.text == email:
+                username_element.click()
+                break
+
+
+def bypass_verified_user_page(driver):
+    # bypass "Let's add your current mobile number" interstitial page
+    try:
+        skip_for_now = driver.find_element_by_id("ius-verified-user-update-btn-skip")
+        skip_for_now.click()
+    except (
+        NoSuchElementException,
+        StaleElementReferenceException,
+        ElementNotVisibleException,
+    ):
+        pass
+
+
+def mfa_page(
+    driver,
+    mfa_method,
+    mfa_token,
+    mfa_input_callback,
+    imap_account,
+    imap_password,
+    imap_server,
+    imap_folder,
+):
+    # mfa screen
+    try:
+        if mfa_method == "soft-token":
+            mfa_token_input = driver.find_element_by_css_selector(
+                "#iux-mfa-soft-token-verification-code, #ius-mfa-soft-token"
             )
-            for username_element in username_elements:
-                if username_element.text == email:
-                    username_element.click()
-                    break
-        driver.implicitly_wait(20)  # seconds
-        try:
-            driver.find_element_by_id(
-                "ius-sign-in-mfa-password-collection-current-password"
-            ).send_keys(password)
-            driver.find_element_by_id(
-                "ius-sign-in-mfa-password-collection-continue-btn"
-            ).submit()
-        except NoSuchElementException:
-            pass  # password may not be here when using MFA
-
-    # Wait until logged in, just in case we need to deal with MFA.
-    driver.implicitly_wait(1)  # seconds
-    while not driver.current_url.startswith("https://mint.intuit.com/overview.event"):
-
-        # bypass "Let's add your current mobile number" interstitial page
-        try:
-            skip_for_now = driver.find_element_by_id(
-                "ius-verified-user-update-btn-skip"
+            if mfa_input_callback is not None:
+                mfa_code = mfa_input_callback("Please enter your 6-digit MFA code: ")
+            else:
+                mfa_code = oathtool.generate_otp(mfa_token)
+            mfa_token_input.send_keys(mfa_code)
+            mfa_token_submit = driver.find_element_by_css_selector(
+                '#ius-mfa-soft-token-submit-btn, [data-testid="VerifySoftTokenSubmitButton"]'
             )
-            skip_for_now.click()
-        except (
-            NoSuchElementException,
-            StaleElementReferenceException,
-            ElementNotVisibleException,
-        ):
-            pass
-
-        # mfa screen
-        try:
-            if mfa_method == "soft-token":
-                mfa_token_input = driver.find_element_by_css_selector(
-                    "#iux-mfa-soft-token-verification-code, #ius-mfa-soft-token"
+            mfa_token_submit.click()
+        else:
+            try:
+                driver.find_element_by_id("ius-mfa-options-form")
+                mfa_method_option = driver.find_element_by_id(
+                    "ius-mfa-option-{}".format(mfa_method)
                 )
-                if mfa_input_callback is not None:
-                    mfa_code = mfa_input_callback(
-                        "Please enter your 6-digit MFA code: "
+                mfa_method_option.click()
+                mfa_method_submit = driver.find_element_by_id(
+                    "ius-mfa-options-submit-btn"
+                )
+                mfa_method_submit.click()
+            except NoSuchElementException:
+                pass  # no option to select mfa option
+
+            if mfa_method == "email" and imap_account:
+                for element_id in [
+                    "ius-label-mfa-email-otp",
+                    "ius-mfa-email-otp-card-challenge",
+                    "ius-sublabel-mfa-email-otp",
+                ]:
+                    try:
+                        mfa_email_select = driver.find_element_by_id(element_id)
+                        mfa_email_select.click()
+                        break
+                    except (
+                        NoSuchElementException,
+                        ElementNotInteractableException,
+                    ):
+                        pass  # no option to select email address
+
+            if mfa_method == "sms":
+                try:
+                    mfa_sms_select = driver.find_element_by_id(
+                        "ius-mfa-sms-otp-card-challenge"
+                    )
+                    mfa_sms_select.click()
+                except (NoSuchElementException, ElementNotInteractableException):
+                    pass  # no option to select sms
+
+            try:
+                mfa_code_input = driver.find_element_by_id("ius-mfa-confirm-code")
+                mfa_code_input.clear()
+                if mfa_method == "email" and imap_account:
+                    mfa_code = get_email_code(
+                        imap_account,
+                        imap_password,
+                        imap_server,
+                        imap_folder=imap_folder,
                     )
                 else:
-                    mfa_code = oathtool.generate_otp(mfa_token)
-                mfa_token_input.send_keys(mfa_code)
-                mfa_token_submit = driver.find_element_by_css_selector(
-                    '#ius-mfa-soft-token-submit-btn, [data-testid="VerifySoftTokenSubmitButton"]'
+                    mfa_code = (mfa_input_callback or input)(
+                        "Please enter your 6-digit MFA code: "
+                    )
+                mfa_code_input.send_keys(mfa_code)
+
+                mfa_code_submit = driver.find_element_by_css_selector(
+                    '#ius-mfa-otp-submit-btn, [data-testid="VerifyOtpSubmitButton"]'
                 )
-                mfa_token_submit.click()
-            else:
-                try:
-                    driver.find_element_by_id("ius-mfa-options-form")
-                    mfa_method_option = driver.find_element_by_id(
-                        "ius-mfa-option-{}".format(mfa_method)
-                    )
-                    mfa_method_option.click()
-                    mfa_method_submit = driver.find_element_by_id(
-                        "ius-mfa-options-submit-btn"
-                    )
-                    mfa_method_submit.click()
-                except NoSuchElementException:
-                    pass  # no option to select mfa option
+                mfa_code_submit.click()
+            except (NoSuchElementException, ElementNotInteractableException):
+                pass  # we're not on mfa input screen
 
-                if mfa_method == "email" and imap_account:
-                    for element_id in [
-                        "ius-label-mfa-email-otp",
-                        "ius-mfa-email-otp-card-challenge",
-                        "ius-sublabel-mfa-email-otp",
-                    ]:
-                        try:
-                            mfa_email_select = driver.find_element_by_id(element_id)
-                            mfa_email_select.click()
-                            break
-                        except (
-                            NoSuchElementException,
-                            ElementNotInteractableException,
-                        ):
-                            pass  # no option to select email address
+    except NoSuchElementException:
+        pass  # not on mfa screen
 
-                if mfa_method == "sms":
-                    try:
-                        mfa_sms_select = driver.find_element_by_id(
-                            "ius-mfa-sms-otp-card-challenge"
-                        )
-                        mfa_sms_select.click()
-                    except (NoSuchElementException, ElementNotInteractableException):
-                        pass  # no option to select sms
 
-                try:
-                    mfa_code_input = driver.find_element_by_id("ius-mfa-confirm-code")
-                    mfa_code_input.clear()
-                    if mfa_method == "email" and imap_account:
-                        mfa_code = get_email_code(
-                            imap_account,
-                            imap_password,
-                            imap_server,
-                            imap_folder=imap_folder,
-                        )
-                    else:
-                        mfa_code = (mfa_input_callback or input)(
-                            "Please enter your 6-digit MFA code: "
-                        )
-                    mfa_code_input.send_keys(mfa_code)
-
-                    mfa_code_submit = driver.find_element_by_css_selector(
-                        '#ius-mfa-otp-submit-btn, [data-testid="VerifyOtpSubmitButton"]'
-                    )
-                    mfa_code_submit.click()
-                except (NoSuchElementException, ElementNotInteractableException):
-                    pass  # we're not on mfa input screen
-
-        except NoSuchElementException:
-            pass  # not on mfa screen
-
-        # account selection screen -- if there are multiple accounts, select one
-        try:
-            select_account = driver.find_element_by_id("ius-mfa-select-account-section")
-            if intuit_account is not None:
-                account_input = select_account.find_element_by_xpath(
-                    "//label/span[text()='{}']/../preceding-sibling::input".format(
-                        intuit_account
-                    )
-                )
-                account_input.click()
-
-            mfa_code_submit = driver.find_element_by_css_selector(
-                '#ius-sign-in-mfa-select-account-continue-btn, [data-testid="SelectAccountContinueButton"]'
-            )
-            mfa_code_submit.click()
-        except NoSuchElementException:
-            pass  # not on account selection screen
-
-        # password only sometimes after mfa
-        try:
-            driver.find_element_by_id(
-                "ius-sign-in-mfa-password-collection-current-password"
-            ).send_keys(password)
-            driver.find_element_by_id(
-                "ius-sign-in-mfa-password-collection-continue-btn"
-            ).submit()
-        except (NoSuchElementException, ElementNotInteractableException):
-            pass  # not on secondary mfa password screen
-    driver.implicitly_wait(20)  # seconds
-
-    # Wait until the overview page has actually loaded, and if wait_for_sync==True, sync has completed.
-    status_message = None
-    if wait_for_sync:
-        try:
-            # Status message might not be present straight away. Seems to be due
-            # to dynamic content (client side rendering).
-            status_web_element = WebDriverWait(driver, 30).until(
-                expected_conditions.visibility_of_element_located(
-                    (By.CSS_SELECTOR, ".SummaryView .message")
+def account_selection_page(driver, intuit_account):
+    # account selection screen -- if there are multiple accounts, select one
+    try:
+        select_account = driver.find_element_by_id("ius-mfa-select-account-section")
+        if intuit_account is not None:
+            account_input = select_account.find_element_by_xpath(
+                "//label/span[text()='{}']/../preceding-sibling::input".format(
+                    intuit_account
                 )
             )
-            WebDriverWait(driver, wait_for_sync_timeout).until(
-                lambda x: "Account refresh complete"
-                in status_web_element.get_attribute("innerHTML")
+            account_input.click()
+
+        mfa_code_submit = driver.find_element_by_css_selector(
+            '#ius-sign-in-mfa-select-account-continue-btn, [data-testid="SelectAccountContinueButton"]'
+        )
+        mfa_code_submit.click()
+    except NoSuchElementException:
+        pass  # not on account selection screen
+
+
+def password_page(driver, password):
+    # password only sometimes after mfa
+    try:
+        driver.find_element_by_id(
+            "ius-sign-in-mfa-password-collection-current-password"
+        ).send_keys(password)
+        driver.find_element_by_id(
+            "ius-sign-in-mfa-password-collection-continue-btn"
+        ).submit()
+    except (NoSuchElementException, ElementNotInteractableException):
+        pass  # not on secondary mfa password screen
+
+
+def handle_wait_for_sync(driver, wait_for_sync_timeout):
+    try:
+        # Status message might not be present straight away. Seems to be due
+        # to dynamic content (client side rendering).
+        status_web_element = WebDriverWait(driver, 30).until(
+            expected_conditions.visibility_of_element_located(
+                (By.CSS_SELECTOR, ".SummaryView .message")
             )
-            status_message = status_web_element.text
-        except (TimeoutException, StaleElementReferenceException):
-            logger.warning(
-                "Mint sync apparently incomplete after timeout. "
-                "Data retrieved may not be current."
-            )
-    return status_message, get_token(driver)
+        )
+        WebDriverWait(driver, wait_for_sync_timeout).until(
+            lambda x: "Account refresh complete"
+            in status_web_element.get_attribute("innerHTML")
+        )
+        status_message = status_web_element.text
+    except (TimeoutException, StaleElementReferenceException):
+        logger.warning(
+            "Mint sync apparently incomplete after timeout. "
+            "Data retrieved may not be current."
+        )
 
 
 def get_web_driver(
