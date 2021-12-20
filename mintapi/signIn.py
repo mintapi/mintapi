@@ -46,27 +46,23 @@ def get_email_code(
     try:
         imap_client = imaplib.IMAP4_SSL(imap_server)
     except imaplib.IMAP4.error:
-        logger.error("ERROR: Unable to establish IMAP Client")
-        return ""
+        raise RuntimeError("Unable to establish IMAP Client")
 
     try:
         rv, data = imap_client.login(imap_account, imap_password)
     except imaplib.IMAP4.error:
-        logger.error("ERROR: email login failed")
-        return ""
+        raise RuntimeError("Unable to login to IMAP Email")
 
     code = ""
     for c in range(20):
         time.sleep(10)
         rv, data = imap_client.select(imap_folder)
         if rv != "OK":
-            logger.error("ERROR: Unable to open mailbox ", rv)
-            return ""
+            raise RuntimeError("Unable to open mailbox: " + rv)
 
         rv, data = imap_client.search(None, "ALL")
         if rv != "OK":
-            logger.error("ERROR: Email search failed")
-            return ""
+            raise RuntimeError("Unable to search the Email folder")
 
         count = 0
         for num in data[0].split()[::-1]:
@@ -75,8 +71,7 @@ def get_email_code(
                 break
             rv, data = imap_client.fetch(num, "(RFC822)")
             if rv != "OK":
-                logger.error("ERROR: ERROR getting message", num)
-                sys.exit(1)
+                raise RuntimeError("Unable to complete due to error message " + num)
 
             msg = email.message_from_bytes(data[0][1])
 
