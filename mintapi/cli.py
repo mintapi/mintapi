@@ -3,6 +3,7 @@ import logging
 import os
 import sys
 import json
+from csv import writer
 from datetime import datetime
 import getpass
 
@@ -332,6 +333,7 @@ def validate_file_extensions(options):
         [
             options.transactions,
             options.extended_transactions,
+            options.investments,
         ]
     ):
         if not any(
@@ -361,6 +363,8 @@ def output_data(options, data, attention_msg=None):
     else:
         if options.filename is None:
             print(json.dumps(data, indent=2))
+        elif options.filename.endswith(".csv"):
+            json_to_csv(data, options.filename)
         elif options.filename.endswith(".json"):
             with open(options.filename, "w+") as f:
                 json.dump(data, f, indent=2)
@@ -373,6 +377,18 @@ def output_data(options, data, attention_msg=None):
         else:
             with open(options.filename, "w+") as f:
                 f.write(attention_msg)
+
+
+def json_to_csv(data, filename):
+    header_written = False
+    with open(filename, "w+", newline="") as f:
+        csv_writer = writer(f)
+        for record in data:
+            if not header_written:
+                header_written = True
+                header = record.keys()
+                csv_writer.writerow(header)
+            csv_writer.writerow(record.values())
 
 
 def main():
