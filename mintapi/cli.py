@@ -519,6 +519,7 @@ def main():
             exclude_utilization=options.exclude_utilization,
         )
 
+    attention_msg = None
     if options.attention:
         attention_msg = mint.get_attention()
     output_data(options, data, attention_msg)
