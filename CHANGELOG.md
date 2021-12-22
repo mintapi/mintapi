@@ -1,3 +1,7 @@
+1.61
+---
+- fix regression: UnboundLocalError for `attention_msg` (#380)
+
 1.60
 ---
 - improve handling for new login OTP/soft token selectors (#367, #370)
