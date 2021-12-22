@@ -363,6 +363,9 @@ def output_data(options, data, attention_msg=None):
     else:
         if options.filename is None:
             print(json.dumps(data, indent=2))
+        # NOTE: While this logic is here, unless validate_file_extensions
+        #       allows for other data types to export to CSV, this will
+        #       only include investment data.
         elif options.filename.endswith(".csv"):
             json_to_csv(data, options.filename)
         elif options.filename.endswith(".json"):
