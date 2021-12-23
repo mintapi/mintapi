@@ -514,7 +514,7 @@ class Mint(object):
         # default.
 
         params = {
-            "accountId": acct if acct > 0 else None,
+            "accountId": acct if (acct > 0 or include_investment) else None,
             "startDate": convert_date_to_string(convert_mmddyy_to_datetime(start_date)),
             "endDate": convert_date_to_string(convert_mmddyy_to_datetime(end_date)),
         }
