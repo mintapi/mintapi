@@ -42,47 +42,6 @@ def convert_date_to_string(date):
     return date_string
 
 
-def get_web_driver(email, password, headless=False, mfa_method=None, mfa_token=None,
-                   mfa_input_callback=None, intuit_account=None, wait_for_sync=True,
-                   wait_for_sync_timeout=5 * 60,
-                   session_path=None, imap_account=None, imap_password=None,
-                   imap_server=None, imap_folder="INBOX",
-                   use_chromedriver_on_path=False,
-                   chromedriver_download_path=os.getcwd()):
-    if headless and mfa_method is None:
-        logger.warning("Using headless mode without specifying an MFA method "
-                       "is unlikely to lead to a successful login. Defaulting "
-                       "--mfa-method=sms")
-        mfa_method = "sms"
-    driver = _create_web_driver_at_mint_com(
-        headless, session_path, use_chromedriver_on_path, chromedriver_download_path)
-
-    sign_in(email, password, driver, mfa_method, mfa_token, mfa_input_callback, intuit_account, wait_for_sync, wait_for_sync_timeout, imap_account,
-             imap_password, imap_server, imap_folder)
-
-    # Wait until the overview page has actually loaded, and if wait_for_sync==True, sync has completed.
-    status_message = None
-    if wait_for_sync:
-        try:
-            # Status message might not be present straight away. Seems to be due
-            # to dynamic content (client side rendering).
-            status_message = WebDriverWait(driver, 30).until(
-                expected_conditions.visibility_of_element_located(
-                    (By.CSS_SELECTOR, ".SummaryView .message")))
-            WebDriverWait(driver, wait_for_sync_timeout).until(
-                lambda x: "Account refresh complete" in status_message.get_attribute('innerHTML')
-            )
-        except (TimeoutException, StaleElementReferenceException):
-            logger.warning("Mint sync apparently incomplete after timeout. "
-                           "Data retrieved may not be current.")
-    else:
-        driver.find_element_by_id("transaction")
-
-    if status_message is not None and isinstance(status_message, WebElement):
-        status_message = status_message.text
-    return driver, status_message
-
-
 def reverse_credit_amount(row):
     amount = float(row["amount"][1:].replace(",", ""))
     return amount if row["isDebit"] else -amount
