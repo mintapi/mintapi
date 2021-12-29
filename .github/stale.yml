@@ -1,0 +1,14 @@
+# Configuration for probot-stale - https://github.com/probot/stale
+daysUntilStale: 31
+
+# Only issues or pull requests with all of these labels are check if stale. Defaults to `[]` (disabled)
+onlyLabels: ['awaiting-feedback']
+
+# Label to use when marking as stale
+staleLabel: stale
+
+# Comment to post when marking as stale. Set to `false` to disable
+markComment: >
+  This issue has been automatically marked as stale because it has not recieved 
+  an answer to a collaborator's question. It will be closed if no further activity
+  occurs. Thank you for your contributions.
