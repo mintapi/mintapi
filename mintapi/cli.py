@@ -336,18 +336,16 @@ def validate_file_extensions(options):
             options.investments,
         ]
     ):
-        if not any(
-            [
-                options.filename is None,
-                options.filename.endswith(".csv"),
-                options.filename.endswith(".json"),
-            ]
+        if not (
+            options.filename is None
+            or options.filename.endswith(".csv")
+            or options.filename.endswith(".json")
         ):
             raise ValueError(
                 "File extension must be either .csv or .json for transaction data"
             )
     else:
-        if not any([options.filename is None, options.filename.endswith(".json")]):
+        if not (options.filename is None or options.filename.endswith(".json")):
             raise ValueError("File extension must be .json for non-transaction data")
 
 
