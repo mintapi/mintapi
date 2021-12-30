@@ -3,7 +3,6 @@ import logging
 import os
 import sys
 import json
-from csv import writer
 from datetime import datetime
 import getpass
 
@@ -12,6 +11,7 @@ import configargparse
 
 from mintapi.api import Mint
 from mintapi.signIn import get_email_code
+from pandas import json_normalize
 
 logger = logging.getLogger("mintapi")
 
@@ -367,7 +367,10 @@ def output_data(options, data, attention_msg=None):
         #       allows for other data types to export to CSV, this will
         #       only include investment data.
         elif options.filename.endswith(".csv"):
-            json_to_csv(data, options.filename)
+            # NOTE: Currently, investment_data, which is a flat JSON, is the only
+            #       type of data that uses this section.  So, if we open this up to
+            #       other non-flat JSON data, we will need to revisit this.
+            json_normalize(data).to_csv(options.filename, index=False)
         elif options.filename.endswith(".json"):
             with open(options.filename, "w+") as f:
                 json.dump(data, f, indent=2)
@@ -380,18 +383,6 @@ def output_data(options, data, attention_msg=None):
         else:
             with open(options.filename, "w+") as f:
                 f.write(attention_msg)
-
-
-def json_to_csv(data, filename):
-    header_written = False
-    with open(filename, "w+", newline="") as f:
-        csv_writer = writer(f)
-        for record in data:
-            if not header_written:
-                header_written = True
-                header = record.keys()
-                csv_writer.writerow(header)
-            csv_writer.writerow(record.values())
 
 
 def main():
