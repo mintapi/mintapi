@@ -11,6 +11,7 @@ import configargparse
 
 from mintapi.api import Mint
 from mintapi.signIn import get_email_code
+from pandas import json_normalize
 
 logger = logging.getLogger("mintapi")
 
@@ -332,6 +333,7 @@ def validate_file_extensions(options):
         [
             options.transactions,
             options.extended_transactions,
+            options.investments,
         ]
     ):
         if not (
@@ -359,6 +361,14 @@ def output_data(options, data, attention_msg=None):
     else:
         if options.filename is None:
             print(json.dumps(data, indent=2))
+        # NOTE: While this logic is here, unless validate_file_extensions
+        #       allows for other data types to export to CSV, this will
+        #       only include investment data.
+        elif options.filename.endswith(".csv"):
+            # NOTE: Currently, investment_data, which is a flat JSON, is the only
+            #       type of data that uses this section.  So, if we open this up to
+            #       other non-flat JSON data, we will need to revisit this.
+            json_normalize(data).to_csv(options.filename, index=False)
         elif options.filename.endswith(".json"):
             with open(options.filename, "w+") as f:
                 json.dump(data, f, indent=2)
