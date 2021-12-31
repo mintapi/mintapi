@@ -485,7 +485,7 @@ def sign_in(
             driver.find_element_by_id(
                 "ius-sign-in-mfa-password-collection-continue-btn"
             ).submit()
-        except (NoSuchElementException, ElementNotInteractableException):
+        except (ElementNotInteractableException, NoSuchElementException, StaleElementReferenceException):
             pass  # not on secondary mfa password screen
     driver.implicitly_wait(20)  # seconds
 
