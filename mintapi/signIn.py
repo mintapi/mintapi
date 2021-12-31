@@ -491,7 +491,7 @@ def sign_in(
             ElementNotInteractableException,
         ):
             pass  # not on secondary mfa password screen
-        
+
     driver.implicitly_wait(20)  # seconds
 
     # Wait until the overview page has actually loaded, and if wait_for_sync==True, sync has completed.
