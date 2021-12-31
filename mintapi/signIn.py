@@ -516,7 +516,11 @@ def password_page(driver, password):
         driver.find_element_by_id(
             "ius-sign-in-mfa-password-collection-continue-btn"
         ).submit()
-    except (NoSuchElementException, ElementNotInteractableException):
+    except (
+        NoSuchElementException,
+        StaleElementReferenceException,
+        ElementNotInteractableException,
+    ):
         pass  # not on secondary mfa password screen
 
 
