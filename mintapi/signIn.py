@@ -31,6 +31,26 @@ import oathtool
 
 logger = logging.getLogger("mintapi")
 
+MFA_METHODS = [
+    {
+        "mfa_method": "soft_token",
+        "input_css_selectors": "#iux-mfa-soft-token-verification-code, #ius-mfa-soft-token",
+        "button_css_selectors": '#ius-mfa-soft-token-submit-btn, [data-testid="VerifySoftTokenSubmitButton"]',
+    },
+    {
+        "mfa_method": "email",
+        "input_css_selectors": "#ius-label-mfa-email-otp, #ius-mfa-email-otp-card-challenge, #ius-sublabel-mfa-email-otp, #ius-mfa-confirm-code",
+        "button_css_selectors": '#ius-mfa-otp-submit-btn, [data-testid="VerifyOtpSubmitButton"]',
+    },
+    {
+        "mfa_method": "sms",
+        "input_css_selectors": "#ius-mfa-sms-otp-card-challenge",
+        "button_css_selectors": '#ius-mfa-otp-submit-btn, [data-testid="VerifyOtpSubmitButton"]',
+    },
+]
+
+DEFAULT_MFA_INPUT_PROMPT = "Please enter your 6-digit MFA code: "
+
 
 def get_email_code(
     imap_account, imap_password, imap_server, imap_folder, debug=False, delete=True
@@ -321,6 +341,8 @@ def sign_in(
     driver.implicitly_wait(1)  # seconds
     while not driver.current_url.startswith("https://mint.intuit.com/overview.event"):
         bypass_verified_user_page(driver)
+        if mfa_method is not None:
+            mfa_selection_page(driver, mfa_method)
         mfa_page(
             driver,
             mfa_method,
@@ -396,6 +418,23 @@ def bypass_verified_user_page(driver):
         pass
 
 
+def mfa_selection_page(driver, mfa_method):
+    try:
+        driver.find_element_by_id("ius-mfa-options-form")
+        mfa_method_option = driver.find_element_by_id(
+            "ius-mfa-option-{}".format(mfa_method)
+        )
+        mfa_method_option.click()
+        mfa_method_submit = driver.find_element_by_id("ius-mfa-options-submit-btn")
+        mfa_method_submit.click()
+    except (
+        NoSuchElementException,
+        StaleElementReferenceException,
+        ElementNotVisibleException,
+    ):
+        pass
+
+
 def mfa_page(
     driver,
     mfa_method,
@@ -406,85 +445,121 @@ def mfa_page(
     imap_server,
     imap_folder,
 ):
+    if mfa_method is None:
+        mfa_result = search_mfa_method(driver)
+    else:
+        mfa_result = set_mfa_method(driver, mfa_method)
+    mfa_token_input = mfa_result[0]
+    mfa_token_button = mfa_result[1]
+    mfa_method = mfa_result[2]
+
     # mfa screen
-    try:
-        if mfa_method == "soft-token":
+    if mfa_method == "soft_token":
+        handle_soft_token(
+            driver, mfa_token_input, mfa_token_button, mfa_input_callback, mfa_token
+        )
+    elif mfa_method == "email":
+        handle_email(
+            driver,
+            mfa_token_input,
+            mfa_token_button,
+            mfa_input_callback,
+            imap_account,
+            imap_password,
+            imap_server,
+            imap_folder,
+        )
+    elif mfa_method == "sms":
+        handle_sms(driver, mfa_token_input, mfa_token_button, mfa_input_callback)
+
+
+def search_mfa_method(driver):
+    mfa_token_input = None
+    mfa_token_button = None
+    mfa_method = None
+    for method in MFA_METHODS:
+        try:
             mfa_token_input = driver.find_element_by_css_selector(
-                "#iux-mfa-soft-token-verification-code, #ius-mfa-soft-token"
+                method["input_css_selectors"]
             )
-            if mfa_input_callback is not None:
-                mfa_code = mfa_input_callback("Please enter your 6-digit MFA code: ")
-            else:
-                mfa_code = oathtool.generate_otp(mfa_token)
-            mfa_token_input.send_keys(mfa_code)
-            mfa_token_submit = driver.find_element_by_css_selector(
-                '#ius-mfa-soft-token-submit-btn, [data-testid="VerifySoftTokenSubmitButton"]'
+            mfa_token_button = driver.find_element_by_css_selector(
+                method["button_css_selectors"]
             )
-            mfa_token_submit.click()
+            mfa_method = method["mfa_method"]
+            break
+        except (NoSuchElementException, ElementNotInteractableException):
+            pass
+    return mfa_token_input, mfa_token_button, mfa_method
+
+
+def set_mfa_method(driver, mfa_method):
+    mfa = filter(
+        lambda method: method["mfa_method"] == mfa_method,
+        MFA_METHODS,
+    )
+    mfa_result = list(mfa)[0]
+    try:
+        mfa_token_input = driver.find_element_by_css_selector(
+            mfa_result["input_css_selectors"]
+        )
+        mfa_token_button = driver.find_element_by_css_selector(
+            mfa_result["button_css_selectors"]
+        )
+        mfa_method = mfa_result["mfa_method"]
+    except (NoSuchElementException, ElementNotInteractableException):
+        raise RuntimeError("The Multifactor Method supplied is not available.")
+    return mfa_token_input, mfa_token_button, mfa_method
+
+
+def handle_soft_token(
+    driver, mfa_token_input, mfa_token_button, mfa_input_callback, mfa_token
+):
+    try:
+        if mfa_input_callback is not None:
+            mfa_code = mfa_input_callback(DEFAULT_MFA_INPUT_PROMPT)
         else:
-            try:
-                driver.find_element_by_id("ius-mfa-options-form")
-                mfa_method_option = driver.find_element_by_id(
-                    "ius-mfa-option-{}".format(mfa_method)
-                )
-                mfa_method_option.click()
-                mfa_method_submit = driver.find_element_by_id(
-                    "ius-mfa-options-submit-btn"
-                )
-                mfa_method_submit.click()
-            except NoSuchElementException:
-                pass  # no option to select mfa option
+            mfa_code = oathtool.generate_otp(mfa_token)
+        mfa_token_input.send_keys(mfa_code)
+        mfa_token_button.click()
+    except (NoSuchElementException, ElementNotInteractableException):
+        pass
 
-            if mfa_method == "email" and imap_account:
-                for element_id in [
-                    "ius-label-mfa-email-otp",
-                    "ius-mfa-email-otp-card-challenge",
-                    "ius-sublabel-mfa-email-otp",
-                ]:
-                    try:
-                        mfa_email_select = driver.find_element_by_id(element_id)
-                        mfa_email_select.click()
-                        break
-                    except (
-                        NoSuchElementException,
-                        ElementNotInteractableException,
-                    ):
-                        pass  # no option to select email address
 
-            if mfa_method == "sms":
-                try:
-                    mfa_sms_select = driver.find_element_by_id(
-                        "ius-mfa-sms-otp-card-challenge"
-                    )
-                    mfa_sms_select.click()
-                except (NoSuchElementException, ElementNotInteractableException):
-                    pass  # no option to select sms
+def handle_email(
+    driver,
+    mfa_token_input,
+    mfa_token_button,
+    mfa_input_callback,
+    imap_account,
+    imap_password,
+    imap_server,
+    imap_folder,
+):
+    try:
+        mfa_token_input.clear()
+        if imap_account:
+            mfa_code = get_email_code(
+                imap_account,
+                imap_password,
+                imap_server,
+                imap_folder=imap_folder,
+            )
+        else:
+            mfa_code = (mfa_input_callback or input)(DEFAULT_MFA_INPUT_PROMPT)
+        mfa_token_input.send_keys(mfa_code)
+        mfa_token_button.click()
+    except (NoSuchElementException, ElementNotInteractableException):
+        pass
 
-            try:
-                mfa_code_input = driver.find_element_by_id("ius-mfa-confirm-code")
-                mfa_code_input.clear()
-                if mfa_method == "email" and imap_account:
-                    mfa_code = get_email_code(
-                        imap_account,
-                        imap_password,
-                        imap_server,
-                        imap_folder=imap_folder,
-                    )
-                else:
-                    mfa_code = (mfa_input_callback or input)(
-                        "Please enter your 6-digit MFA code: "
-                    )
-                mfa_code_input.send_keys(mfa_code)
 
-                mfa_code_submit = driver.find_element_by_css_selector(
-                    '#ius-mfa-otp-submit-btn, [data-testid="VerifyOtpSubmitButton"]'
-                )
-                mfa_code_submit.click()
-            except (NoSuchElementException, ElementNotInteractableException):
-                pass  # we're not on mfa input screen
-
-    except NoSuchElementException:
-        pass  # not on mfa screen
+def handle_sms(driver, mfa_token_input, mfa_token_button, mfa_input_callback):
+    try:
+        mfa_token_input.clear()
+        mfa_code = (mfa_input_callback or input)(DEFAULT_MFA_INPUT_PROMPT)
+        mfa_token_input.send_keys(mfa_code)
+        mfa_token_button.click()
+    except (NoSuchElementException, ElementNotInteractableException):
+        pass
 
 
 def account_selection_page(driver, intuit_account):
@@ -568,13 +643,6 @@ def get_web_driver(
         "please use login_and_get_token or sign_in",
         DeprecationWarning,
     )
-    if headless and mfa_method is None:
-        logger.warning(
-            "Using headless mode without specifying an MFA method "
-            "is unlikely to lead to a successful login. Defaulting "
-            "--mfa-method=sms"
-        )
-        mfa_method = "sms"
     driver = _create_web_driver_at_mint_com(
         headless, session_path, use_chromedriver_on_path, chromedriver_download_path
     )
