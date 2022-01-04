@@ -113,6 +113,7 @@ class Mint(object):
         wait_for_sync_timeout=5 * 60,
         use_chromedriver_on_path=False,
         chromedriver_download_path=os.getcwd(),
+        driver=None,
     ):
         self.driver = None
         self.status_message = None
@@ -135,6 +136,7 @@ class Mint(object):
                 wait_for_sync_timeout=wait_for_sync_timeout,
                 use_chromedriver_on_path=use_chromedriver_on_path,
                 chromedriver_download_path=chromedriver_download_path,
+                driver=driver,
             )
 
     @classmethod
@@ -225,9 +227,10 @@ class Mint(object):
         wait_for_sync_timeout=5 * 60,
         use_chromedriver_on_path=False,
         chromedriver_download_path=os.getcwd(),
+        driver=None,
     ):
 
-        self.driver = _create_web_driver_at_mint_com(
+        self.driver = driver or _create_web_driver_at_mint_com(
             headless, session_path, use_chromedriver_on_path, chromedriver_download_path
         )
 
