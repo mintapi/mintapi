@@ -2,6 +2,8 @@
 
 [![Build Status](https://github.com/mintapi/mintapi/actions/workflows/ci.yml/badge.svg)](https://github.com/mintapi/mintapi/actions)
 [![PyPI Version](https://img.shields.io/pypi/v/mintapi)](https://pypi.org/project/mintapi/)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
 
 An unofficial screen-scraping API for Mint.com.
 
@@ -10,7 +12,7 @@ An unofficial screen-scraping API for Mint.com.
 Please [join us on Discord](https://discord.gg/YjJEuJRAu9) to get help or just chat with fellow mintapi users :)
 
 ## Installation
-Ensure you have Python 2 or 3 and pip (`easy_install pip`) and then:
+Ensure you have Python 3 and pip (`easy_install pip`) and then:
 
 ```shell
 pip install mintapi
@@ -24,7 +26,7 @@ pip install mintapi
 
 From the command line, the most automated invocation will be:
 
-    python mintapi/api.py --keyring --headless you@example.com
+    mintapi --keyring --headless you@example.com
 
 This will store your credentials securely in your system keyring, and use a
 headless (invisible) browser to log in and grab the account data. If this triggers
@@ -40,12 +42,29 @@ If you're running mintapi in a server environment on an automatic schedule, cons
 
 If you need to download the chromedriver manually, be sure to get the version that matches your chrome version and make the chromedriver available to your python interpreter either by putting the chromedriver in your python working directory or inside your `PATH` as described in the [python selenium documentation](https://www.selenium.dev/selenium/docs/api/py/index.html#drivers).
 
+### General Automation Scenarios
+When running this inside of a cron job or other long-term automation scripts, it might be helpful to specify chrome and chromedriver executables so as not to conflict with other chrome versions you may have. Selenium by default just gets these from your `PATH` environment variable, so customizing your environment can force a deterministic behavior from mintapi. To use a different browser besides Chrome or Chromium, see the [python api](#from-python). Below are two examples.
+
+#### Unix Environment
+If I wanted to make sure that mintapi used the chromium executable in my /usr/bin directory when executing a cron job, I could write the following cron line:
+```cron
+0 7 * * FRI PATH=/usr/bin:$PATH mintapi --headless john@example.com my_password
+```
+where prepending the /usr/bin path to path will make those binaries found first. This will only affect the cron job and will not change the environment for any other process.
+
+#### Windows Environment
+You can do a similar thing in windows by executing the following in Powershell.
+```powershell
+$ENV:PATH = "C:\Program Files\Google\Chrome;$ENV:PATH"
+mintapi --headless john@example.com my_password
+```
+
 ### MFA Authentication Methods
 
-If mfa-method is email and your email host provides IMAP access, you can specify your IMAP login details.
-This will automate the retrieval of the MFA code from your email and entering it into Mint.
+If `mfa-method` is email and your email host provides IMAP access, you can specify your IMAP login details.
+This will automate the retrieval of the MFA code from your email and entering it into Mint.  If you use IMAP in conjunction with `keyring`, then you can store your IMAP password (`imap-password`) in keyring.  To do so, simply omit `imap-password` and you will initially be prompted for the password associated with your IMAP account.  Then, on subsequent uses of your IMAP account, you will not have to specify your password.
 
-If mfa-method is soft-token then you must also pass your mfa-token. The mfa-token can be obtained by going to [your mint.com settings](https://mint.intuit.com/settings.event?filter=all) and clicking on 'Intuit Account'. From there go to *Sign In & Security* -> *Two-step verification*. From there, enable the top option however you wish (either text or email is fine). After that, start the process to enable the *Authenticator app* option and when you get the part where you see the QR code, **copy the manual setup code** that appears next to it. Careful where you store this as it allows anyone to generate TOTP codes. This is the token that you will pass to `mfa-token` in either the python api or from the command line.
+If `mfa-method` is soft-token then you must also pass your `mfa-token`. The `mfa-token` can be obtained by going to [your mint.com settings](https://mint.intuit.com/settings.event?filter=all) and clicking on 'Intuit Account'. From there go to *Sign In & Security* -> *Two-step verification*. From there, enable the top option however you wish (either text or email is fine). After that, start the process to enable the *Authenticator app* option and when you get the part where you see the QR code, **copy the manual setup code** that appears next to it. Careful where you store this as it allows anyone to generate TOTP codes. This is the token that you will pass to `mfa-token` in either the python api or from the command line.
 
 ### from Python
 
@@ -64,7 +83,7 @@ make calls to retrieve account/budget information.  We recommend using the
                        # if mintapi detects an MFA request, it will trigger the requested method
                        # and prompt on the command line.
     mfa_input_callback=None,  # see MFA Methods section
-                              # used with mfa_method = 'sms' or 'email'
+                              # can be used with any mfa_method
                               # A callback accepting a single argument (the prompt)
                               # which returns the user-inputted 2FA code. By default
                               # the default Python `input` function is used.
@@ -127,19 +146,40 @@ make calls to retrieve account/budget information.  We recommend using the
 
   # Initiate an account refresh
   mint.initiate_account_refresh()
+
+  # you can also use mintapi's login in workflow with your own selenium webdriver
+  # this will allow for more custom selenium driver setups
+  # one caveat is that it must be based on seleniumrequests currently
+  # seleniumrequests has most browsers already
+  # it also has mixins for any browsers it doesn't have so the sky is the limit!
+  from seleniumrequests import Firefox
+  mint = mintapi.Mint()
+  mint.driver = Firefox()
+  mint.status_message, mint.token = mintapi.sign_in(
+    email, password, mint.driver, mfa_method=None, mfa_token=None,
+    mfa_input_callback=None, intuit_account=None, wait_for_sync=True,
+    wait_for_sync_timeout=5 * 60,
+    imap_account=None, imap_password=None,
+    imap_server=None, imap_folder="INBOX",
+  )
+  # now you can do all the normal api calls
+  # ex:
+  mint.get_transactions()
 ```
 
 ---
 Run it as a sub-process from your favorite language; `pip install mintapi` creates a binary in your $PATH. From the command-line, the output is JSON:
 
 ```shell
-    usage: mintapi [-h] [--session-path [SESSION_PATH]] [--accounts]
+    usage: mintapi [-h] [--session-path [SESSION_PATH]] [--accounts] [--investment]
                    [--budgets | --budget_hist] [--net-worth] [--extended-accounts] [--transactions]
                    [--extended-transactions] [--credit-score] [--credit-report]
+                   [--exclude-inquiries] [--exclude-accounts] [--exclude-utilization]
                    [--start-date [START_DATE]] [--end-date [END_DATE]]
                    [--include-investment] [--skip-duplicates] [--show-pending]
                    [--filename FILENAME] [--keyring] [--headless] [--attention]
                    [--mfa-method {sms,email,soft-token}]
+                   [--categories]
                    email [password]
 
     positional arguments:
@@ -156,9 +196,13 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                             profile.
       --budgets             Retrieve budget information for current month
       --budget_hist         Retrieve historical budget information (past 12 months)
+      --categories          Retrieve your configured Mint categories
       --config-file, -c     File used to store arguments
       --credit-score        Retrieve credit score
       --credit-report       Retrieve full credit report & history
+      --exclude-inquiries   Used in conjunction with --credit-report, ignores credit inquiry data.
+      --exclude-accounts    Used in conjunction with --credit-report, ignores credit account data.
+      --exclude-utilization Used in conjunction with --credit-report, ignores credit utilization data.
       --net-worth           Retrieve net worth information
       --extended-accounts   Retrieve extended account information (slower, implies --accounts)
       --transactions, -t    Retrieve transactions
@@ -167,10 +211,11 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                             arguments
       --start-date [START_DATE]
                             Earliest date for which to retrieve transactions.
-                            Used with --extended-transactions. Format: mm/dd/yy
+                            Used with --transactions or --extended-transactions. Format: mm/dd/yy
       --end-date [END_DATE]
                             Latest date for which to retrieve transactions.
-                            Used with --extended-transactions. Format: mm/dd/yy
+                            Used with --transactions or --extended-transactions. Format: mm/dd/yy
+      --investments         Retrieve data related to your investments, whether they be retirement or         personal stock purchases
       --include-investment  Used with --extended-transactions
       --skip-duplicates     Used with --extended-transactions
       --show-pending        Exclude pending transactions from being retrieved.
@@ -211,6 +256,3 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       ...
     ]
 ```
-
-If you need to avoid using pip or setup.py, you can also clone/download
-this repository and run: ``python mintapi/api.py``

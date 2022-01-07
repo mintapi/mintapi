@@ -9,4 +9,3 @@ __pycache__
 /.idea
 .vscode/
 chromedriver*
-*test_args.json
