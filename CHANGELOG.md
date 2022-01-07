@@ -1,3 +1,37 @@
+1.61
+---
+- fix regression: UnboundLocalError for `attention_msg` (#380)
+
+1.60
+---
+- improve handling for new login OTP/soft token selectors (#367, #370)
+- use new categories endpoint, add support for pulling categories from CLI (#359)
+- better long description for pypi
+- refactor sign-in code to its own file (#366)
+- update pandas to latest version
+
+1.59
+---
+- moved to newest Mint investments endpoint (#342)
+- added command-line support for investment data (#342)
+- added new option to exclude credit utilization history data (#356)
+- allow use of keyring for IMAP password (#360)
+
+1.58
+---
+- expose sign_in as a public method to allow custom WebDrivers (#336)
+- add command-line option to exclude credit inquiries from credit report data (#340)
+- add command-line option to exclude credit accounts from credit report (#351)
+- fix performance degradation on extended transactions (#348)
+- remove support for Python 2.x
+
+1.57
+---
+- add date range support to --transactions (github#321)
+- improvements for new and existing flows for login and email MFA (github#317)
+- fix invalid cookie domain error when fetching credit information (github#320)
+- minor code cleanups and improvements (github#329, #github#331)
+
 1.56
 ---
 - add columns for parent category to the output of extended-transactions (github#310)
