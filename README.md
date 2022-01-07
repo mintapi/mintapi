@@ -1,3 +1,11 @@
+# Blayne's Customization
+
+If you are not Blayne, do not use this fork. You should be using mintapi/mintapi.
+
+This fork from mintapi/mintapi is very crude...just some quick changes to quickly allow write access to Mint instead of just read-only access.  I have no plans to optimize for use upstream.
+
+Thanks for your attention.
+
 # mintapi
 
 [![Build Status](https://github.com/mintapi/mintapi/actions/workflows/ci.yml/badge.svg)](https://github.com/mintapi/mintapi/actions)
