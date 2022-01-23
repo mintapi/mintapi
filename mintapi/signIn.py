@@ -32,6 +32,7 @@ import oathtool
 logger = logging.getLogger("mintapi")
 
 MFA_VIA_SOFT_TOKEN = "soft_token"
+MFA_VIA_AUTHENTICATOR = "authenticator"
 MFA_VIA_EMAIL = "email"
 MFA_VIA_SMS = "sms"
 MFA_METHOD_LABEL = "mfa_method"
@@ -47,8 +48,14 @@ MFA_METHODS = [
         BUTTON_CSS_SELECTORS_LABEL: '#ius-mfa-soft-token-submit-btn, [data-testid="VerifySoftTokenSubmitButton"]',
     },
     {
+        MFA_METHOD_LABEL: MFA_VIA_AUTHENTICATOR,
+        INPUT_CSS_SELECTORS_LABEL: '#iux-mfa-soft-token-verification-code, #ius-mfa-soft-token, [data-testid="VerifySoftTokenInput"]',
+        SPAN_CSS_SELECTORS_LABEL: '[data-testid="VerifySoftTokenSubHeader"]',
+        BUTTON_CSS_SELECTORS_LABEL: '#ius-mfa-soft-token-submit-btn, [data-testid="VerifySoftTokenSubmitButton"]',
+    },
+    {
         MFA_METHOD_LABEL: MFA_VIA_EMAIL,
-        INPUT_CSS_SELECTORS_LABEL: "#ius-label-mfa-email-otp, #ius-mfa-email-otp-card-challenge, #ius-sublabel-mfa-email-otp",
+        INPUT_CSS_SELECTORS_LABEL: "#ius-label-mfa-email-otp, #ius-mfa-email-otp-card-challenge, #ius-sublabel-mfa-email-otp, #ius-mfa-confirm-code",
         SPAN_CSS_SELECTORS_LABEL: '[data-testid="VerifyOtpHeaderText"]',
         BUTTON_CSS_SELECTORS_LABEL: '#ius-mfa-otp-submit-btn, [data-testid="VerifyOtpSubmitButton"]',
     },
@@ -346,17 +353,17 @@ def sign_in(
 
     user_selection_page(driver)
 
-    try:  # try to enter in credentials if username and password are on same page
-        handle_same_page_username_password(driver, email, password)
-    # try to enter in credentials if username and password are on different pages
-    except (ElementNotInteractableException, ElementNotVisibleException):
-        handle_different_page_username_password(driver, email, password)
-        driver.implicitly_wait(20)  # seconds
-        password_page(driver, password)
-
-    # Wait until logged in, just in case we need to deal with MFA.
-    driver.implicitly_wait(1)  # seconds
     while not driver.current_url.startswith("https://mint.intuit.com/overview.event"):
+        try:  # try to enter in credentials if username and password are on same page
+            handle_same_page_username_password(driver, email, password)
+        # try to enter in credentials if username and password are on different pages
+        except (ElementNotInteractableException, ElementNotVisibleException):
+            handle_different_page_username_password(driver, email, password)
+            driver.implicitly_wait(20)  # seconds
+            password_page(driver, password)
+
+        # Wait until logged in, just in case we need to deal with MFA.
+        driver.implicitly_wait(1)  # seconds
         bypass_verified_user_page(driver)
         if mfa_method is not None:
             mfa_selection_page(driver, mfa_method)
@@ -374,7 +381,6 @@ def sign_in(
         password_page(driver, password)
 
     driver.implicitly_wait(20)  # seconds
-
     # Wait until the overview page has actually loaded, and if wait_for_sync==True, sync has completed.
     status_message = None
     if wait_for_sync:
@@ -492,18 +498,16 @@ def search_mfa_method(driver):
             mfa_token_button = driver.find_element_by_css_selector(
                 method[BUTTON_CSS_SELECTORS_LABEL]
             )
+            mfa_method = method[MFA_METHOD_LABEL]
             span_text = driver.find_element_by_css_selector(
                 method[SPAN_CSS_SELECTORS_LABEL]
-            ).text
-            mfa_method = method[MFA_METHOD_LABEL]
+            ).text.lower()
             if span_text is not None:
-                result = span_text.find(mfa_method)
-                if result != -1:
+                result = mfa_method in span_text
+                if result is True:
                     break
-            else:
-                break
         except (NoSuchElementException, ElementNotInteractableException):
-            pass
+            logger.info("{} MFA Method Not Found".format(MFA_METHOD_LABEL))
     return mfa_token_input, mfa_token_button, mfa_method
 
 
@@ -534,9 +538,9 @@ def handle_soft_token(
             mfa_code = oathtool.generate_otp(mfa_token)
         else:
             mfa_code = (mfa_input_callback or input)(DEFAULT_MFA_INPUT_PROMPT)
-        submit_mfa_code(driver, mfa_token_input, mfa_token_button)
+        submit_mfa_code(driver, mfa_token_input, mfa_token_button, mfa_code)
     except (NoSuchElementException, ElementNotInteractableException):
-        pass
+        logger.info("Not on Soft Token MFA Screen")
 
 
 def handle_email_by_imap(
@@ -556,21 +560,22 @@ def handle_email_by_imap(
             imap_server,
             imap_folder,
         )
-        mfa_code = (mfa_input_callback or input)(DEFAULT_MFA_INPUT_PROMPT)
-        submit_mfa_code(driver, mfa_token_input, mfa_token_button)
+        if mfa_code is None:
+            mfa_code = (mfa_input_callback or input)(DEFAULT_MFA_INPUT_PROMPT)
+        submit_mfa_code(driver, mfa_token_input, mfa_token_button, mfa_code)
     except (NoSuchElementException, ElementNotInteractableException):
-        pass
+        logger.info("Not on Email MFA Screen")
 
 
 def handle_other_mfa(driver, mfa_token_input, mfa_token_button, mfa_input_callback):
     try:
         mfa_code = (mfa_input_callback or input)(DEFAULT_MFA_INPUT_PROMPT)
-        submit_mfa_code(driver, mfa_token_input, mfa_token_button)
+        submit_mfa_code(driver, mfa_token_input, mfa_token_button, mfa_code)
     except (NoSuchElementException, ElementNotInteractableException):
-        pass
+        logger.info("Not on SMS or Authenticator MFA Screen")
 
 
-def submit_mfa_code(driver, mfa_token_input, mfa_token_button):
+def submit_mfa_code(driver, mfa_token_input, mfa_token_button, mfa_code):
     mfa_token_input.clear()
     mfa_token_input.send_keys(mfa_code)
     mfa_token_button.click()
@@ -593,7 +598,7 @@ def account_selection_page(driver, intuit_account):
         )
         mfa_code_submit.click()
     except NoSuchElementException:
-        pass  # not on account selection screen
+        logger.info("Not on Account Selection Screen")
 
 
 def password_page(driver, password):
@@ -605,8 +610,13 @@ def password_page(driver, password):
         driver.find_element_by_id(
             "ius-sign-in-mfa-password-collection-continue-btn"
         ).submit()
-    except STANDARD_MISSING_EXCEPTIONS:
-        pass  # not on secondary mfa password screen
+    except (
+        NoSuchElementException,
+        StaleElementReferenceException,
+        ElementNotVisibleException,
+        ElementNotInteractableException,
+    ):
+        logger.info("Not on Secondary MFA Password Screen")
 
 
 def handle_wait_for_sync(driver, wait_for_sync_timeout):
