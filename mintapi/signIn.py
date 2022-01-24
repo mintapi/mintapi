@@ -392,6 +392,7 @@ def bypass_verified_user_page(driver):
         NoSuchElementException,
         StaleElementReferenceException,
         ElementNotVisibleException,
+        ElementNotInteractableException,
     ):
         pass
 
