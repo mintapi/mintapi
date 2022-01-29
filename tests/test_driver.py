@@ -400,6 +400,13 @@ class MintApiTests(unittest.TestCase):
         arguments = parse_arguments_file(config_file)
         self.assertEqual(mintapi.cli.validate_file_extensions(arguments), None)
 
+    def test_include_investments_with_transactions(self):
+        mint = mintapi.Mint()
+        self.assertFalse(mint._include_investments_with_transactions(0, False))
+        self.assertTrue(mint._include_investments_with_transactions(0, True))
+        self.assertTrue(mint._include_investments_with_transactions(1, False))
+        self.assertTrue(mint._include_investments_with_transactions(1, True))
+
 
 def write_extended_transactions_file():
     config_file = tempfile.NamedTemporaryFile(mode="wt")
