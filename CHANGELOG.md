@@ -1,3 +1,9 @@
+1.62
+---
+- support exporting investment data/transactions to CSV (#382, #384)
+- more robust sign-in / email handling (#391, #377, #396)
+- fix command-line checking of file extensions (#386)
+
 1.61
 ---
 - fix regression: UnboundLocalError for `attention_msg` (#380)

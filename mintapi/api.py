@@ -426,7 +426,7 @@ class Mint(object):
             # Specifying accountId=0 causes Mint to return investment
             # transactions as well.  Otherwise they are skipped by
             # default.
-            if id > 0 or include_investment:
+            if __include_investments_with_transactions(id, include_investment):
                 params["accountId"] = id
             if include_investment:
                 params["task"] = "transactions"
@@ -514,7 +514,9 @@ class Mint(object):
         # default.
 
         params = {
-            "accountId": acct if acct > 0 else None,
+            "accountId": acct
+            if __include_investments_with_transactions(acct, include_investment)
+            else None,
             "startDate": convert_date_to_string(convert_mmddyy_to_datetime(start_date)),
             "endDate": convert_date_to_string(convert_mmddyy_to_datetime(end_date)),
         }
@@ -833,6 +835,9 @@ class Mint(object):
                     }
                 )
         return utilization
+
+    def __include_investments_with_transactions(id, include_investment):
+        return id > 0 or include_investment
 
 
 def get_accounts(email, password, get_detail=False):
