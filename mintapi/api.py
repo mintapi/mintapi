@@ -836,7 +836,6 @@ class Mint(object):
                 )
         return utilization
  
-    
     def __include_investments_with_transactions(id, include_investment):
         return id > 0 or include_investment
 
