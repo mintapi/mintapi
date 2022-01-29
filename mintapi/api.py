@@ -514,6 +514,9 @@ class Mint(object):
         # default.
 
         params = {
+            "accountId": acct
+            if __include_investments_with_transactions(acct, include_investment)
+            else None,
             "accountId": acct if __include_investments_with_transactions(acct, include_investment) else None,
             "startDate": convert_date_to_string(convert_mmddyy_to_datetime(start_date)),
             "endDate": convert_date_to_string(convert_mmddyy_to_datetime(end_date)),
@@ -833,10 +836,9 @@ class Mint(object):
                     }
                 )
         return utilization
-
     
-def __include_investments_with_transactions(id, include_investment):
-    return id > 0 or include_investment
+    def __include_investments_with_transactions(id, include_investment):
+        return id > 0 or include_investment
 
 
 def get_accounts(email, password, get_detail=False):
