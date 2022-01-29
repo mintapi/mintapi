@@ -433,7 +433,12 @@ def bypass_verified_user_page(driver):
     try:
         skip_for_now = driver.find_element_by_id("ius-verified-user-update-btn-skip")
         skip_for_now.click()
-    except STANDARD_MISSING_EXCEPTIONS:
+    except (
+        NoSuchElementException,
+        StaleElementReferenceException,
+        ElementNotVisibleException,
+        ElementNotInteractableException,
+    ):
         pass
 
 
