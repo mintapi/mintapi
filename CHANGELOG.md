@@ -1,3 +1,7 @@
+1.63
+---
+- fix regression introduced in #384 (#398)
+
 1.62
 ---
 - support exporting investment data/transactions to CSV (#382, #384)
