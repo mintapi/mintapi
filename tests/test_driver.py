@@ -1,5 +1,6 @@
 import mintapi.api
 import mintapi.cli
+import mintapi.signIn
 import copy
 import datetime
 import json
@@ -23,36 +24,61 @@ accounts_example = [
     }
 ]
 
-category_example = {
-    708: {
+category_example = [
+    {
+        "type": "Category",
+        "name": "Entertainment",
+        "depth": 1,
         "categoryType": "EXPENSE",
-        "parent": {
-            "categoryType": "EXPENSE",
-            "parent": {
-                "categoryType": "NO_CATEGORY",
-                "parent": None,
-                "depth": 0,
-                "name": "Root",
-                "id": 0,
-                "notificationName": "Everything Else",
-                "parentId": 0,
-                "precedence": 100,
-            },
-            "depth": 1,
-            "name": "Food & Dining",
-            "id": 7,
-            "notificationName": "Food & Dining",
-            "parentId": 0,
-            "precedence": 30,
+        "isBusiness": "false",
+        "isCustom": "false",
+        "isUnassignable": "false",
+        "isUnbudgetable": "false",
+        "isUntrendable": "false",
+        "isIgnored": "false",
+        "isEditable": "false",
+        "isDeleted": "false",
+        "discretionaryType": "DISCRETIONARY",
+        "metaData": {
+            "lastUpdatedDate": "2020-11-18T07:31:47Z",
+            "link": [
+                {
+                    "otherAttributes": {},
+                    "href": "/v1/categories/10740790_1",
+                    "rel": "self",
+                }
+            ],
         },
+        "id": "10740790_14",
+    },
+    {
+        "type": "Category",
+        "name": "Auto Insurance",
         "depth": 2,
-        "name": "Alcohol & Bars",
-        "id": 708,
-        "notificationName": "Alcohol & Bars",
-        "parentId": 7,
-        "precedence": 20,
-    }
-}
+        "categoryType": "EXPENSE",
+        "parentId": "10740790_14",
+        "isBusiness": False,
+        "isCustom": False,
+        "isUnassignable": False,
+        "isUnbudgetable": False,
+        "isUntrendable": False,
+        "isIgnored": False,
+        "isEditable": False,
+        "isDeleted": False,
+        "discretionaryType": "NON_DISCRETIONARY",
+        "metaData": {
+            "lastUpdatedDate": "2020-11-18T07:31:47Z",
+            "link": [
+                {
+                    "otherAttributes": {},
+                    "href": "/v1/categories/10740790_1405",
+                    "rel": "self",
+                }
+            ],
+        },
+        "id": "10740790_1405",
+    },
+]
 
 detailed_transactions_example = [
     {
@@ -120,6 +146,82 @@ investments_example = {
     ]
 }
 
+budgets_example = {
+    "data": {
+        "income": {
+            "24259": {
+                "bu": [
+                    {
+                        "st": 3,
+                        "ramt": 293.91,
+                        "isIncome": False,
+                        "isTransfer": False,
+                        "isExpense": True,
+                        "roll": True,
+                        "amt": 293.91,
+                        "pid": 14,
+                        "type": 0,
+                        "bgt": 132.0,
+                        "rbal": -161.91,
+                        "ex": False,
+                        "cat": 1405,
+                        "catName": "Auto Insurance",
+                        "id": 254592307,
+                        "catTypeFilter": "Personal",
+                    },
+                ],
+                "tot": {"st": 1, "bu": 1000.0, "amt": -2000.44, "ub": 3000.13},
+                "ub": [
+                    {
+                        "cat": 0,
+                        "catName": "Root",
+                        "amt": 3000.13,
+                        "catTypeFilter": "Personal",
+                    },
+                ],
+            }
+        },
+        "spending": {
+            "24259": {
+                "bu": [
+                    {
+                        "st": 3,
+                        "ramt": 293.91,
+                        "isIncome": False,
+                        "isTransfer": False,
+                        "isExpense": True,
+                        "roll": True,
+                        "amt": 293.91,
+                        "pid": 14,
+                        "type": 0,
+                        "bgt": 132.0,
+                        "rbal": -161.91,
+                        "ex": False,
+                        "cat": 1405,
+                        "catName": "Auto Insurance",
+                        "id": 254592307,
+                        "catTypeFilter": "Personal",
+                    },
+                ],
+                "tot": {"st": 1, "bu": 1000.0, "amt": -2000.44, "ub": 3000.13},
+                "ub": [
+                    {
+                        "cat": 0,
+                        "catName": "Root",
+                        "amt": 3000.13,
+                        "catTypeFilter": "Personal",
+                    },
+                ],
+            }
+        },
+        "sortOrder": 0,
+        "minMonth": "24251",
+        "savings": 1317.0,
+        "isOughtToHaveBudgets": False,
+    },
+    "oldest": 24201,
+}
+
 
 class Attribute:
     text = json.dumps({"response": {"42": {"response": accounts_example}}})
@@ -164,10 +266,10 @@ class MintApiTests(unittest.TestCase):
         mintapi.cli.print_accounts(accounts)
 
     def test_chrome_driver_links(self):
-        latest_version = mintapi.api.get_latest_chrome_driver_version()
-        for platform in mintapi.api.CHROME_ZIP_TYPES:
+        latest_version = mintapi.signIn.get_latest_chrome_driver_version()
+        for platform in mintapi.signIn.CHROME_ZIP_TYPES:
             request = requests.get(
-                mintapi.api.get_chrome_driver_url(latest_version, platform)
+                mintapi.signIn.get_chrome_driver_url(latest_version, platform)
             )
             self.assertEqual(request.status_code, 200)
 
@@ -247,14 +349,12 @@ class MintApiTests(unittest.TestCase):
 
     def test_config_file(self):
         # verify parsing from config file
-        config_file = tempfile.NamedTemporaryFile(mode="wt")
-        config_file.write("extended-transactions")
-        config_file.flush()
-        arguments = mintapi.cli.parse_arguments(["-c", config_file.name])
+        config_file = write_extended_transactions_file()
+        arguments = parse_arguments_file(config_file)
         self.assertEqual(arguments.extended_transactions, True)
         config_file.close()
 
-    @patch.object(mintapi.api, "get_web_driver")
+    @patch.object(mintapi.signIn, "get_web_driver")
     def test_build_bundledServiceController_url(self, mock_driver):
         mock_driver.return_value = (TestMock(), "test")
         url = mintapi.Mint.build_bundledServiceController_url(mock_driver)
@@ -266,6 +366,63 @@ class MintApiTests(unittest.TestCase):
         investment_data = mintapi.Mint().get_investment_data()[0]
         self.assertFalse("metaData" in investment_data)
         self.assertTrue("lastUpdatedDate" in investment_data)
+
+    @patch.object(mintapi.Mint, "_Mint__call_budgets_endpoint")
+    @patch.object(mintapi.Mint, "get_categories")
+    def test_format_budget_categories(
+        self, mock_get_categories, mock_call_budgets_endpoint
+    ):
+        mock_call_budgets_endpoint.return_value = budgets_example
+        mock_get_categories.return_value = category_example
+        budgets = mintapi.Mint().get_budgets()
+        income_budget = budgets["income"][0]
+        self.assertTrue("parent" in income_budget)
+        self.assertTrue(income_budget["cat"] == income_budget["catName"])
+        spending_budget = budgets["spend"][0]
+        self.assertTrue("parent" in spending_budget)
+        self.assertTrue(spending_budget["cat"] == spending_budget["catName"])
+
+    def test_validate_file_extensions(self):
+        config_file = write_extended_transactions_file()
+        config_file.write("filename=/tmp/transactions.txt")
+        arguments = parse_arguments_file(config_file)
+        self.assertRaises(ValueError, mintapi.cli.validate_file_extensions, arguments)
+        config_file = write_extended_transactions_file()
+        config_file.write("filename=/tmp/transactions.csv")
+        arguments = parse_arguments_file(config_file)
+        self.assertEqual(mintapi.cli.validate_file_extensions(arguments), None)
+        config_file = write_accounts_file()
+        config_file.write("filename=/tmp/accounts.csv")
+        arguments = parse_arguments_file(config_file)
+        self.assertRaises(ValueError, mintapi.cli.validate_file_extensions, arguments)
+        config_file = write_accounts_file()
+        config_file.write("filename=/tmp/accounts.json")
+        arguments = parse_arguments_file(config_file)
+        self.assertEqual(mintapi.cli.validate_file_extensions(arguments), None)
+
+    def test_include_investments_with_transactions(self):
+        mint = mintapi.Mint()
+        self.assertFalse(mint._include_investments_with_transactions(0, False))
+        self.assertTrue(mint._include_investments_with_transactions(0, True))
+        self.assertTrue(mint._include_investments_with_transactions(1, False))
+        self.assertTrue(mint._include_investments_with_transactions(1, True))
+
+
+def write_extended_transactions_file():
+    config_file = tempfile.NamedTemporaryFile(mode="wt")
+    config_file.write("extended-transactions\n")
+    return config_file
+
+
+def write_accounts_file():
+    config_file = tempfile.NamedTemporaryFile(mode="wt")
+    config_file.write("accounts\n")
+    return config_file
+
+
+def parse_arguments_file(config_file):
+    config_file.flush()
+    return mintapi.cli.parse_arguments(["-c", config_file.name])
 
 
 if __name__ == "__main__":

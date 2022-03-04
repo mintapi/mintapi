@@ -9,7 +9,9 @@ import getpass
 import keyring
 import configargparse
 
-from mintapi.api import Mint, get_email_code
+from mintapi.api import Mint
+from mintapi.signIn import get_email_code
+from pandas import json_normalize
 
 logger = logging.getLogger("mintapi")
 
@@ -64,6 +66,14 @@ def parse_arguments(args):
                 "dest": "budget_hist",
                 "default": None,
                 "help": "Retrieve 12-month budget history information",
+            },
+        ),
+        (
+            ("--categories",),
+            {
+                "action": "store_true",
+                "default": False,
+                "help": "Retrieve category definitions as configured in Mint",
             },
         ),
         (
@@ -318,6 +328,61 @@ def handle_password(type, prompt, email, password, use_keyring=False):
     return password
 
 
+def validate_file_extensions(options):
+    if any(
+        [
+            options.transactions,
+            options.extended_transactions,
+            options.investments,
+        ]
+    ):
+        if not (
+            options.filename is None
+            or options.filename.endswith(".csv")
+            or options.filename.endswith(".json")
+        ):
+            raise ValueError(
+                "File extension must be either .csv or .json for transaction data"
+            )
+    else:
+        if not (options.filename is None or options.filename.endswith(".json")):
+            raise ValueError("File extension must be .json for non-transaction data")
+
+
+def output_data(options, data, attention_msg=None):
+    # output the data
+    if options.transactions or options.extended_transactions:
+        if options.filename is None:
+            print(data.to_json(orient="records"))
+        elif options.filename.endswith(".csv"):
+            data.to_csv(options.filename, index=False)
+        elif options.filename.endswith(".json"):
+            data.to_json(options.filename, orient="records")
+    else:
+        if options.filename is None:
+            print(json.dumps(data, indent=2))
+        # NOTE: While this logic is here, unless validate_file_extensions
+        #       allows for other data types to export to CSV, this will
+        #       only include investment data.
+        elif options.filename.endswith(".csv"):
+            # NOTE: Currently, investment_data, which is a flat JSON, is the only
+            #       type of data that uses this section.  So, if we open this up to
+            #       other non-flat JSON data, we will need to revisit this.
+            json_normalize(data).to_csv(options.filename, index=False)
+        elif options.filename.endswith(".json"):
+            with open(options.filename, "w+") as f:
+                json.dump(data, f, indent=2)
+
+    if options.attention:
+        if attention_msg is None or attention_msg == "":
+            attention_msg = "no messages"
+        if options.filename is None:
+            print(attention_msg)
+        else:
+            with open(options.filename, "w+") as f:
+                f.write(attention_msg)
+
+
 def main():
     options = parse_arguments(sys.argv[1:])
 
@@ -327,6 +392,8 @@ def main():
     imap_account = options.imap_account
     imap_password = options.imap_password
     mfa_method = options.mfa_method
+
+    validate_file_extensions(options)
 
     if not email:
         # If the user did not provide an e-mail, prompt for it
@@ -359,6 +426,7 @@ def main():
             options.credit_report,
             options.investments,
             options.attention,
+            options.categories,
         ]
     ):
         options.accounts = True
@@ -443,6 +511,8 @@ def main():
             remove_pending=options.show_pending,
             skip_duplicates=options.skip_duplicates,
         )
+    elif options.categories:
+        data = mint.get_categories()
     elif options.investments:
         data = mint.get_investment_data()
     elif options.net_worth:
@@ -457,31 +527,7 @@ def main():
             exclude_utilization=options.exclude_utilization,
         )
 
-    # output the data
-    if options.transactions or options.extended_transactions:
-        if options.filename is None:
-            print(data.to_json(orient="records"))
-        elif options.filename.endswith(".csv"):
-            data.to_csv(options.filename, index=False)
-        elif options.filename.endswith(".json"):
-            data.to_json(options.filename, orient="records")
-        else:
-            raise ValueError("file extension must be either .csv or .json")
-    else:
-        if options.filename is None:
-            print(json.dumps(data, indent=2))
-        elif options.filename.endswith(".json"):
-            with open(options.filename, "w+") as f:
-                json.dump(data, f, indent=2)
-        else:
-            raise ValueError("file type must be json for non-transaction data")
-
+    attention_msg = None
     if options.attention:
         attention_msg = mint.get_attention()
-        if attention_msg is None or attention_msg == "":
-            attention_msg = "no messages"
-        if options.filename is None:
-            print(attention_msg)
-        else:
-            with open(options.filename, "w+") as f:
-                f.write(attention_msg)
+    output_data(options, data, attention_msg)

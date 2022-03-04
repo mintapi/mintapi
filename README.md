@@ -52,6 +52,17 @@ If I wanted to make sure that mintapi used the chromium executable in my /usr/bi
 ```
 where prepending the /usr/bin path to path will make those binaries found first. This will only affect the cron job and will not change the environment for any other process.
 
+#### Docker Image
+You can also use the docker image to help manage your environment so you don't have to worry about chrome or chromedriver versions. There are a few caveats:
+1. Headless mode is recommended. GUI works but introduces the need to configure an X11 server which varies with setup. Google is your friend.
+2. Almost always use the flag `--use-chromedriver-on-path` as the chrome and chromedriver built into the docker image already match and getting the latest will break the image.
+3. If you want to persist credentials or your chrome session, you'll need to do some volume mounting.
+
+To use the image:
+```
+docker run --rm --shm-size=2g ghcr.io/mintapi/mintapi mintapi john@example.com my_password --headless --use-chromedriver-on-path
+```
+
 #### Windows Environment
 You can do a similar thing in windows by executing the following in Powershell.
 ```powershell
@@ -179,6 +190,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                    [--include-investment] [--skip-duplicates] [--show-pending]
                    [--filename FILENAME] [--keyring] [--headless] [--attention]
                    [--mfa-method {sms,email,soft-token}]
+                   [--categories]
                    email [password]
 
     positional arguments:
@@ -195,6 +207,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                             profile.
       --budgets             Retrieve budget information for current month
       --budget_hist         Retrieve historical budget information (past 12 months)
+      --categories          Retrieve your configured Mint categories
       --config-file, -c     File used to store arguments
       --credit-score        Retrieve credit score
       --credit-report       Retrieve full credit report & history
