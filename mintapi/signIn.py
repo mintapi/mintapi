@@ -358,7 +358,7 @@ def sign_in(
             handle_same_page_username_password(driver, email, password)
         # try to enter in credentials if username and password are on different pages
         except (
-            ElementNotInteractableException, 
+            ElementNotInteractableException,
             ElementNotVisibleException,
             NoSuchElementException,
         ):
@@ -483,6 +483,10 @@ def mfa_page(
     mfa_token_input = mfa_result[0]
     mfa_token_button = mfa_result[1]
     mfa_method = mfa_result[2]
+    if mfa_method is None:
+        # MFA is optional for devices that were registered to Mint by clicking on "Remember my device"
+        logger.info("Your Mint Account does not require Multifactor Authentication.")
+        return
 
     # mfa screen
     if mfa_method == MFA_VIA_SOFT_TOKEN:
@@ -542,7 +546,9 @@ def set_mfa_method(driver, mfa_method):
         )
         mfa_method = mfa_result[MFA_METHOD_LABEL]
     except (NoSuchElementException, ElementNotInteractableException):
-        raise RuntimeError("The Multifactor Method supplied is not available.")
+        raise RuntimeError(
+            "The Multifactor Method {} supplied is not available.".format(mfa_method)
+        )
     return mfa_token_input, mfa_token_button, mfa_method
 
 
