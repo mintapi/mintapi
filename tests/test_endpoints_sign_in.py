@@ -65,7 +65,7 @@ def test_sign_in(get_mint_driver: mintapi.Mint):
         INTUIT_ACCOUNT,
     )
     assert get_mint_driver.driver.current_url.startswith(
-        "https://mint.intuit.com/overview.event"
+        "https://mint.intuit.com/overview"
     )
 
 

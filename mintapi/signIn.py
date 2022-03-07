@@ -323,7 +323,7 @@ def sign_in(
 
     # Wait until logged in, just in case we need to deal with MFA.
     driver.implicitly_wait(1)  # seconds
-    while not driver.current_url.startswith("https://mint.intuit.com/overview.event"):
+    while not driver.current_url.startswith("https://mint.intuit.com/overview"):
         bypass_verified_user_page(driver)
         mfa_page(
             driver,
