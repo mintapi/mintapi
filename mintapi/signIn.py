@@ -314,6 +314,7 @@ def _create_web_driver_at_mint_com(
 
 
 def get_token(driver: Chrome):
+    driver.implicitly_wait(600)
     value_json = driver.find_element_by_name("javascript-user").get_attribute("value")
     return json.loads(value_json)["token"]
 
@@ -353,7 +354,7 @@ def sign_in(
 
     user_selection_page(driver)
 
-    while not driver.current_url.startswith("https://mint.intuit.com/overview.event"):
+    while not driver.current_url.startswith("https://mint.intuit.com/overview"):
         try:  # try to enter in credentials if username and password are on same page
             handle_same_page_username_password(driver, email, password)
         # try to enter in credentials if username and password are on different pages
