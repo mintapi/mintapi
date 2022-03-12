@@ -202,9 +202,7 @@ class Mint(object):
         return response
 
     def build_bundledServiceController_url(self):
-        return "{}/bundledServiceController.xevent?legacy=false".format(
-            MINT_ROOT_URL
-        )
+        return "{}/bundledServiceController.xevent?legacy=false".format(MINT_ROOT_URL)
 
     def login_and_get_token(
         self,
@@ -716,9 +714,7 @@ class Mint(object):
         return {"id": parent["id"], "name": parent["name"]}
 
     def initiate_account_refresh(self):
-        self.make_post_request(
-            url="{}/refreshFILogins.xevent".format(MINT_ROOT_URL)
-        )
+        self.make_post_request(url="{}/refreshFILogins.xevent".format(MINT_ROOT_URL))
 
     def get_credit_score(self):
         # Request a single credit report, and extract the score
