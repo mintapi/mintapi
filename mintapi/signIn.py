@@ -269,11 +269,6 @@ def _create_web_driver_at_mint_com(
     return driver
 
 
-def get_token(driver: Chrome):
-    value_json = driver.find_element_by_name("javascript-user").get_attribute("value")
-    return json.loads(value_json)["token"]
-
-
 def sign_in(
     email,
     password,
@@ -344,7 +339,7 @@ def sign_in(
     status_message = None
     if wait_for_sync:
         handle_wait_for_sync(driver, wait_for_sync_timeout)
-    return status_message, get_token(driver)
+    return status_message
 
 
 def user_selection_page(driver):
