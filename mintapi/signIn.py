@@ -537,7 +537,7 @@ def handle_wait_for_sync(driver, wait_for_sync_timeout):
         # to dynamic content (client side rendering).
         status_web_element = WebDriverWait(driver, 30).until(
             expected_conditions.visibility_of_element_located(
-                (By.CSS_SELECTOR, ".SummaryView .message")
+                (By.CSS_SELECTOR, ".AccountStatusBar")
             )
         )
         WebDriverWait(driver, wait_for_sync_timeout).until(
