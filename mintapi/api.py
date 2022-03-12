@@ -143,7 +143,7 @@ class Mint(object):
         ).zfill(3)
 
     def _get_api_key_header(self):
-        key_var = "window.MintConfig.browserAuthAPIKey"
+        key_var = "__shellInternal.OILConfigs.key"
         api_key = self.driver.execute_script("return " + key_var)
         auth = "Intuit_APIKey intuit_apikey=" + api_key
         auth += ", intuit_apikey_version=1.0"
