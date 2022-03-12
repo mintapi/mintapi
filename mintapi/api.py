@@ -91,7 +91,6 @@ class MintException(Exception):
 
 class Mint(object):
     request_id = 42  # magic number? random number?
-    token = None
     driver = None
     status_message = None
 
@@ -203,9 +202,7 @@ class Mint(object):
         return response
 
     def build_bundledServiceController_url(self):
-        return "{}/bundledServiceController.xevent?legacy=false&token={}".format(
-            MINT_ROOT_URL, self.token
-        )
+        return "{}/bundledServiceController.xevent?legacy=false".format(MINT_ROOT_URL)
 
     def login_and_get_token(
         self,
@@ -232,7 +229,7 @@ class Mint(object):
         )
 
         try:
-            self.status_message, self.token = sign_in(
+            self.status_message = sign_in(
                 email,
                 password,
                 self.driver,
@@ -717,10 +714,7 @@ class Mint(object):
         return {"id": parent["id"], "name": parent["name"]}
 
     def initiate_account_refresh(self):
-        data = {"token": self.token}
-        self.make_post_request(
-            url="{}/refreshFILogins.xevent".format(MINT_ROOT_URL), data=data
-        )
+        self.make_post_request(url="{}/refreshFILogins.xevent".format(MINT_ROOT_URL))
 
     def get_credit_score(self):
         # Request a single credit report, and extract the score
