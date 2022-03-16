@@ -269,11 +269,6 @@ def _create_web_driver_at_mint_com(
     return driver
 
 
-def get_token(driver: Chrome):
-    value_json = driver.find_element_by_name("javascript-user").get_attribute("value")
-    return json.loads(value_json)["token"]
-
-
 def sign_in(
     email,
     password,
@@ -312,14 +307,18 @@ def sign_in(
     try:  # try to enter in credentials if username and password are on same page
         handle_same_page_username_password(driver, email, password)
     # try to enter in credentials if username and password are on different pages
-    except (ElementNotInteractableException, ElementNotVisibleException):
+    except (
+        ElementNotInteractableException,
+        ElementNotVisibleException,
+        NoSuchElementException,
+    ):
         handle_different_page_username_password(driver, email, password)
         driver.implicitly_wait(20)  # seconds
         password_page(driver, password)
 
     # Wait until logged in, just in case we need to deal with MFA.
     driver.implicitly_wait(1)  # seconds
-    while not driver.current_url.startswith("https://mint.intuit.com/overview.event"):
+    while not driver.current_url.startswith("https://mint.intuit.com/overview"):
         bypass_verified_user_page(driver)
         mfa_page(
             driver,
@@ -340,7 +339,7 @@ def sign_in(
     status_message = None
     if wait_for_sync:
         handle_wait_for_sync(driver, wait_for_sync_timeout)
-    return status_message, get_token(driver)
+    return status_message
 
 
 def user_selection_page(driver):
@@ -363,17 +362,24 @@ def handle_same_page_username_password(driver, email, password):
     email_input.clear()  # clear email and user specified email
     email_input.send_keys(email)
     driver.find_element_by_id("ius-password").send_keys(password)
-    driver.find_element_by_id("ius-sign-in-submit-btn").submit()
+    driver.find_element_by_css_selector(
+        '#ius-sign-in-submit-btn, [data-testid="IdentifierFirstSubmitButton"]'
+    ).submit()
 
 
 def handle_different_page_username_password(driver, email, password):
     try:
-        email_input = driver.find_element_by_id("ius-identifier")
+        email_input = driver.find_element_by_css_selector(
+            '#ius-identifier, [data-testid="IdentifierFirstIdentifierInput"]'
+        )
         if not email_input.is_displayed():
             raise ElementNotVisibleException()
         email_input.clear()  # clear email and use specified email
         email_input.send_keys(email)
-        driver.find_element_by_id("ius-sign-in-submit-btn").click()
+        driver.find_element_by_css_selector(
+            '#ius-identifier-first-submit-btn, [data-testid="IdentifierFirstSubmitButton"]'
+        ).click()
+
     # click on username if on the saved usernames page
     except (ElementNotInteractableException, ElementNotVisibleException):
         username_elements = driver.find_elements_by_class_name("ius-option-username")
@@ -392,6 +398,7 @@ def bypass_verified_user_page(driver):
         NoSuchElementException,
         StaleElementReferenceException,
         ElementNotVisibleException,
+        ElementNotInteractableException,
     ):
         pass
 
@@ -530,7 +537,7 @@ def handle_wait_for_sync(driver, wait_for_sync_timeout):
         # to dynamic content (client side rendering).
         status_web_element = WebDriverWait(driver, 30).until(
             expected_conditions.visibility_of_element_located(
-                (By.CSS_SELECTOR, ".SummaryView .message")
+                (By.CSS_SELECTOR, ".AccountStatusBar")
             )
         )
         WebDriverWait(driver, wait_for_sync_timeout).until(

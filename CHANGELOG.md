@@ -1,3 +1,20 @@
+1.64
+---
+- Resolves Selenium Requests Error #408
+- Resolves Maxretry issue #407
+- Resolves no such element: Unable to locate element: {"method":"css selector","selector":"[id="ius-userid"]"} #406
+- Resolves mintapi logon issues - selenium can't find field to navigate authentication sequence #405
+
+1.63
+---
+- fix regression introduced in #384 (#398)
+
+1.62
+---
+- support exporting investment data/transactions to CSV (#382, #384)
+- more robust sign-in / email handling (#391, #377, #396)
+- fix command-line checking of file extensions (#386)
+
 1.61
 ---
 - fix regression: UnboundLocalError for `attention_msg` (#380)

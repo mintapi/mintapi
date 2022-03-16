@@ -90,7 +90,6 @@ class MintException(Exception):
 
 class Mint(object):
     request_id = 42  # magic number? random number?
-    token = None
     driver = None
     status_message = None
 
@@ -143,7 +142,7 @@ class Mint(object):
         ).zfill(3)
 
     def _get_api_key_header(self):
-        key_var = "window.MintConfig.browserAuthAPIKey"
+        key_var = "__shellInternal.OILConfigs.key"
         api_key = self.driver.execute_script("return " + key_var)
         auth = "Intuit_APIKey intuit_apikey=" + api_key
         auth += ", intuit_apikey_version=1.0"
@@ -218,9 +217,7 @@ class Mint(object):
         return response
 
     def build_bundledServiceController_url(self):
-        return "{}/bundledServiceController.xevent?legacy=false&token={}".format(
-            MINT_ROOT_URL, self.token
-        )
+        return "{}/bundledServiceController.xevent?legacy=false".format(MINT_ROOT_URL)
 
     def login_and_get_token(
         self,
@@ -247,7 +244,7 @@ class Mint(object):
         )
 
         try:
-            self.status_message, self.token = sign_in(
+            self.status_message = sign_in(
                 email,
                 password,
                 self.driver,
@@ -447,7 +444,7 @@ class Mint(object):
             # Specifying accountId=0 causes Mint to return investment
             # transactions as well.  Otherwise they are skipped by
             # default.
-            if id > 0 or include_investment:
+            if self._include_investments_with_transactions(id, include_investment):
                 params["accountId"] = id
             if include_investment:
                 params["task"] = "transactions"
@@ -535,7 +532,9 @@ class Mint(object):
         # default.
 
         params = {
-            "accountId": acct if acct > 0 else None,
+            "accountId": acct
+            if self._include_investments_with_transactions(acct, include_investment)
+            else None,
             "startDate": convert_date_to_string(convert_mmddyy_to_datetime(start_date)),
             "endDate": convert_date_to_string(convert_mmddyy_to_datetime(end_date)),
         }
@@ -736,10 +735,7 @@ class Mint(object):
         return {"id": parent["id"], "name": parent["name"]}
 
     def initiate_account_refresh(self):
-        data = {"token": self.token}
-        self.make_post_request(
-            url="{}/refreshFILogins.xevent".format(MINT_ROOT_URL), data=data
-        )
+        self.make_post_request(url="{}/refreshFILogins.xevent".format(MINT_ROOT_URL))
 
     def get_credit_score(self):
         # Request a single credit report, and extract the score
@@ -854,6 +850,9 @@ class Mint(object):
                     }
                 )
         return utilization
+
+    def _include_investments_with_transactions(self, id, include_investment):
+        return id > 0 or include_investment
 
 
 def get_accounts(email, password, get_detail=False):
