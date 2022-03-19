@@ -616,75 +616,23 @@ class Mint(object):
 
         return accounts
 
-    def get_budgets(self, hist=None):
-        response = self.__call_budgets_endpoint()
-        categories = self.get_categories()
-        income = response["data"]["income"]
-        spending = response["data"]["spending"]
-        if hist is not None:  # version proofing api
-
-            def mos_to_yrmo(mos_frm_zero):
-                return datetime(
-                    year=int(mos_frm_zero / 12), month=mos_frm_zero % 12 + 1, day=1
-                ).strftime("%Y%m")
-
-            # Error checking 'hist' argument
-            if isinstance(hist, str) or hist > 12:
-                hist = 12  # MINT_ROOT_URL only calls last 12 months of budget data
-            elif hist < 1:
-                hist = 1
-
-            bgt_cur_mo = max(map(int, income.keys()))
-            min_mo_hist = bgt_cur_mo - hist
-
-            # Initialize and populate dictionary for return
-            #   Output 'budgets' dictionary with structure
-            #       { "YYYYMM": {"spending": [{"key": value, ...}, ...],
-            #                      "income": [{"key": value, ...}, ...] } }
-            budgets = {}
-            for months in range(bgt_cur_mo, min_mo_hist, -1):
-                budgets[mos_to_yrmo(months)] = {}
-                budgets[mos_to_yrmo(months)]["income"] = income[str(months)]["bu"]
-                budgets[mos_to_yrmo(months)]["spending"] = spending[str(months)]["bu"]
-
-            # Fill in the return structure
-            for month in budgets.keys():
-                for direction in budgets[month]:
-                    for budget in budgets[month][direction]:
-                        budget = self.__format_budget_categories(budget, categories)
-
+    def get_budgets(self):
+        budgets = self.__call_budgets_endpoint()
+        if "Budget" in budgets.keys():
+            for i in budgets["Budget"]:
+                i["lastUpdatedDate"] = i["metaData"]["lastUpdatedDate"]
+                i.pop("metaData", None)
         else:
-            # Make the skeleton return structure
-            budgets = {
-                "income": income[str(max(map(int, income.keys())))]["bu"],
-                "spend": spending[str(max(map(int, spending.keys())))]["bu"],
-            }
-
-            # Fill in the return structure
-            for direction in budgets.keys():
-                for budget in budgets[direction]:
-                    budget = self.__format_budget_categories(budget, categories)
-
-        return budgets
+            raise MintException("Cannot find budget data")
+        return budgets["Budget"]
 
     def __call_budgets_endpoint(self):
-        # Issue request for budget utilization
-        first_of_this_month = date.today().replace(day=1)
-        eleven_months_ago = (first_of_this_month - timedelta(days=330)).replace(day=1)
-        url = "{}/getBudget.xevent".format(MINT_ROOT_URL)
-        params = {
-            "startDate": convert_date_to_string(eleven_months_ago),
-            "endDate": convert_date_to_string(first_of_this_month),
-            "rnd": Mint.get_rnd(),
-        }
-        return json.loads(self.get(url, params=params, headers=JSON_HEADER).text)
-
-    def __format_budget_categories(self, budget, categories):
-        category = self.get_category_object_from_id(budget["cat"], categories)
-        budget["cat"] = category["name"]
-        parent = self._find_parent_from_category(category, categories)
-        budget["parent"] = parent["name"]
-        return budget
+        return self.get(
+            "{}/pfm/v1/budgets?startDate={}&endDate={}".format(
+                MINT_ROOT_URL, self.__eleven_months_ago(), self.__first_of_this_month()
+            ),
+            headers=self._get_api_key_header(),
+        ).json()
 
     def get_category_object_from_id(self, cid, categories):
         if cid == 0:
@@ -832,6 +780,12 @@ class Mint(object):
 
     def _include_investments_with_transactions(self, id, include_investment):
         return id > 0 or include_investment
+
+    def __first_of_this_month(self):
+        return date.today().replace(day=1)
+
+    def __eleven_months_ago(self):
+        return (self.__first_of_this_month() - timedelta(days=330)).replace(day=1)
 
 
 def get_accounts(email, password, get_detail=False):
