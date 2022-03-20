@@ -299,6 +299,22 @@ class Mint(object):
             raise MintException("Cannot find investment data")
         return investments["Investment"]
 
+    def test_transaction_data(self):
+        transactions = self.__call_transactions_endpoint()
+        if "Transaction" in transactions.keys():
+            for i in transactions["Transaction"]:
+                i["lastUpdatedDate"] = i["metaData"]["lastUpdatedDate"]
+                i.pop("metaData", None)
+        else:
+            raise MintException("Cannot find transaction data")
+        return transactions["Transaction"]
+
+    def __call_transactions_endpoint(self):
+        return self.get(
+            "{}/pfm/v1/transactions?fromDate={}&toDate={}".format(MINT_ROOT_URL, self.two_months_ago(), None),
+            headers=self._get_api_key_header(),
+        ).json()
+
     def __call_investments_endpoint(self):
         return self.get(
             "{}/pfm/v1/investments".format(MINT_ROOT_URL),
@@ -356,29 +372,6 @@ class Mint(object):
 
         return accounts
 
-    def set_user_property(self, name, value):
-        req_id = self.get_request_id_str()
-        data = {
-            "input": json.dumps(
-                [
-                    {
-                        "args": {"propertyName": name, "propertyValue": value},
-                        "service": "MintUserService",
-                        "task": "setUserProperty",
-                        "id": req_id,
-                    }
-                ]
-            )
-        }
-        result = self.make_post_request(
-            url=self.build_bundledServiceController_url(), data=data
-        )
-        if result.status_code != 200:
-            raise MintException("Received HTTP error %d" % result.status_code)
-        response = result.text
-        if req_id not in response:
-            raise MintException("Could not parse response to set_user_property")
-
     def get_transactions_json(
         self,
         include_investment=False,
@@ -397,9 +390,6 @@ class Mint(object):
         appropriate value.  This affects what is displayed in the web
         interface.  Note that the CSV transactions never exclude duplicates.
         """
-
-        # Warning: This is a global property for the user that we are changing.
-        self.set_user_property("hide_duplicates", "T" if skip_duplicates else "F")
 
         # Converts the start date into datetime format - input must be mm/dd/yy
         start_date = convert_mmddyy_to_datetime(start_date)
@@ -832,6 +822,12 @@ class Mint(object):
 
     def _include_investments_with_transactions(self, id, include_investment):
         return id > 0 or include_investment
+
+    def first_of_this_month(self):
+        return date.today().replace(day=1)
+
+    def two_months_ago(self):
+        return (self.first_of_this_month() - timedelta(days=60)).replace(day=1)
 
 
 def get_accounts(email, password, get_detail=False):

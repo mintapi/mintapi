@@ -351,7 +351,7 @@ def validate_file_extensions(options):
 
 def output_data(options, data, attention_msg=None):
     # output the data
-    if options.transactions or options.extended_transactions:
+    if options.extended_transactions:
         if options.filename is None:
             print(data.to_json(orient="records"))
         elif options.filename.endswith(".csv"):
@@ -498,11 +498,7 @@ def main():
         except Exception:
             data = None
     elif options.transactions:
-        data = mint.get_transactions(
-            start_date=options.start_date,
-            end_date=options.end_date,
-            include_investment=options.include_investment,
-        )
+        data = mint.test_transaction_data()
     elif options.extended_transactions:
         data = mint.get_detailed_transactions(
             start_date=options.start_date,
