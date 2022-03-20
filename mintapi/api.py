@@ -299,6 +299,28 @@ class Mint(object):
             raise MintException("Cannot find investment data")
         return investments["Investment"]
 
+    def get_account_data(self, get_detail=False):
+        accounts = self.__call_accounts_endpoint()
+        #for account in accounts:
+        #    convert_account_dates_to_datetime(account)
+
+        #if get_detail:
+        #    accounts = self.populate_extended_account_detail(accounts)
+        if "Account" in accounts.keys():
+            for i in accounts["Account"]:
+                i["createdDate"] = i["metaData"]["createdDate"]
+                i["lastUpdatedDate"] = i["metaData"]["lastUpdatedDate"]
+                i.pop("metaData", None)
+        else:
+            raise MintException("Cannot find account data")
+        return accounts["Account"]
+
+    def __call_accounts_endpoint(self, get_detail=False):
+        return self.get(
+            "{}/pfm/v1/accounts".format(MINT_ROOT_URL),
+            headers=self._get_api_key_header(),
+        ).json()
+
     def __call_investments_endpoint(self):
         return self.get(
             "{}/pfm/v1/investments".format(MINT_ROOT_URL),
@@ -310,51 +332,12 @@ class Mint(object):
             "{}/pfm/v1/categories".format(MINT_ROOT_URL),
             headers=self._get_api_key_header(),
         ).json()["Category"]
-
-    def get_accounts(self, get_detail=False):  # {{{
-        # Issue service request.
-        req_id = self.get_request_id_str()
-
-        input = {
-            "args": {
-                "types": [
-                    "BANK",
-                    "CREDIT",
-                    "INVESTMENT",
-                    "LOAN",
-                    "MORTGAGE",
-                    "OTHER_PROPERTY",
-                    "REAL_ESTATE",
-                    "VEHICLE",
-                    "UNCLASSIFIED",
-                ]
-            },
-            "id": req_id,
-            "service": "MintAccountService",
-            "task": "getAccountsSorted"
-            # 'task': 'getAccountsSortedByBalanceDescending'
-        }
-
-        data = {"input": json.dumps([input])}
-        response = self.make_post_request(
-            url=self.build_bundledServiceController_url(),
-            data=data,
-            convert_to_text=True,
-        )
-        if req_id not in response:
-            raise MintException("Could not parse account data: " + response)
-
-        # Parse the request
-        response = json.loads(response)
-        accounts = response["response"][req_id]["response"]
-
-        for account in accounts:
-            convert_account_dates_to_datetime(account)
-
-        if get_detail:
-            accounts = self.populate_extended_account_detail(accounts)
-
-        return accounts
+      
+    def __call_accounts_endpoint(self):
+        return self.get(
+            "{}/pfm/v1/accounts".format(MINT_ROOT_URL),
+            headers=self._get_api_key_header(),
+        ).json() 
 
     def set_user_property(self, name, value):
         req_id = self.get_request_id_str()
@@ -526,7 +509,7 @@ class Mint(object):
 
     def get_net_worth(self, account_data=None):
         if account_data is None:
-            account_data = self.get_accounts()
+            account_data = self.get_account_data()
 
         # account types in this list will be subtracted
         invert = set(["loan", "loans", "credit"])
@@ -836,12 +819,12 @@ class Mint(object):
 
 def get_accounts(email, password, get_detail=False):
     mint = Mint(email, password)
-    return mint.get_accounts(get_detail=get_detail)
+    return mint.get_account_data(get_detail=get_detail)
 
 
 def get_net_worth(email, password):
     mint = Mint(email, password)
-    account_data = mint.get_accounts()
+    account_data = mint.get_account_data()
     return mint.get_net_worth(account_data)
 
 
