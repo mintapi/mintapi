@@ -356,33 +356,9 @@ class Mint(object):
 
         return accounts
 
-    def set_user_property(self, name, value):
-        req_id = self.get_request_id_str()
-        data = {
-            "input": json.dumps(
-                [
-                    {
-                        "args": {"propertyName": name, "propertyValue": value},
-                        "service": "MintUserService",
-                        "task": "setUserProperty",
-                        "id": req_id,
-                    }
-                ]
-            )
-        }
-        result = self.make_post_request(
-            url=self.build_bundledServiceController_url(), data=data
-        )
-        if result.status_code != 200:
-            raise MintException("Received HTTP error %d" % result.status_code)
-        response = result.text
-        if req_id not in response:
-            raise MintException("Could not parse response to set_user_property")
-
     def get_transactions_json(
         self,
         include_investment=False,
-        skip_duplicates=False,
         start_date=None,
         end_date=None,
         id=0,
@@ -391,15 +367,7 @@ class Mint(object):
         transaction data includes some additional information missing from the
         CSV data, such as whether the transaction is pending or completed, but
         leaves off the year for current year transactions.
-
-        Warning: In order to reliably include or exclude duplicates, it is
-        necessary to change the user account property 'hide_duplicates' to the
-        appropriate value.  This affects what is displayed in the web
-        interface.  Note that the CSV transactions never exclude duplicates.
         """
-
-        # Warning: This is a global property for the user that we are changing.
-        self.set_user_property("hide_duplicates", "T" if skip_duplicates else "F")
 
         # Converts the start date into datetime format - input must be mm/dd/yy
         start_date = convert_mmddyy_to_datetime(start_date)
@@ -447,7 +415,6 @@ class Mint(object):
     def get_detailed_transactions(
         self,
         include_investment=False,
-        skip_duplicates=False,
         remove_pending=True,
         start_date=None,
         end_date=None,
@@ -458,7 +425,7 @@ class Mint(object):
 
         Note: start_date and end_date must be in format mm/dd/yy.
         If pulls take too long, consider a narrower range of start and end
-        date. See json explanations of include_investment and skip_duplicates.
+        date. See json explanation of include_investment.
 
         Also note: Mint includes pending transactions, however these sometimes
         change dates/amounts after the transactions post. They have been
@@ -466,9 +433,7 @@ class Mint(object):
         remove_pending to False
 
         """
-        result = self.get_transactions_json(
-            include_investment, skip_duplicates, start_date, end_date
-        )
+        result = self.get_transactions_json(include_investment, start_date, end_date)
 
         df = pd.DataFrame(self.add_parent_category_to_result(result))
         df["odate"] = df["odate"].apply(json_date_to_datetime)
