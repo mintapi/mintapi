@@ -249,14 +249,6 @@ def parse_arguments(args):
             },
         ),
         (
-            ("--skip-duplicates",),
-            {
-                "action": "store_true",
-                "default": False,
-                "help": "Used with --extended-transactions",
-            },
-        ),
-        (
             ("--start-date",),
             {
                 "nargs": "?",
@@ -505,7 +497,6 @@ def main():
             end_date=options.end_date,
             include_investment=options.include_investment,
             remove_pending=options.show_pending,
-            skip_duplicates=options.skip_duplicates,
         )
     elif options.categories:
         data = mint.get_categories()
