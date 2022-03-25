@@ -80,47 +80,60 @@ category_example = [
     },
 ]
 
-detailed_transactions_example = [
+detailed_transactions_example = {
+  "Transaction": [
     {
-        "date": "Oct 22",
-        "note": "",
-        "isPercent": False,
-        "fi": "",
-        "txnType": 0,
-        "numberMatchedByRule": -1,
-        "isEdited": False,
-        "isPending": False,
-        "mcategory": "Alcohol & Bars",
-        "isMatched": False,
-        "odate": "2021-10-22",
-        "isFirstDate": True,
-        "id": 1,
-        "isDuplicate": False,
-        "hasAttachments": False,
-        "isChild": False,
-        "isSpending": True,
-        "amount": 17.16,
-        "ruleCategory": "",
-        "userCategoryId": "",
-        "isTransfer": False,
-        "isAfterFiCreationTime": True,
-        "merchant": "TRIMTAB BREWING COMPANY",
-        "manualType": 0,
-        "labels": [],
-        "mmerchant": "TRIMTAB BREWING COMPANY",
-        "isCheck": False,
-        "omerchant": "TRIMTAB BREWING COMPANY",
-        "isDebit": True,
-        "category": "Alcohol & Bars",
-        "ruleMerchant": "",
-        "isLinkedToRule": False,
-        "account": "CREDIT CARD",
-        "categoryId": 708,
-        "ruleCategoryId": 0,
-    }
-]
-
-transactions_example = b'"Date","Description","Original Description","Amount","Transaction Type","Category","Account Name","Labels","Notes"\n"5/14/2020","Safeway","SAFEWAY.COM # 3031","88.09","debit","Groceries","CREDIT CARD","",""\n'
+      "type": "CashAndCreditTransaction",
+      "metaData": {
+        "lastUpdatedDate": "2022-03-25T00:11:08Z",
+        "link": [
+          {
+            "otherAttributes": {},
+            "href": "/v1/transactions/id",
+            "rel": "self"
+          }
+        ]
+      },
+      "id": "id",
+      "accountId": "accountId",
+      "accountRef": {
+        "id": "id",
+        "name": "name",
+        "type": "BankAccount",
+        "hiddenFromPlanningAndTrends": "false"
+      },
+      "date": "2022-03-24",
+      "description": "description",
+      "category": {
+        "id": "id",
+        "name": "Income",
+        "categoryType": "INCOME",
+        "parentId": "parentId",
+        "parentName": "Root"
+      },
+      "amount": 420.0,
+      "status": "MANUAL",
+      "matchState": "NOT_MATCHED",
+      "fiData": {
+        "id": "id",
+        "date": "2022-03-24",
+        "amount": 420.0,
+        "description": "description",
+        "inferredDescription": "inferredDescription",
+        "inferredCategory": {
+          "id": "id",
+          "name": "name"
+        }
+      },
+      "etag": "etag",
+      "isExpense": "false",
+      "isPending": "true",
+      "discretionaryType": "NONE",
+      "isLinkedToRule": "false",
+      "transactionReviewState": "NOT_APPLICABLE"
+    },
+  ]
+}
 
 investments_example = {
     "Investment": [
@@ -283,13 +296,6 @@ class MintApiTests(unittest.TestCase):
 
         answer = mintapi.api.parse_float("0.00%")
         self.assertEqual(answer, float(0))
-
-    @patch.object(mintapi.Mint, "get_transactions_csv")
-    def test_get_transactions(self, mocked_get_transactions):
-        mocked_get_transactions.return_value = transactions_example
-        mint = mintapi.Mint()
-        transactions_df = mint.get_transactions()
-        assert isinstance(transactions_df, pd.DataFrame)
 
     @patch.object(mintapi.Mint, "get_categories")
     def test_detailed_transactions_with_parents(self, mock_get_categories):

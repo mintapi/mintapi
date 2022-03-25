@@ -1,4 +1,5 @@
 from datetime import date, datetime, timedelta
+from dateutil.relativedelta import relativedelta
 import io
 import json
 import logging
@@ -299,19 +300,54 @@ class Mint(object):
             raise MintException("Cannot find investment data")
         return investments["Investment"]
 
-    def test_transaction_data(self):
-        transactions = self.__call_transactions_endpoint()
-        if "Transaction" in transactions.keys():
-            for i in transactions["Transaction"]:
+    def get_transaction_data(
+        self, include_investment, start_date, end_date, remove_pending, id=0
+    ):
+        """
+        Note: start_date and end_date must be in format mm/dd/yy.
+        If pulls take too long, consider a narrower range of start and end
+        date. See json explanation of include_investment.
+
+        Also note: Mint includes pending transactions, however these sometimes
+        change dates/amounts after the transactions post. They have been
+        removed by default in this pull, but can be included by changing
+        remove_pending to False
+        """
+
+        # if self._include_investments_with_transactions(acct, include_investment)
+        result = self.__call_transactions_endpoint(
+            include_investment, start_date, end_date, id
+        )
+        if "Transaction" in result.keys():
+            if remove_pending:
+                filtered = filter(
+                    lambda transaction: transaction["isPending"] == False,
+                    result["Transaction"],
+                )
+                transactions = list(filtered)
+            else:
+                transactions = result["Transaction"]
+            for i in transactions:
                 i["lastUpdatedDate"] = i["metaData"]["lastUpdatedDate"]
                 i.pop("metaData", None)
+
         else:
             raise MintException("Cannot find transaction data")
-        return transactions["Transaction"]
+        return transactions
 
-    def __call_transactions_endpoint(self):
+    def __call_transactions_endpoint(self, include_investment=False, start_date=None, end_date=None, id=0):
+        if start_date is None:
+            start_date = self.x_months_ago(2)
+        else:
+            start_date = convert_mmddyy_to_datetime(start_date)
+        if end_date is None:
+            end_date = date.today()
+        else:
+            end_date = convert_mmddyy_to_datetime(end_date)
         return self.get(
-            "{}/pfm/v1/transactions?fromDate={}&toDate={}".format(MINT_ROOT_URL, self.two_months_ago(), None),
+            "{}/pfm/v1/transactions?id={}&fromDate={}&toDate={}".format(
+                MINT_ROOT_URL, id, start_date, end_date
+            ),
             headers=self._get_api_key_header(),
         ).json()
 
@@ -372,139 +408,6 @@ class Mint(object):
 
         return accounts
 
-    def get_transactions_json(
-        self,
-        include_investment=False,
-        start_date=None,
-        end_date=None,
-        id=0,
-    ):
-        """Returns the raw JSON transaction data as downloaded from Mint.  The JSON
-        transaction data includes some additional information missing from the
-        CSV data, such as whether the transaction is pending or completed, but
-        leaves off the year for current year transactions.
-        """
-
-        # Converts the start date into datetime format - input must be mm/dd/yy
-        start_date = convert_mmddyy_to_datetime(start_date)
-        # Converts the end date into datetime format - input must be mm/dd/yy
-        end_date = convert_mmddyy_to_datetime(end_date)
-
-        all_txns = []
-        offset = 0
-        # Mint only returns some of the transactions at once.  To get all of
-        # them, we have to keep asking for more until we reach the end.
-        while 1:
-            url = MINT_ROOT_URL + "/getJsonData.xevent"
-            params = {
-                "queryNew": "",
-                "offset": offset,
-                "comparableType": "8",
-                "startDate": convert_date_to_string(start_date),
-                "endDate": convert_date_to_string(end_date),
-                "rnd": Mint.get_rnd(),
-            }
-            # Specifying accountId=0 causes Mint to return investment
-            # transactions as well.  Otherwise they are skipped by
-            # default.
-            if self._include_investments_with_transactions(id, include_investment):
-                params["accountId"] = id
-            if include_investment:
-                params["task"] = "transactions"
-            else:
-                params["task"] = "transactions,txnfilters"
-                params["filterType"] = "cash"
-            result = self.request_and_check(
-                url,
-                headers=JSON_HEADER,
-                params=params,
-                expected_content_type="text/json|application/json",
-            )
-            data = json.loads(result.text)
-            txns = data["set"][0].get("data", [])
-            if not txns:
-                break
-            all_txns.extend(txns)
-            offset += len(txns)
-        return all_txns
-
-    def get_detailed_transactions(
-        self,
-        include_investment=False,
-        remove_pending=True,
-        start_date=None,
-        end_date=None,
-    ):
-        """Returns the JSON transaction data as a DataFrame, and converts
-        current year dates and prior year dates into consistent datetime
-        format, and reverses credit activity.
-
-        Note: start_date and end_date must be in format mm/dd/yy.
-        If pulls take too long, consider a narrower range of start and end
-        date. See json explanation of include_investment.
-
-        Also note: Mint includes pending transactions, however these sometimes
-        change dates/amounts after the transactions post. They have been
-        removed by default in this pull, but can be included by changing
-        remove_pending to False
-
-        """
-        result = self.get_transactions_json(include_investment, start_date, end_date)
-
-        df = pd.DataFrame(self.add_parent_category_to_result(result))
-        df["odate"] = df["odate"].apply(json_date_to_datetime)
-
-        if remove_pending:
-            df = df[~df.isPending]
-            df.reset_index(drop=True, inplace=True)
-
-        df.amount = df.apply(reverse_credit_amount, axis=1)
-
-        return df
-
-    def add_parent_category_to_result(self, result):
-        # Finds the parent category name from the categories object based on
-        # the transaction category ID
-        categories = self.get_categories()
-        for transaction in result:
-            category = self.get_category_object_from_id(
-                transaction["categoryId"], categories
-            )
-            parent = self._find_parent_from_category(category, categories)
-            transaction["parentCategoryId"] = self.__format_category_id(parent["id"])
-            transaction["parentCategoryName"] = parent["name"]
-
-        return result
-
-    def get_transactions_csv(
-        self, include_investment=False, start_date=None, end_date=None, acct=0
-    ):
-        """Returns the raw CSV transaction data as downloaded from Mint.
-
-        If include_investment == True, also includes transactions that Mint
-        classifies as investment-related.  You may find that the investment
-        transaction data is not sufficiently detailed to actually be useful,
-        however.
-        """
-
-        # Specifying accountId=0 causes Mint to return investment
-        # transactions as well.  Otherwise they are skipped by
-        # default.
-
-        params = {
-            "accountId": acct
-            if self._include_investments_with_transactions(acct, include_investment)
-            else None,
-            "startDate": convert_date_to_string(convert_mmddyy_to_datetime(start_date)),
-            "endDate": convert_date_to_string(convert_mmddyy_to_datetime(end_date)),
-        }
-        result = self.request_and_check(
-            "{}/transactionDownload.event".format(MINT_ROOT_URL),
-            params=params,
-            expected_content_type="text/csv",
-        )
-        return result.content
-
     def get_net_worth(self, account_data=None):
         if account_data is None:
             account_data = self.get_accounts()
@@ -520,23 +423,6 @@ class Mint(object):
                 if a["isActive"]
             ]
         )
-
-    def get_transactions(
-        self, include_investment=False, start_date=None, end_date=None
-    ):
-        """Returns the transaction data as a Pandas DataFrame."""
-        s = io.BytesIO(
-            self.get_transactions_csv(
-                start_date=start_date,
-                end_date=end_date,
-                include_investment=include_investment,
-            )
-        )
-        s.seek(0)
-        df = pd.read_csv(s, parse_dates=["Date"])
-        df.columns = [c.lower().replace(" ", "_") for c in df.columns]
-        df.category = df.category.str.lower().replace("uncategorized", pd.NA)
-        return df
 
     def populate_extended_account_detail(self, accounts):  # {{{
         # I can't find any way to retrieve this information other than by
@@ -817,8 +703,8 @@ class Mint(object):
     def first_of_this_month(self):
         return date.today().replace(day=1)
 
-    def two_months_ago(self):
-        return (self.first_of_this_month() - timedelta(days=60)).replace(day=1)
+    def x_months_ago(self, months=2):
+        return (self.first_of_this_month() - relativedelta(months=months)).replace(day=1)
 
 
 def get_accounts(email, password, get_detail=False):
