@@ -130,15 +130,12 @@ make calls to retrieve account/budget information.  We recommend using the
   mint.get_budgets()
 
   # Get transactions
-  mint.get_transactions() # as pandas dataframe
-  mint.get_transactions_csv(include_investment=False) # as raw csv data
-  mint.get_transactions_json(include_investment=False)
+  mint.get_transaction_data() # as pandas dataframe
 
   # Get transactions for a specific account
   accounts = mint.get_accounts(True)
   for account in accounts:
-    mint.get_transactions_csv(id=account["id"])
-    mint.get_transactions_json(id=account["id"])
+    mint.get_transaction_data(id=account["id"])
 
   # Get net worth
   mint.get_net_worth()
@@ -175,7 +172,7 @@ make calls to retrieve account/budget information.  We recommend using the
   )
   # now you can do all the normal api calls
   # ex:
-  mint.get_transactions()
+  mint.get_transaction_data()
 ```
 
 ---

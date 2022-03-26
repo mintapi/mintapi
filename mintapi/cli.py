@@ -334,14 +334,14 @@ def validate_file_extensions(options):
 
 def output_data(options, data, attention_msg=None):
     if options.filename is None:
-         print(json.dumps(data, indent=2))
-    # NOTE: While this logic is here, unless validate_file_extensions
-    #       allows for other data types to export to CSV, this will
-    #       only include investment data.
+        print(json.dumps(data, indent=2))
+        # NOTE: While this logic is here, unless validate_file_extensions
+        #       allows for other data types to export to CSV, this will
+        #       only include investment data.
     elif options.filename.endswith(".csv"):
-    # NOTE: Currently, investment_data, which is a flat JSON, is the only
-    #       type of data that uses this section.  So, if we open this up to
-    #       other non-flat JSON data, we will need to revisit this.
+        # NOTE: Currently, investment_data, which is a flat JSON, is the only
+        #       type of data that uses this section.  So, if we open this up to
+        #       other non-flat JSON data, we will need to revisit this.
         json_normalize(data).to_csv(options.filename, index=False)
     elif options.filename.endswith(".json"):
         with open(options.filename, "w+") as f:

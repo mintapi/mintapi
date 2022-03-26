@@ -80,59 +80,56 @@ category_example = [
     },
 ]
 
-detailed_transactions_example = {
-  "Transaction": [
-    {
-      "type": "CashAndCreditTransaction",
-      "metaData": {
-        "lastUpdatedDate": "2022-03-25T00:11:08Z",
-        "link": [
-          {
-            "otherAttributes": {},
-            "href": "/v1/transactions/id",
-            "rel": "self"
-          }
-        ]
-      },
-      "id": "id",
-      "accountId": "accountId",
-      "accountRef": {
-        "id": "id",
-        "name": "name",
-        "type": "BankAccount",
-        "hiddenFromPlanningAndTrends": "false"
-      },
-      "date": "2022-03-24",
-      "description": "description",
-      "category": {
-        "id": "id",
-        "name": "Income",
-        "categoryType": "INCOME",
-        "parentId": "parentId",
-        "parentName": "Root"
-      },
-      "amount": 420.0,
-      "status": "MANUAL",
-      "matchState": "NOT_MATCHED",
-      "fiData": {
-        "id": "id",
-        "date": "2022-03-24",
-        "amount": 420.0,
-        "description": "description",
-        "inferredDescription": "inferredDescription",
-        "inferredCategory": {
-          "id": "id",
-          "name": "name"
-        }
-      },
-      "etag": "etag",
-      "isExpense": "false",
-      "isPending": "true",
-      "discretionaryType": "NONE",
-      "isLinkedToRule": "false",
-      "transactionReviewState": "NOT_APPLICABLE"
-    },
-  ]
+transactions_example = {
+    "Transaction": [
+        {
+            "type": "CashAndCreditTransaction",
+            "metaData": {
+                "lastUpdatedDate": "2022-03-25T00:11:08Z",
+                "link": [
+                    {
+                        "otherAttributes": {},
+                        "href": "/v1/transactions/id",
+                        "rel": "self",
+                    }
+                ],
+            },
+            "id": "id",
+            "accountId": "accountId",
+            "accountRef": {
+                "id": "id",
+                "name": "name",
+                "type": "BankAccount",
+                "hiddenFromPlanningAndTrends": False,
+            },
+            "date": "2022-03-24",
+            "description": "description",
+            "category": {
+                "id": "id",
+                "name": "Income",
+                "categoryType": "INCOME",
+                "parentId": "parentId",
+                "parentName": "Root",
+            },
+            "amount": 420.0,
+            "status": "MANUAL",
+            "matchState": "NOT_MATCHED",
+            "fiData": {
+                "id": "id",
+                "date": "2022-03-24",
+                "amount": 420.0,
+                "description": "description",
+                "inferredDescription": "inferredDescription",
+                "inferredCategory": {"id": "id", "name": "name"},
+            },
+            "etag": "etag",
+            "isExpense": False,
+            "isPending": False,
+            "discretionaryType": "NONE",
+            "isLinkedToRule": False,
+            "transactionReviewState": "NOT_APPLICABLE",
+        },
+    ]
 }
 
 investments_example = {
@@ -257,15 +254,6 @@ class MintApiTests(unittest.TestCase):
         answer = mintapi.api.parse_float("0.00%")
         self.assertEqual(answer, float(0))
 
-    @patch.object(mintapi.Mint, "get_categories")
-    def test_detailed_transactions_with_parents(self, mock_get_categories):
-        mock_get_categories.return_value = category_example
-        results_with_parents = mintapi.Mint().add_parent_category_to_result(
-            detailed_transactions_example
-        )[0]
-        self.assertTrue("parentCategoryName" in results_with_parents)
-        self.assertTrue("parentCategoryId" in results_with_parents)
-
     @patch.object(mintapi.api, "_create_web_driver_at_mint_com")
     @patch.object(mintapi.api, "logger")
     @patch.object(mintapi.api, "sign_in")
@@ -315,9 +303,9 @@ class MintApiTests(unittest.TestCase):
 
     def test_config_file(self):
         # verify parsing from config file
-        config_file = write_extended_transactions_file()
+        config_file = write_transactions_file()
         arguments = parse_arguments_file(config_file)
-        self.assertEqual(arguments.extended_transactions, True)
+        self.assertEqual(arguments.transactions, True)
         config_file.close()
 
     @patch.object(mintapi.signIn, "get_web_driver")
@@ -325,6 +313,15 @@ class MintApiTests(unittest.TestCase):
         mock_driver.return_value = (TestMock(), "test")
         url = mintapi.Mint.build_bundledServiceController_url(mock_driver)
         self.assertTrue(mintapi.api.MINT_ROOT_URL in url)
+
+    @patch.object(mintapi.Mint, "_Mint__call_transactions_endpoint")
+    def test_get_transaction_data(self, mock_call_transactions_endpoint):
+        mock_call_transactions_endpoint.return_value = transactions_example
+        transaction_data = mintapi.Mint().get_transaction_data()[0]
+        self.assertFalse("metaData" in transaction_data)
+        self.assertTrue("lastUpdatedDate" in transaction_data)
+        self.assertTrue("parentId" in transaction_data["category"])
+        self.assertTrue("parentName" in transaction_data["category"])
 
     @patch.object(mintapi.Mint, "_Mint__call_investments_endpoint")
     def test_get_investment_data_new(self, mock_call_investments_endpoint):
@@ -341,11 +338,11 @@ class MintApiTests(unittest.TestCase):
         self.assertTrue("lastUpdatedDate" in budgets)
 
     def test_validate_file_extensions(self):
-        config_file = write_extended_transactions_file()
+        config_file = write_transactions_file()
         config_file.write("filename=/tmp/transactions.txt")
         arguments = parse_arguments_file(config_file)
         self.assertRaises(ValueError, mintapi.cli.validate_file_extensions, arguments)
-        config_file = write_extended_transactions_file()
+        config_file = write_transactions_file()
         config_file.write("filename=/tmp/transactions.csv")
         arguments = parse_arguments_file(config_file)
         self.assertEqual(mintapi.cli.validate_file_extensions(arguments), None)
@@ -358,17 +355,10 @@ class MintApiTests(unittest.TestCase):
         arguments = parse_arguments_file(config_file)
         self.assertEqual(mintapi.cli.validate_file_extensions(arguments), None)
 
-    def test_include_investments_with_transactions(self):
-        mint = mintapi.Mint()
-        self.assertFalse(mint._include_investments_with_transactions(0, False))
-        self.assertTrue(mint._include_investments_with_transactions(0, True))
-        self.assertTrue(mint._include_investments_with_transactions(1, False))
-        self.assertTrue(mint._include_investments_with_transactions(1, True))
 
-
-def write_extended_transactions_file():
+def write_transactions_file():
     config_file = tempfile.NamedTemporaryFile(mode="wt")
-    config_file.write("extended-transactions\n")
+    config_file.write("transactions\n")
     return config_file
 
 

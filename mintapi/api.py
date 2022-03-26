@@ -301,7 +301,12 @@ class Mint(object):
         return investments["Investment"]
 
     def get_transaction_data(
-        self, include_investment, start_date, end_date, remove_pending, id=0
+        self,
+        include_investment=False,
+        start_date=None,
+        end_date=None,
+        remove_pending=True,
+        id=0,
     ):
         """
         Note: start_date and end_date must be in format mm/dd/yy.
@@ -314,7 +319,6 @@ class Mint(object):
         remove_pending to False
         """
 
-        # if self._include_investments_with_transactions(acct, include_investment)
         result = self.__call_transactions_endpoint(
             include_investment, start_date, end_date, id
         )
@@ -335,7 +339,14 @@ class Mint(object):
             raise MintException("Cannot find transaction data")
         return transactions
 
-    def __call_transactions_endpoint(self, include_investment=False, start_date=None, end_date=None, id=0):
+    def __call_transactions_endpoint(
+        self, include_investment=False, start_date=None, end_date=None, id=0
+    ):
+        # Specifying accountId=0 causes Mint to return investment
+        # transactions as well.  Otherwise they are skipped by
+        # default.
+        if include_investment:
+            id = 0
         if start_date is None:
             start_date = self.x_months_ago(2)
         else:
@@ -501,33 +512,6 @@ class Mint(object):
             headers=self._get_api_key_header(),
         ).json()
 
-    def get_category_object_from_id(self, cid, categories):
-        if cid == 0:
-            return {"parent": "Uncategorized", "depth": 1, "name": "Uncategorized"}
-
-        result = filter(
-            lambda category: self.__format_category_id(category["id"]) == str(cid),
-            categories,
-        )
-        category = list(result)
-        return (
-            category[0]
-            if len(category) > 0
-            else {"parent": "Unknown", "depth": 1, "name": "Unknown"}
-        )
-
-    def __format_category_id(self, cid):
-        return cid if str(cid).find("_") == "-1" else str(cid)[str(cid).find("_") + 1 :]
-
-    def _find_parent_from_category(self, category, categories):
-        if category["depth"] == 1:
-            return {"id": "", "name": ""}
-
-        parent = self.get_category_object_from_id(
-            self.__format_category_id(category["parentId"]), categories
-        )
-        return {"id": parent["id"], "name": parent["name"]}
-
     def initiate_account_refresh(self):
         self.make_post_request(url="{}/refreshFILogins.xevent".format(MINT_ROOT_URL))
 
@@ -645,14 +629,13 @@ class Mint(object):
                 )
         return utilization
 
-    def _include_investments_with_transactions(self, id, include_investment):
-        return id > 0 or include_investment
-
     def __first_of_this_month(self):
         return date.today().replace(day=1)
 
     def __x_months_ago(self, months=2):
-        return (self.first_of_this_month() - relativedelta(months=months)).replace(day=1)
+        return (self.__first_of_this_month() - relativedelta(months=months)).replace(
+            day=1
+        )
 
 
 def get_accounts(email, password, get_detail=False):
