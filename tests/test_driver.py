@@ -160,79 +160,39 @@ investments_example = {
 }
 
 budgets_example = {
-    "data": {
-        "income": {
-            "24259": {
-                "bu": [
+    "Budget": [
+        {
+            "type": "MonthlyBudget",
+            "budgetAdjustmentAmount": -75.00,
+            "rollover": "true",
+            "reset": "false",
+            "rolloverResetAmount": 0.0,
+            "metaData": {
+                "createdDate": "2022-03-01T08:00:00Z",
+                "lastUpdatedDate": "2022-02-28T08:32:50Z",
+                "link": [
                     {
-                        "st": 3,
-                        "ramt": 293.91,
-                        "isIncome": False,
-                        "isTransfer": False,
-                        "isExpense": True,
-                        "roll": True,
-                        "amt": 293.91,
-                        "pid": 14,
-                        "type": 0,
-                        "bgt": 132.0,
-                        "rbal": -161.91,
-                        "ex": False,
-                        "cat": 1405,
-                        "catName": "Auto Insurance",
-                        "id": 254592307,
-                        "catTypeFilter": "Personal",
-                    },
+                        "otherAttributes": {},
+                        "href": "/v1/budgets/10740790_2123123684",
+                        "rel": "self",
+                    }
                 ],
-                "tot": {"st": 1, "bu": 1000.0, "amt": -2000.44, "ub": 3000.13},
-                "ub": [
-                    {
-                        "cat": 0,
-                        "catName": "Root",
-                        "amt": 3000.13,
-                        "catTypeFilter": "Personal",
-                    },
-                ],
-            }
+            },
+            "id": "10740790_2123123684",
+            "budgetDate": "2022-03-01",
+            "amount": 75.00,
+            "budgetAmount": 50.0,
+            "category": {
+                "id": "10740790_11235",
+                "name": "Auto Insurance",
+                "categoryType": "EXPENSE",
+                "parentId": "14",
+                "parentName": "Auto & Transport",
+            },
+            "subsumed": "false",
+            "performanceStatus": "OVERBUDGET",
         },
-        "spending": {
-            "24259": {
-                "bu": [
-                    {
-                        "st": 3,
-                        "ramt": 293.91,
-                        "isIncome": False,
-                        "isTransfer": False,
-                        "isExpense": True,
-                        "roll": True,
-                        "amt": 293.91,
-                        "pid": 14,
-                        "type": 0,
-                        "bgt": 132.0,
-                        "rbal": -161.91,
-                        "ex": False,
-                        "cat": 1405,
-                        "catName": "Auto Insurance",
-                        "id": 254592307,
-                        "catTypeFilter": "Personal",
-                    },
-                ],
-                "tot": {"st": 1, "bu": 1000.0, "amt": -2000.44, "ub": 3000.13},
-                "ub": [
-                    {
-                        "cat": 0,
-                        "catName": "Root",
-                        "amt": 3000.13,
-                        "catTypeFilter": "Personal",
-                    },
-                ],
-            }
-        },
-        "sortOrder": 0,
-        "minMonth": "24251",
-        "savings": 1317.0,
-        "isOughtToHaveBudgets": False,
-    },
-    "oldest": 24201,
+    ]
 }
 
 
@@ -374,19 +334,11 @@ class MintApiTests(unittest.TestCase):
         self.assertTrue("lastUpdatedDate" in investment_data)
 
     @patch.object(mintapi.Mint, "_Mint__call_budgets_endpoint")
-    @patch.object(mintapi.Mint, "get_categories")
-    def test_format_budget_categories(
-        self, mock_get_categories, mock_call_budgets_endpoint
-    ):
+    def test_get_budgets(self, mock_call_budgets_endpoint):
         mock_call_budgets_endpoint.return_value = budgets_example
-        mock_get_categories.return_value = category_example
-        budgets = mintapi.Mint().get_budgets()
-        income_budget = budgets["income"][0]
-        self.assertTrue("parent" in income_budget)
-        self.assertTrue(income_budget["cat"] == income_budget["catName"])
-        spending_budget = budgets["spend"][0]
-        self.assertTrue("parent" in spending_budget)
-        self.assertTrue(spending_budget["cat"] == spending_budget["catName"])
+        budgets = mintapi.Mint().get_budgets()[0]
+        self.assertFalse("metaData" in budgets)
+        self.assertTrue("lastUpdatedDate" in budgets)
 
     def test_validate_file_extensions(self):
         config_file = write_extended_transactions_file()
