@@ -237,7 +237,7 @@ def parse_arguments(args):
             {
                 "action": "store_false",
                 "default": True,
-                "help": "Exclude pending transactions from being retrieved. Used with --transactions",
+                "help": "Exclude pending transactions from being retrieved. Used with --extended-transactions",
             },
         ),
         (

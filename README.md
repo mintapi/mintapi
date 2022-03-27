@@ -132,7 +132,7 @@ make calls to retrieve account/budget information.  We recommend using the
   # Get transactions
   mint.get_transactions() # as pandas dataframe
   mint.get_transactions_csv(include_investment=False) # as raw csv data
-  mint.get_transactions_json(include_investment=False, skip_duplicates=False)
+  mint.get_transactions_json(include_investment=False)
 
   # Get transactions for a specific account
   accounts = mint.get_accounts(True)
@@ -187,7 +187,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                    [--extended-transactions] [--credit-score] [--credit-report]
                    [--exclude-inquiries] [--exclude-accounts] [--exclude-utilization]
                    [--start-date [START_DATE]] [--end-date [END_DATE]]
-                   [--include-investment] [--skip-duplicates] [--show-pending]
+                   [--include-investment] [--show-pending]
                    [--filename FILENAME] [--keyring] [--headless] [--attention]
                    [--mfa-method {sms,email,soft-token}]
                    [--categories]
@@ -228,7 +228,6 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                             Used with --transactions or --extended-transactions. Format: mm/dd/yy
       --investments         Retrieve data related to your investments, whether they be retirement or         personal stock purchases
       --include-investment  Used with --extended-transactions
-      --skip-duplicates     Used with --extended-transactions
       --show-pending        Exclude pending transactions from being retrieved.
                             Used with --extended-transactions
       --filename FILENAME, -f FILENAME
