@@ -34,7 +34,7 @@ an MFA prompt, you'll be prompted on the command line for your code, which by de
 goes to SMS unless you specify `--mfa-method=email`. This will also persist a browser
 session in $HOME/.mintapi/session to avoid an MFA in the future, unless you specify `--session-path=None`.
 
-If you wish to simplify the number of arguments passed in the command line, you can use a configuration file by specifying `--config-file`.  For arguments such as `--extended-transactions`, you can add a line in your config file that says `extended-transactions`.  For other arguments that have input, such as `--start-date`, you would add a line such as `start-date=10/01/21`.  There are two exceptions to what you can add to the config file: email and password.  Since these arguments do not include `--`, you cannot add them to the config file.
+If you wish to simplify the number of arguments passed in the command line, you can use a configuration file by specifying `--config-file`.  For arguments such as `--transactions`, you can add a line in your config file that says `transactions`.  For other arguments that have input, such as `--start-date`, you would add a line such as `start-date=10/01/21`.  There are two exceptions to what you can add to the config file: email and password.  Since these arguments do not include `--`, you cannot add them to the config file.
 
 ### Linux Distributions (including Raspberry Pi OS)
 
@@ -130,15 +130,12 @@ make calls to retrieve account/budget information.  We recommend using the
   mint.get_budgets()
 
   # Get transactions
-  mint.get_transactions() # as pandas dataframe
-  mint.get_transactions_csv(include_investment=False) # as raw csv data
-  mint.get_transactions_json(include_investment=False)
+  mint.get_transaction_data() # as pandas dataframe
 
   # Get transactions for a specific account
   accounts = mint.get_accounts(True)
   for account in accounts:
-    mint.get_transactions_csv(id=account["id"])
-    mint.get_transactions_json(id=account["id"])
+    mint.get_transaction_data(id=account["id"])
 
   # Get net worth
   mint.get_net_worth()
@@ -175,7 +172,7 @@ make calls to retrieve account/budget information.  We recommend using the
   )
   # now you can do all the normal api calls
   # ex:
-  mint.get_transactions()
+  mint.get_transaction_data()
 ```
 
 ---
@@ -183,8 +180,8 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
 
 ```shell
     usage: mintapi [-h] [--session-path [SESSION_PATH]] [--accounts] [--investment]
-                   [--budgets | --budget_hist] [--net-worth] [--extended-accounts] [--transactions]
-                   [--extended-transactions] [--credit-score] [--credit-report]
+                   [--budgets | --budget_hist] [--net-worth] [--extended-accounts] 
+                   [--transactions] [--credit-score] [--credit-report]
                    [--exclude-inquiries] [--exclude-accounts] [--exclude-utilization]
                    [--start-date [START_DATE]] [--end-date [END_DATE]]
                    [--include-investment] [--show-pending]
@@ -217,19 +214,16 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       --net-worth           Retrieve net worth information
       --extended-accounts   Retrieve extended account information (slower, implies --accounts)
       --transactions, -t    Retrieve transactions
-      --extended-transactions
-                            Retrieve transactions with extra information and
-                            arguments
       --start-date [START_DATE]
                             Earliest date for which to retrieve transactions.
-                            Used with --transactions or --extended-transactions. Format: mm/dd/yy
+                            Used with --transactions. Format: mm/dd/yy
       --end-date [END_DATE]
                             Latest date for which to retrieve transactions.
-                            Used with --transactions or --extended-transactions. Format: mm/dd/yy
+                            Used with --transactions. Format: mm/dd/yy
       --investments         Retrieve data related to your investments, whether they be retirement or         personal stock purchases
-      --include-investment  Used with --extended-transactions
+      --include-investment  Used with --transactions
       --show-pending        Exclude pending transactions from being retrieved.
-                            Used with --extended-transactions
+                            Used with --transactions
       --filename FILENAME, -f FILENAME
                             write results to file. can be {csv,json} format.
                             default is to write to stdout.
