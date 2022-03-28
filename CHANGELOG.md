@@ -1,3 +1,10 @@
+1.65
+---
+- NOTE: This is intended to be the final release of 1.x.
+  Further work will go towards a 2.0 release which will only support the
+  new Mint UI and endpoints.
+- fix for selenium dependency version (#412, #413, #416)
+
 1.64
 ---
 - Resolves Selenium Requests Error #408
