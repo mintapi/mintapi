@@ -1,7 +1,5 @@
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
-import io
-import json
 import logging
 import os
 import random
@@ -9,9 +7,6 @@ import re
 import requests
 import time
 import warnings
-
-import xmltodict
-import pandas as pd
 
 from mintapi.signIn import sign_in, _create_web_driver_at_mint_com
 
@@ -344,7 +339,7 @@ class Mint(object):
         if include_investment:
             id = 0
         if start_date is None:
-            start_date = self.x_months_ago(2)
+            start_date = self.__x_months_ago(2)
         else:
             start_date = convert_mmddyy_to_datetime(start_date)
         if end_date is None:
@@ -381,12 +376,10 @@ class Mint(object):
             account_data = self.get_account_data()
 
         # account types in this list will be subtracted
-        invert = set(["loan", "loans", "credit"])
+        invert = set(["LoanAccount", "CreditAccount"])
         return sum(
             [
-                -a["currentBalance"]
-                if a["accountType"] in invert
-                else a["currentBalance"]
+                -a["currentBalance"] if a["type"] in invert else a["currentBalance"]
                 for a in account_data
                 if a["isActive"]
             ]

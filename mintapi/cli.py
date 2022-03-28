@@ -3,7 +3,6 @@ import logging
 import os
 import sys
 import json
-from datetime import datetime
 import getpass
 
 import keyring
@@ -267,24 +266,6 @@ def parse_arguments(args):
         cmdline.add_argument(*argument_commands, **argument_options)
 
     return cmdline.parse_args(args)
-
-
-def make_accounts_presentable(accounts, presentable_format="EXCEL"):
-    formatter = {
-        "DATE": "%Y-%m-%d",
-        "ISO8601": "%Y-%m-%dT%H:%M:%SZ",
-        "EXCEL": "%Y-%m-%d %H:%M:%S",
-    }[presentable_format]
-
-    for account in accounts:
-        for k, v in account.items():
-            if isinstance(v, datetime):
-                account[k] = v.strftime(formatter)
-    return accounts
-
-
-def print_accounts(accounts):
-    print(json.dumps(make_accounts_presentable(accounts), indent=2))
 
 
 def handle_password(type, prompt, email, password, use_keyring=False):
