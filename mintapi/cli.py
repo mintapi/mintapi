@@ -114,7 +114,7 @@ def parse_arguments(args):
             {
                 "nargs": "?",
                 "default": None,
-                "help": "Latest date for transactions to be retrieved from. Used with --transactions or --extended-transactions. Format: mm/dd/yy",
+                "help": "Latest date for transactions to be retrieved from. Used with --transactions. Format: mm/dd/yy",
             },
         ),
         (
@@ -139,14 +139,6 @@ def parse_arguments(args):
                 "action": "store_true",
                 "default": False,
                 "help": "When accessing credit report details, exclude data related to credit utilization.  Used with --credit-report.",
-            },
-        ),
-        (
-            ("--extended-transactions",),
-            {
-                "action": "store_true",
-                "default": False,
-                "help": "Retrieve transactions with extra information and arguments",
             },
         ),
         (
@@ -183,7 +175,7 @@ def parse_arguments(args):
             {
                 "action": "store_true",
                 "default": False,
-                "help": "Used with --extended-transactions",
+                "help": "Used with --transactions",
             },
         ),
         (
@@ -236,7 +228,7 @@ def parse_arguments(args):
             {
                 "action": "store_false",
                 "default": True,
-                "help": "Exclude pending transactions from being retrieved. Used with --extended-transactions",
+                "help": "Exclude pending transactions from being retrieved. Used with --transactions",
             },
         ),
         (
@@ -244,7 +236,7 @@ def parse_arguments(args):
             {
                 "nargs": "?",
                 "default": None,
-                "help": "Earliest date for transactions to be retrieved from. Used with --transactions or --extended-transactions. Format: mm/dd/yy",
+                "help": "Earliest date for transactions to be retrieved from. Used with --transactions. Format: mm/dd/yy",
             },
         ),
         (
@@ -315,7 +307,6 @@ def validate_file_extensions(options):
     if any(
         [
             options.transactions,
-            options.extended_transactions,
             options.investments,
         ]
     ):
@@ -333,28 +324,19 @@ def validate_file_extensions(options):
 
 
 def output_data(options, data, attention_msg=None):
-    # output the data
-    if options.transactions or options.extended_transactions:
-        if options.filename is None:
-            print(data.to_json(orient="records"))
-        elif options.filename.endswith(".csv"):
-            data.to_csv(options.filename, index=False)
-        elif options.filename.endswith(".json"):
-            data.to_json(options.filename, orient="records")
-    else:
-        if options.filename is None:
-            print(json.dumps(data, indent=2))
+    if options.filename is None:
+        print(json.dumps(data, indent=2))
         # NOTE: While this logic is here, unless validate_file_extensions
         #       allows for other data types to export to CSV, this will
         #       only include investment data.
-        elif options.filename.endswith(".csv"):
-            # NOTE: Currently, investment_data, which is a flat JSON, is the only
-            #       type of data that uses this section.  So, if we open this up to
-            #       other non-flat JSON data, we will need to revisit this.
-            json_normalize(data).to_csv(options.filename, index=False)
-        elif options.filename.endswith(".json"):
-            with open(options.filename, "w+") as f:
-                json.dump(data, f, indent=2)
+    elif options.filename.endswith(".csv"):
+        # NOTE: Currently, investment_data, which is a flat JSON, is the only
+        #       type of data that uses this section.  So, if we open this up to
+        #       other non-flat JSON data, we will need to revisit this.
+        json_normalize(data).to_csv(options.filename, index=False)
+    elif options.filename.endswith(".json"):
+        with open(options.filename, "w+") as f:
+            json.dump(data, f, indent=2)
 
     if options.attention:
         if attention_msg is None or attention_msg == "":
@@ -400,7 +382,6 @@ def main():
             options.accounts,
             options.budgets,
             options.transactions,
-            options.extended_transactions,
             options.net_worth,
             options.credit_score,
             options.credit_report,
@@ -474,13 +455,7 @@ def main():
         except Exception:
             data = None
     elif options.transactions:
-        data = mint.get_transactions(
-            start_date=options.start_date,
-            end_date=options.end_date,
-            include_investment=options.include_investment,
-        )
-    elif options.extended_transactions:
-        data = mint.get_detailed_transactions(
+        data = mint.get_transaction_data(
             start_date=options.start_date,
             end_date=options.end_date,
             include_investment=options.include_investment,
