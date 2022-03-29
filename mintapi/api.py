@@ -1,7 +1,5 @@
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
-import io
-import json
 import logging
 import os
 import random
@@ -9,9 +7,6 @@ import re
 import requests
 import time
 import warnings
-
-import xmltodict
-import pandas as pd
 
 from mintapi.signIn import sign_in, _create_web_driver_at_mint_com
 
@@ -56,27 +51,6 @@ def parse_float(str_number):
         return float(IGNORE_FLOAT_REGEX.sub("", str_number))
     except ValueError:
         return None
-
-
-DATE_FIELDS = [
-    "addAccountDate",
-    "closeDate",
-    "fiLastUpdated",
-    "lastUpdated",
-]
-
-
-def convert_account_dates_to_datetime(account):
-    for df in DATE_FIELDS:
-        if df in account:
-            # Convert from javascript timestamp to unix timestamp
-            # http://stackoverflow.com/a/9744811/5026
-            try:
-                ts = account[df] / 1e3
-            except TypeError:
-                # returned data is not a number, don't parse
-                continue
-            account[df + "InDate"] = datetime.fromtimestamp(ts)
 
 
 MINT_ROOT_URL = "https://mint.intuit.com"
@@ -300,6 +274,23 @@ class Mint(object):
             raise MintException("Cannot find investment data")
         return investments["Investment"]
 
+    def get_account_data(self):
+        accounts = self.__call_accounts_endpoint()
+        if "Account" in accounts.keys():
+            for i in accounts["Account"]:
+                i["createdDate"] = i["metaData"]["createdDate"]
+                i["lastUpdatedDate"] = i["metaData"]["lastUpdatedDate"]
+                i.pop("metaData", None)
+        else:
+            raise MintException("Cannot find account data")
+        return accounts["Account"]
+
+    def __call_accounts_endpoint(self):
+        return self.get(
+            "{}/pfm/v1/accounts".format(MINT_ROOT_URL),
+            headers=self._get_api_key_header(),
+        ).json()
+
     def get_transaction_data(
         self,
         include_investment=False,
@@ -348,7 +339,7 @@ class Mint(object):
         if include_investment:
             id = 0
         if start_date is None:
-            start_date = self.x_months_ago(2)
+            start_date = self.__x_months_ago(2)
         else:
             start_date = convert_mmddyy_to_datetime(start_date)
         if end_date is None:
@@ -374,125 +365,25 @@ class Mint(object):
             headers=self._get_api_key_header(),
         ).json()["Category"]
 
-    def get_accounts(self, get_detail=False):  # {{{
-        # Issue service request.
-        req_id = self.get_request_id_str()
-
-        input = {
-            "args": {
-                "types": [
-                    "BANK",
-                    "CREDIT",
-                    "INVESTMENT",
-                    "LOAN",
-                    "MORTGAGE",
-                    "OTHER_PROPERTY",
-                    "REAL_ESTATE",
-                    "VEHICLE",
-                    "UNCLASSIFIED",
-                ]
-            },
-            "id": req_id,
-            "service": "MintAccountService",
-            "task": "getAccountsSorted"
-            # 'task': 'getAccountsSortedByBalanceDescending'
-        }
-
-        data = {"input": json.dumps([input])}
-        response = self.make_post_request(
-            url=self.build_bundledServiceController_url(),
-            data=data,
-            convert_to_text=True,
-        )
-        if req_id not in response:
-            raise MintException("Could not parse account data: " + response)
-
-        # Parse the request
-        response = json.loads(response)
-        accounts = response["response"][req_id]["response"]
-
-        for account in accounts:
-            convert_account_dates_to_datetime(account)
-
-        if get_detail:
-            accounts = self.populate_extended_account_detail(accounts)
-
-        return accounts
+    def __call_accounts_endpoint(self):
+        return self.get(
+            "{}/pfm/v1/accounts".format(MINT_ROOT_URL),
+            headers=self._get_api_key_header(),
+        ).json()
 
     def get_net_worth(self, account_data=None):
         if account_data is None:
-            account_data = self.get_accounts()
+            account_data = self.get_account_data()
 
         # account types in this list will be subtracted
-        invert = set(["loan", "loans", "credit"])
+        invert = set(["LoanAccount", "CreditAccount"])
         return sum(
             [
-                -a["currentBalance"]
-                if a["accountType"] in invert
-                else a["currentBalance"]
+                -a["currentBalance"] if a["type"] in invert else a["currentBalance"]
                 for a in account_data
                 if a["isActive"]
             ]
         )
-
-    def populate_extended_account_detail(self, accounts):  # {{{
-        # I can't find any way to retrieve this information other than by
-        # doing this stupid one-call-per-account to listTransactions.xevent
-        # and parsing the HTML snippet :(
-        for account in accounts:
-            headers = dict(JSON_HEADER)
-            headers["Referer"] = "{}/transaction.event?accountId={}".format(
-                MINT_ROOT_URL, account["id"]
-            )
-
-            list_txn_url = "{}/listTransaction.xevent".format(MINT_ROOT_URL)
-            params = {
-                "accountId": str(account["id"]),
-                "queryNew": "",
-                "offset": 0,
-                "comparableType": 8,
-                "acctChanged": "T",
-                "rnd": Mint.get_rnd(),
-            }
-
-            response = json.loads(
-                self.get(list_txn_url, params=params, headers=headers).text
-            )
-            xml = "<div>" + response["accountHeader"] + "</div>"
-            xml = xml.replace("&#8211;", "-")
-            xml = xmltodict.parse(xml)
-
-            account["availableMoney"] = None
-            account["totalFees"] = None
-            account["totalCredit"] = None
-            account["nextPaymentAmount"] = None
-            account["nextPaymentDate"] = None
-
-            xml = xml["div"]["div"][1]["table"]
-            if "tbody" not in xml:
-                continue
-            xml = xml["tbody"]
-            table_type = xml["@id"]
-            xml = xml["tr"][1]["td"]
-
-            if table_type == "account-table-bank":
-                account["availableMoney"] = parse_float(xml[1]["#text"])
-                account["totalFees"] = parse_float(xml[3]["a"]["#text"])
-                if account["interestRate"] is None:
-                    account["interestRate"] = parse_float(xml[2]["#text"]) / 100.0
-            elif table_type == "account-table-credit":
-                account["availableMoney"] = parse_float(xml[1]["#text"])
-                account["totalCredit"] = parse_float(xml[2]["#text"])
-                account["totalFees"] = parse_float(xml[4]["a"]["#text"])
-                if account["interestRate"] is None:
-                    account["interestRate"] = parse_float(xml[3]["#text"]) / 100.0
-            elif table_type == "account-table-loan":
-                account["nextPaymentAmount"] = parse_float(xml[1]["#text"])
-                account["nextPaymentDate"] = xml[2].get("#text", None)
-            elif table_type == "account-type-investment":
-                account["totalFees"] = parse_float(xml[2]["a"]["#text"])
-
-        return accounts
 
     def get_budgets(self):
         budgets = self.__call_budgets_endpoint()
@@ -640,12 +531,12 @@ class Mint(object):
 
 def get_accounts(email, password, get_detail=False):
     mint = Mint(email, password)
-    return mint.get_accounts(get_detail=get_detail)
+    return mint.get_account_data(get_detail=get_detail)
 
 
 def get_net_worth(email, password):
     mint = Mint(email, password)
-    account_data = mint.get_accounts()
+    account_data = mint.get_account_data()
     return mint.get_net_worth(account_data)
 
 

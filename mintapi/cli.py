@@ -3,7 +3,6 @@ import logging
 import os
 import sys
 import json
-from datetime import datetime
 import getpass
 
 import keyring
@@ -115,15 +114,6 @@ def parse_arguments(args):
                 "nargs": "?",
                 "default": None,
                 "help": "Latest date for transactions to be retrieved from. Used with --transactions. Format: mm/dd/yy",
-            },
-        ),
-        (
-            ("--extended-accounts",),
-            {
-                "action": "store_true",
-                "dest": "accounts_ext",
-                "default": False,
-                "help": "Retrieve extended account information (slower, implies --accounts)",
             },
         ),
         (
@@ -278,24 +268,6 @@ def parse_arguments(args):
     return cmdline.parse_args(args)
 
 
-def make_accounts_presentable(accounts, presentable_format="EXCEL"):
-    formatter = {
-        "DATE": "%Y-%m-%d",
-        "ISO8601": "%Y-%m-%dT%H:%M:%SZ",
-        "EXCEL": "%Y-%m-%d %H:%M:%S",
-    }[presentable_format]
-
-    for account in accounts:
-        for k, v in account.items():
-            if isinstance(v, datetime):
-                account[k] = v.strftime(formatter)
-    return accounts
-
-
-def print_accounts(accounts):
-    print(json.dumps(make_accounts_presentable(accounts), indent=2))
-
-
 def handle_password(type, prompt, email, password, use_keyring=False):
     if use_keyring and not password:
         # If we don't yet have a password, try prompting for it
@@ -386,9 +358,6 @@ def main():
             options.keyring,
         )
 
-    if options.accounts_ext:
-        options.accounts = True
-
     if not any(
         [
             options.accounts,
@@ -441,9 +410,7 @@ def main():
     data = None
     if options.accounts and options.budgets:
         try:
-            accounts = make_accounts_presentable(
-                mint.get_accounts(get_detail=options.accounts_ext)
-            )
+            data = mint.get_account_data()
         except Exception:
             accounts = None
 
@@ -465,9 +432,7 @@ def main():
             data = None
     elif options.accounts:
         try:
-            data = make_accounts_presentable(
-                mint.get_accounts(get_detail=options.accounts_ext)
-            )
+            data = mint.get_account_data()
         except Exception:
             data = None
     elif options.transactions:
