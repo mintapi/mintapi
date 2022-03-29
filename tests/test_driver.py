@@ -14,15 +14,62 @@ import tempfile
 from unittest.mock import patch, DEFAULT
 
 
-accounts_example = [
-    {
-        "accountName": "Chase Checking",
-        "lastUpdated": 1401201492000,
-        "lastUpdatedInString": "25 minutes",
-        "accountType": "bank",
-        "currentBalance": 100.12,
-    }
-]
+accounts_example = {
+    "Account": [
+        {
+            "type": "CreditAccount",
+            "userCardType": "UNKNOWN",
+            "creditAccountType": "CREDIT_CARD",
+            "creditLimit": 2222.0,
+            "availableCredit": 1111.0,
+            "interestRate": 0.444,
+            "minPayment": 111.0,
+            "absoluteMinPayment": 111.0,
+            "statementMinPayment": 22.0,
+            "statementDueDate": "2022-04-19T07:00:00Z",
+            "statementDueAmount": 0.0,
+            "metaData": {
+                "createdDate": "2017-01-05T17:12:15Z",
+                "lastUpdatedDate": "2022-03-27T16:46:41Z",
+                "link": [
+                    {
+                        "otherAttributes": {},
+                        "href": "/v1/accounts/id",
+                        "rel": "self",
+                    }
+                ],
+            },
+            "id": "id",
+            "name": "name",
+            "value": -555.55,
+            "isVisible": True,
+            "isDeleted": False,
+            "planningTrendsVisible": True,
+            "accountStatus": "ACTIVE",
+            "systemStatus": "ACTIVE",
+            "currency": "USD",
+            "fiLoginId": "fiLoginId",
+            "fiLoginStatus": "OK",
+            "currentBalance": 555.55,
+            "cpId": "cpId",
+            "cpAccountName": "cpAccountName",
+            "cpAccountNumberLast4": "cpAccountNumberLast4",
+            "hostAccount": False,
+            "fiName": "fiName",
+            "accountTypeInt": 0,
+            "isAccountClosedByMint": False,
+            "isAccountNotFound": False,
+            "isActive": True,
+            "isClosed": False,
+            "isError": False,
+            "isHiddenFromPlanningTrends": True,
+            "isTerminal": True,
+            "credentialSetId": "credentialSetId",
+            "ccAggrStatus": "0",
+        }
+    ]
+}
+
 
 category_example = [
     {
@@ -214,27 +261,6 @@ class TestMock:
 
 
 class MintApiTests(unittest.TestCase):
-    @patch.object(mintapi.api, "sign_in")
-    @patch.object(mintapi.api, "_create_web_driver_at_mint_com")
-    def test_accounts(self, mock_driver, mock_sign_in):
-        mock_driver.return_value = TestMock()
-        mock_sign_in.return_value = ("test", "token")
-        accounts = mintapi.get_accounts("foo", "bar")
-
-        self.assertFalse("lastUpdatedInDate" in accounts)
-        self.assertNotEqual(accounts, accounts_example)
-
-        accounts_annotated = copy.deepcopy(accounts_example)
-        for account in accounts_annotated:
-            account["lastUpdatedInDate"] = datetime.datetime.fromtimestamp(
-                account["lastUpdated"] / 1000
-            )
-        self.assertEqual(accounts, accounts_annotated)
-
-        # ensure everything is json serializable as this is the command-line
-        # behavior.
-        mintapi.cli.print_accounts(accounts)
-
     def test_chrome_driver_links(self):
         latest_version = mintapi.signIn.get_latest_chrome_driver_version()
         for platform in mintapi.signIn.CHROME_ZIP_TYPES:
@@ -313,6 +339,14 @@ class MintApiTests(unittest.TestCase):
         mock_driver.return_value = (TestMock(), "test")
         url = mintapi.Mint.build_bundledServiceController_url(mock_driver)
         self.assertTrue(mintapi.api.MINT_ROOT_URL in url)
+
+    @patch.object(mintapi.Mint, "_Mint__call_accounts_endpoint")
+    def test_get_investment_data_new(self, mock_call_accounts_endpoint):
+        mock_call_accounts_endpoint.return_value = accounts_example
+        account_data = mintapi.Mint().get_account_data()[0]
+        self.assertFalse("metaData" in account_data)
+        self.assertTrue("createdDate" in account_data)
+        self.assertTrue("lastUpdatedDate" in account_data)
 
     @patch.object(mintapi.Mint, "_Mint__call_transactions_endpoint")
     def test_get_transaction_data(self, mock_call_transactions_endpoint):
