@@ -1,13 +1,8 @@
 import mintapi.api
 import mintapi.cli
 import mintapi.signIn
-import copy
-import datetime
 import json
 import unittest
-
-import pandas as pd
-
 import requests
 import tempfile
 
@@ -269,17 +264,6 @@ class MintApiTests(unittest.TestCase):
             )
             self.assertEqual(request.status_code, 200)
 
-    def test_parse_float(self):
-
-        answer = mintapi.api.parse_float("10%")
-        self.assertEqual(answer, float(10))
-
-        answer = mintapi.api.parse_float("$10")
-        self.assertEqual(answer, float(10))
-
-        answer = mintapi.api.parse_float("0.00%")
-        self.assertEqual(answer, float(0))
-
     @patch.object(mintapi.api, "_create_web_driver_at_mint_com")
     @patch.object(mintapi.api, "logger")
     @patch.object(mintapi.api, "sign_in")
@@ -333,12 +317,6 @@ class MintApiTests(unittest.TestCase):
         arguments = parse_arguments_file(config_file)
         self.assertEqual(arguments.transactions, True)
         config_file.close()
-
-    @patch.object(mintapi.signIn, "get_web_driver")
-    def test_build_bundledServiceController_url(self, mock_driver):
-        mock_driver.return_value = (TestMock(), "test")
-        url = mintapi.Mint.build_bundledServiceController_url(mock_driver)
-        self.assertTrue(mintapi.api.MINT_ROOT_URL in url)
 
     @patch.object(mintapi.Mint, "_Mint__call_accounts_endpoint")
     def test_get_investment_data_new(self, mock_call_accounts_endpoint):
