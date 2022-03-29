@@ -185,9 +185,9 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                    [--exclude-inquiries] [--exclude-accounts] [--exclude-utilization]
                    [--start-date [START_DATE]] [--end-date [END_DATE]]
                    [--include-investment] [--show-pending]
-                   [--filename FILENAME] [--keyring] [--headless] [--attention]
+                   [--format] [--filename FILENAME] [--keyring] [--headless]
                    [--mfa-method {sms,email,soft-token}]
-                   [--categories]
+                   [--categories] [--attention]
                    email [password]
 
     positional arguments:
@@ -225,8 +225,8 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       --show-pending        Exclude pending transactions from being retrieved.
                             Used with --transactions
       --filename FILENAME, -f FILENAME
-                            write results to file. can be {csv,json} format.
-                            default is to write to stdout.
+                            write results to file. If no file is specified, then data is written to stdout.  Do not specify the file extension as it is determined based on the selection of `--format`.
+      --format              Determines the output format of the data, either `csv` or         `json`.  The default value is `json`.  If no `filename` is specified, then this determines the `stdout` format.  Otherwise, if a `filename` is specified, then this determines the file extension.
       --keyring             Use OS keyring for storing password information
       --headless            Whether to execute chromedriver with no visible
                             window.
