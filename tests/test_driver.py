@@ -349,34 +349,38 @@ class MintApiTests(unittest.TestCase):
         self.assertFalse("metaData" in budgets)
         self.assertTrue("lastUpdatedDate" in budgets)
 
-    def test_validate_file_extensions(self):
+    def test_format_filename(self):
         config_file = write_transactions_file()
-        config_file.write("filename=/tmp/transactions.txt")
         arguments = parse_arguments_file(config_file)
-        self.assertRaises(ValueError, mintapi.cli.validate_file_extensions, arguments)
-        config_file = write_transactions_file()
-        config_file.write("filename=/tmp/transactions.csv")
-        arguments = parse_arguments_file(config_file)
-        self.assertEqual(mintapi.cli.validate_file_extensions(arguments), None)
+        filename = mintapi.cli.format_filename(arguments)
+        self.assertEqual(filename, "transactions.csv")
+
         config_file = write_accounts_file()
-        config_file.write("filename=/tmp/accounts.csv")
         arguments = parse_arguments_file(config_file)
-        self.assertRaises(ValueError, mintapi.cli.validate_file_extensions, arguments)
-        config_file = write_accounts_file()
-        config_file.write("filename=/tmp/accounts.json")
+        filename = mintapi.cli.format_filename(arguments)
+        self.assertEqual(filename, "accounts.json")
+
+        config_file = write_investments_file()
         arguments = parse_arguments_file(config_file)
-        self.assertEqual(mintapi.cli.validate_file_extensions(arguments), None)
+        filename = mintapi.cli.format_filename(arguments)
+        self.assertEqual(filename, None)
 
 
 def write_transactions_file():
     config_file = tempfile.NamedTemporaryFile(mode="wt")
-    config_file.write("transactions\n")
+    config_file.write("transactions\nformat=csv\nfilename=transactions")
     return config_file
 
 
 def write_accounts_file():
     config_file = tempfile.NamedTemporaryFile(mode="wt")
-    config_file.write("accounts\n")
+    config_file.write("accounts\nformat=json\nfilename=accounts")
+    return config_file
+
+
+def write_investments_file():
+    config_file = tempfile.NamedTemporaryFile(mode="wt")
+    config_file.write("investments")
     return config_file
 
 
