@@ -222,7 +222,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                             Used with --transactions. Format: mm/dd/yy
       --investments         Retrieve data related to your investments, whether they be retirement or         personal stock purchases
       --include-investment  Used with --transactions
-      --show-pending        Exclude pending transactions from being retrieved.
+      --show-pending        Retrieve pending transactions.
                             Used with --transactions
       --filename FILENAME, -f FILENAME
                             write results to file. If no file is specified, then data is written to stdout.  Do not specify the file extension as it is determined based on the selection of `--format`.
