@@ -14,15 +14,6 @@ from mintapi.signIn import sign_in, _create_web_driver_at_mint_com
 logger = logging.getLogger("mintapi")
 
 
-def json_date_to_datetime(dateraw):
-    cy = date.today().year
-    try:
-        newdate = datetime.strptime(dateraw + str(cy), "%b %d%Y")
-    except ValueError:
-        newdate = convert_mmddyy_to_datetime(dateraw)
-    return newdate
-
-
 def convert_mmddyy_to_datetime(date):
     try:
         newdate = datetime.strptime(date, "%m/%d/%y")
@@ -31,26 +22,9 @@ def convert_mmddyy_to_datetime(date):
     return newdate
 
 
-def convert_date_to_string(date):
-    date_string = None
-    if date:
-        date_string = date.strftime("%m/%d/%Y")
-    return date_string
-
-
 def reverse_credit_amount(row):
     amount = float(row["amount"][1:].replace(",", ""))
     return amount if row["isDebit"] else -amount
-
-
-IGNORE_FLOAT_REGEX = re.compile(r"[$,%]")
-
-
-def parse_float(str_number):
-    try:
-        return float(IGNORE_FLOAT_REGEX.sub("", str_number))
-    except ValueError:
-        return None
 
 
 MINT_ROOT_URL = "https://mint.intuit.com"
@@ -65,7 +39,6 @@ class MintException(Exception):
 
 
 class Mint(object):
-    request_id = 42  # magic number? random number?
     driver = None
     status_message = None
 
@@ -111,12 +84,6 @@ class Mint(object):
                 chromedriver_download_path=chromedriver_download_path,
             )
 
-    @classmethod
-    def get_rnd(cls):  # {{{
-        return str(int(time.mktime(datetime.now().timetuple()))) + str(
-            random.randrange(999)
-        ).zfill(3)
-
     def _get_api_key_header(self):
         key_var = "window.__shellInternal.appExperience.appApiKey"
         api_key = self.driver.execute_script("return " + key_var)
@@ -134,36 +101,6 @@ class Mint(object):
         self.driver.quit()
         self.driver = None
 
-    def request_and_check(
-        self, url, method="get", expected_content_type=None, **kwargs
-    ):
-        """Performs a request, and checks that the status is OK, and that the
-        content-type matches expectations.
-
-        Args:
-          url: URL to request
-          method: either 'get' or 'post'
-          expected_content_type: prefix to match response content-type against
-          **kwargs: passed to the request method directly.
-
-        Raises:
-          RuntimeError if status_code does not match.
-        """
-        assert method in ["get", "post"]
-        result = self.driver.request(method, url, **kwargs)
-        if result.status_code != requests.codes.ok:
-            raise RuntimeError(
-                "Error requesting %r, status = %d" % (url, result.status_code)
-            )
-        if expected_content_type is not None:
-            content_type = result.headers.get("content-type", "")
-            if not re.match(expected_content_type, content_type):
-                raise RuntimeError(
-                    "Error requesting %r, content type %r does not match %r"
-                    % (url, content_type, expected_content_type)
-                )
-        return result
-
     def get(self, url, **kwargs):
         return self.driver.request("GET", url, **kwargs)
 
@@ -175,9 +112,6 @@ class Mint(object):
         if convert_to_text:
             response = response.text
         return response
-
-    def build_bundledServiceController_url(self):
-        return "{}/bundledServiceController.xevent?legacy=false".format(MINT_ROOT_URL)
 
     def login_and_get_token(
         self,
@@ -223,11 +157,6 @@ class Mint(object):
             logger.exception(e)
             self.driver.quit()
 
-    def get_request_id_str(self):
-        req_id = self.request_id
-        self.request_id += 1
-        return str(req_id)
-
     def get_attention(self):
         attention = None
         # noinspection PyBroadException
@@ -245,24 +174,6 @@ class Mint(object):
             "{}/bps/v2/payer/bills".format(MINT_ROOT_URL),
             headers=self._get_api_key_header(),
         ).json()["bills"]
-
-    def get_invests_json(self):
-        warnings.warn(
-            "We will deprecate get_invests_json method in the next major release due to an updated endpoint for"
-            "investment data.  Transition to use the updated get_investment_data method, which is also now accessible via command-line.",
-            DeprecationWarning,
-        )
-        body = self.get(
-            "{}/investment.event".format(MINT_ROOT_URL),
-        ).text
-        p = re.search(
-            r'<input name="json-import-node" type="hidden" value="json = ([^"]*);"',
-            body,
-        )
-        if p:
-            return p.group(1).replace("&quot;", '"')
-        else:
-            logger.error("FAIL2")
 
     def get_investment_data(self):
         investments = self.__call_investments_endpoint()
