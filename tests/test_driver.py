@@ -318,35 +318,38 @@ class MintApiTests(unittest.TestCase):
         self.assertEqual(arguments.transactions, True)
         config_file.close()
 
-    @patch.object(mintapi.Mint, "_Mint__call_accounts_endpoint")
-    def test_get_investment_data_new(self, mock_call_accounts_endpoint):
+    @patch.object(mintapi.Mint, "_Mint__call_mint_endpoint")
+    def test_get_account_data(self, mock_call_accounts_endpoint):
         mock_call_accounts_endpoint.return_value = accounts_example
         account_data = mintapi.Mint().get_account_data()[0]
         self.assertFalse("metaData" in account_data)
         self.assertTrue("createdDate" in account_data)
         self.assertTrue("lastUpdatedDate" in account_data)
 
-    @patch.object(mintapi.Mint, "_Mint__call_transactions_endpoint")
+    @patch.object(mintapi.Mint, "_Mint__call_mint_endpoint")
     def test_get_transaction_data(self, mock_call_transactions_endpoint):
         mock_call_transactions_endpoint.return_value = transactions_example
         transaction_data = mintapi.Mint().get_transaction_data()[0]
         self.assertFalse("metaData" in transaction_data)
+        self.assertFalse("createdDate" in transaction_data)
         self.assertTrue("lastUpdatedDate" in transaction_data)
         self.assertTrue("parentId" in transaction_data["category"])
         self.assertTrue("parentName" in transaction_data["category"])
 
-    @patch.object(mintapi.Mint, "_Mint__call_investments_endpoint")
-    def test_get_investment_data_new(self, mock_call_investments_endpoint):
+    @patch.object(mintapi.Mint, "_Mint__call_mint_endpoint")
+    def test_get_investment_data(self, mock_call_investments_endpoint):
         mock_call_investments_endpoint.return_value = investments_example
         investment_data = mintapi.Mint().get_investment_data()[0]
         self.assertFalse("metaData" in investment_data)
+        self.assertFalse("createdDate" in investment_data)
         self.assertTrue("lastUpdatedDate" in investment_data)
 
-    @patch.object(mintapi.Mint, "_Mint__call_budgets_endpoint")
+    @patch.object(mintapi.Mint, "_Mint__call_mint_endpoint")
     def test_get_budgets(self, mock_call_budgets_endpoint):
         mock_call_budgets_endpoint.return_value = budgets_example
         budgets = mintapi.Mint().get_budgets()[0]
         self.assertFalse("metaData" in budgets)
+        self.assertTrue("createdDate" in budgets)
         self.assertTrue("lastUpdatedDate" in budgets)
 
     def test_format_filename(self):

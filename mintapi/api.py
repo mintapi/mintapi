@@ -10,8 +10,51 @@ import warnings
 
 from mintapi.signIn import sign_in, _create_web_driver_at_mint_com
 
-
 logger = logging.getLogger("mintapi")
+
+ACCOUNT_KEY = "Account"
+BUDGET_KEY = "Budget"
+CATEGORY_KEY = "Category"
+INVESTMENT_KEY = "Investment"
+TRANSACTION_KEY = "Transaction"
+
+ENDPOINTS = {
+    ACCOUNT_KEY: {
+        "apiVersion": "pfm/v1",
+        "endpoint": "accounts",
+        "beginningDate": None,
+        "endingDate": None,
+        "includeCreatedDate": True,
+    },
+    BUDGET_KEY: {
+        "apiVersion": "pfm/v1",
+        "endpoint": "budgets",
+        "beginningDate": "startDate",
+        "endingDate": "endDate",
+        "includeCreatedDate": True,
+    },
+    CATEGORY_KEY: {
+        "apiVersion": "pfm/v1",
+        "endpoint": "categories",
+        "beginningDate": None,
+        "endingDate": None,
+        "includeCreatedDate": False,
+    },
+    INVESTMENT_KEY: {
+        "apiVersion": "pfm/v1",
+        "endpoint": "investments",
+        "beginningDate": None,
+        "endingDate": None,
+        "includeCreatedDate": False,
+    },
+    TRANSACTION_KEY: {
+        "apiVersion": "pfm/v1",
+        "endpoint": "transactions",
+        "beginningDate": "fromDate",
+        "endingDate": "toDate",
+        "includeCreatedDate": False,
+    },
+}
 
 
 def convert_mmddyy_to_datetime(date):
@@ -175,32 +218,39 @@ class Mint(object):
             headers=self._get_api_key_header(),
         ).json()["bills"]
 
-    def get_investment_data(self):
-        investments = self.__call_investments_endpoint()
-        if "Investment" in investments.keys():
-            for i in investments["Investment"]:
+    def get_data(self, name, id=None, start_date=None, end_date=None):
+        endpoint = self.__find_endpoint(name)
+        data = self.__call_mint_endpoint(endpoint, id, start_date, end_date)
+        if name in data.keys():
+            for i in data[name]:
+                if endpoint["includeCreatedDate"]:
+                    i["createdDate"] = i["metaData"]["createdDate"]
                 i["lastUpdatedDate"] = i["metaData"]["lastUpdatedDate"]
                 i.pop("metaData", None)
         else:
-            raise MintException("Cannot find investment data")
-        return investments["Investment"]
+            raise MintException(
+                "Data from the {} endpoint did not containt the expected {} key.".format(
+                    endpoint["endpoint"], name
+                )
+            )
+        return data[name]
 
     def get_account_data(self):
-        accounts = self.__call_accounts_endpoint()
-        if "Account" in accounts.keys():
-            for i in accounts["Account"]:
-                i["createdDate"] = i["metaData"]["createdDate"]
-                i["lastUpdatedDate"] = i["metaData"]["lastUpdatedDate"]
-                i.pop("metaData", None)
-        else:
-            raise MintException("Cannot find account data")
-        return accounts["Account"]
+        return self.get_data(ACCOUNT_KEY)
 
-    def __call_accounts_endpoint(self):
-        return self.get(
-            "{}/pfm/v1/accounts".format(MINT_ROOT_URL),
-            headers=self._get_api_key_header(),
-        ).json()
+    def get_categories(self):
+        return self.get_data(CATEGORY_KEY)
+
+    def get_budgets(self):
+        return self.get_data(
+            BUDGET_KEY,
+            None,
+            start_date=self.__x_months_ago(11),
+            end_date=self.__first_of_this_month(),
+        )
+
+    def get_investment_data(self):
+        return self.get_data(INVESTMENT_KEY)
 
     def get_transaction_data(
         self,
@@ -221,66 +271,24 @@ class Mint(object):
         remove_pending to False
         """
 
-        result = self.__call_transactions_endpoint(
-            include_investment, start_date, end_date, id
-        )
-        if "Transaction" in result.keys():
+        try:
+            if include_investment:
+                id = 0
+            data = self.get_data(
+                TRANSACTION_KEY,
+                id,
+                convert_mmddyy_to_datetime(start_date),
+                convert_mmddyy_to_datetime(end_date),
+            )
             if remove_pending:
                 filtered = filter(
                     lambda transaction: transaction["isPending"] == False,
-                    result["Transaction"],
+                    data,
                 )
-                transactions = list(filtered)
-            else:
-                transactions = result["Transaction"]
-            for i in transactions:
-                i["lastUpdatedDate"] = i["metaData"]["lastUpdatedDate"]
-                i.pop("metaData", None)
-
-        else:
-            raise MintException("Cannot find transaction data")
-        return transactions
-
-    def __call_transactions_endpoint(
-        self, include_investment=False, start_date=None, end_date=None, id=0
-    ):
-        # Specifying accountId=0 causes Mint to return investment
-        # transactions as well.  Otherwise they are skipped by
-        # default.
-        if include_investment:
-            id = 0
-        if start_date is None:
-            start_date = self.__x_months_ago(2)
-        else:
-            start_date = convert_mmddyy_to_datetime(start_date)
-        if end_date is None:
-            end_date = date.today()
-        else:
-            end_date = convert_mmddyy_to_datetime(end_date)
-        return self.get(
-            "{}/pfm/v1/transactions?id={}&fromDate={}&toDate={}".format(
-                MINT_ROOT_URL, id, start_date, end_date
-            ),
-            headers=self._get_api_key_header(),
-        ).json()
-
-    def __call_investments_endpoint(self):
-        return self.get(
-            "{}/pfm/v1/investments".format(MINT_ROOT_URL),
-            headers=self._get_api_key_header(),
-        ).json()
-
-    def get_categories(self):
-        return self.get(
-            "{}/pfm/v1/categories".format(MINT_ROOT_URL),
-            headers=self._get_api_key_header(),
-        ).json()["Category"]
-
-    def __call_accounts_endpoint(self):
-        return self.get(
-            "{}/pfm/v1/accounts".format(MINT_ROOT_URL),
-            headers=self._get_api_key_header(),
-        ).json()
+                data = list(filtered)
+        except Exception:
+            raise Exception
+        return data
 
     def get_net_worth(self, account_data=None):
         if account_data is None:
@@ -295,24 +303,6 @@ class Mint(object):
                 if a["isActive"]
             ]
         )
-
-    def get_budgets(self):
-        budgets = self.__call_budgets_endpoint()
-        if "Budget" in budgets.keys():
-            for i in budgets["Budget"]:
-                i["lastUpdatedDate"] = i["metaData"]["lastUpdatedDate"]
-                i.pop("metaData", None)
-        else:
-            raise MintException("Cannot find budget data")
-        return budgets["Budget"]
-
-    def __call_budgets_endpoint(self):
-        return self.get(
-            "{}/pfm/v1/budgets?startDate={}&endDate={}".format(
-                MINT_ROOT_URL, self.__x_months_ago(11), self.__first_of_this_month()
-            ),
-            headers=self._get_api_key_header(),
-        ).json()
 
     def initiate_account_refresh(self):
         self.make_post_request(url="{}/refreshFILogins.xevent".format(MINT_ROOT_URL))
@@ -430,6 +420,25 @@ class Mint(object):
                     }
                 )
         return utilization
+
+    def __find_endpoint(self, name):
+        return ENDPOINTS[name]
+
+    def __call_mint_endpoint(self, endpoint, id=None, start_date=None, end_date=None):
+        url = "{}/{}/{}?".format(
+            MINT_ROOT_URL, endpoint["apiVersion"], endpoint["endpoint"]
+        )
+        if endpoint["beginningDate"] is not None and start_date is not None:
+            url = url + "{}={}&".format(endpoint["beginningDate"], start_date)
+        if endpoint["endingDate"] is not None and end_date is not None:
+            url = url + "{}={}&".format(endpoint["endingDate"], end_date)
+        if id is not None:
+            url = url + "id={}&".format(id)
+        response = self.get(
+            url,
+            headers=self._get_api_key_header(),
+        )
+        return response.json()
 
     def __first_of_this_month(self):
         return date.today().replace(day=1)
