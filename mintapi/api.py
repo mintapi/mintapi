@@ -18,48 +18,43 @@ CATEGORY_KEY = "Category"
 INVESTMENT_KEY = "Investment"
 TRANSACTION_KEY = "Transaction"
 
-ENDPOINTS = [
-    {
-        "key": ACCOUNT_KEY,
+ENDPOINTS = {
+    ACCOUNT_KEY: {
         "apiVersion": "pfm/v1",
         "endpoint": "accounts",
         "beginningDate": None,
         "endingDate": None,
         "includeCreatedDate": True,
     },
-    {
-        "key": BUDGET_KEY,
+    BUDGET_KEY: {
         "apiVersion": "pfm/v1",
         "endpoint": "budgets",
         "beginningDate": "startDate",
         "endingDate": "endDate",
         "includeCreatedDate": True,
     },
-    {
-        "key": CATEGORY_KEY,
+    CATEGORY_KEY: {
         "apiVersion": "pfm/v1",
         "endpoint": "categories",
         "beginningDate": None,
         "endingDate": None,
         "includeCreatedDate": False,
     },
-    {
-        "key": INVESTMENT_KEY,
+    INVESTMENT_KEY: {
         "apiVersion": "pfm/v1",
         "endpoint": "investments",
         "beginningDate": None,
         "endingDate": None,
         "includeCreatedDate": False,
     },
-    {
-        "key": TRANSACTION_KEY,
+    TRANSACTION_KEY: {
         "apiVersion": "pfm/v1",
         "endpoint": "transactions",
         "beginningDate": "fromDate",
         "endingDate": "toDate",
         "includeCreatedDate": False,
     },
-]
+}
 
 
 def convert_mmddyy_to_datetime(date):
@@ -226,9 +221,8 @@ class Mint(object):
     def get_data(self, name, id=None, start_date=None, end_date=None):
         endpoint = self.__find_endpoint(name)
         data = self.__call_mint_endpoint(endpoint, id, start_date, end_date)
-        key = endpoint["key"]
-        if key in data.keys():
-            for i in data[key]:
+        if name in data.keys():
+            for i in data[name]:
                 if endpoint["includeCreatedDate"]:
                     i["createdDate"] = i["metaData"]["createdDate"]
                 i["lastUpdatedDate"] = i["metaData"]["lastUpdatedDate"]
@@ -236,10 +230,10 @@ class Mint(object):
         else:
             raise MintException(
                 "Data from the {} endpoint did not containt the expected {} key.".format(
-                    endpoint["endpoint"], key
+                    endpoint["endpoint"], name
                 )
             )
-        return data[key]
+        return data[name]
 
     def get_account_data(self):
         return self.get_data(ACCOUNT_KEY)
@@ -428,11 +422,7 @@ class Mint(object):
         return utilization
 
     def __find_endpoint(self, name):
-        filtered = filter(
-            lambda endpoint: endpoint["key"] == name,
-            ENDPOINTS,
-        )
-        return list(filtered)[0]
+        return ENDPOINTS[name]
 
     def __call_mint_endpoint(self, endpoint, id=None, start_date=None, end_date=None):
         url = "{}/{}/{}?".format(
