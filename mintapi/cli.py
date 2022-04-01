@@ -14,6 +14,9 @@ from pandas import json_normalize
 
 logger = logging.getLogger("mintapi")
 
+JSON_FORMAT = "json"
+CSV_FORMAT = "csv"
+
 
 def parse_arguments(args):
     ARGUMENTS = [
@@ -144,6 +147,14 @@ def parse_arguments(args):
             ("--filename", "-f"),
             {
                 "help": "write results to file. can be {csv,json} format. default is to write to stdout."
+            },
+        ),
+        (
+            ("--format",),
+            {
+                "choices": [JSON_FORMAT, CSV_FORMAT],
+                "default": JSON_FORMAT,
+                "help": "The format used to return data.",
             },
         ),
         (
@@ -284,39 +295,31 @@ def handle_password(type, prompt, email, password, use_keyring=False):
     return password
 
 
-def validate_file_extensions(options):
-    if any(
-        [
-            options.transactions,
-            options.investments,
-        ]
-    ):
-        if not (
-            options.filename is None
-            or options.filename.endswith(".csv")
-            or options.filename.endswith(".json")
-        ):
-            raise ValueError(
-                "File extension must be either .csv or .json for transaction data"
-            )
+def format_filename(options):
+    if options.filename is None:
+        filename = None
     else:
-        if not (options.filename is None or options.filename.endswith(".json")):
-            raise ValueError("File extension must be .json for non-transaction data")
+        filename = "{}.{}".format(options.filename, options.format)
+    return filename
 
 
 def output_data(options, data, attention_msg=None):
-    if options.filename is None:
-        print(json.dumps(data, indent=2))
+    filename = format_filename(options)
+    if filename is None:
+        if options.format == CSV_FORMAT:
+            print(json_normalize(data).to_csv(index=False))
+        else:
+            print(json.dumps(data, indent=2))
         # NOTE: While this logic is here, unless validate_file_extensions
         #       allows for other data types to export to CSV, this will
         #       only include investment data.
-    elif options.filename.endswith(".csv"):
+    elif options.format == CSV_FORMAT:
         # NOTE: Currently, investment_data, which is a flat JSON, is the only
         #       type of data that uses this section.  So, if we open this up to
         #       other non-flat JSON data, we will need to revisit this.
-        json_normalize(data).to_csv(options.filename, index=False)
-    elif options.filename.endswith(".json"):
-        with open(options.filename, "w+") as f:
+        json_normalize(data).to_csv(filename, index=False)
+    elif options.format == JSON_FORMAT:
+        with open(filename, "w+") as f:
             json.dump(data, f, indent=2)
 
     if options.attention:
@@ -338,8 +341,6 @@ def main():
     imap_account = options.imap_account
     imap_password = options.imap_password
     mfa_method = options.mfa_method
-
-    validate_file_extensions(options)
 
     if not email:
         # If the user did not provide an e-mail, prompt for it

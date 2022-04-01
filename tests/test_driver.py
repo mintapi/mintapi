@@ -1,13 +1,8 @@
 import mintapi.api
 import mintapi.cli
 import mintapi.signIn
-import copy
-import datetime
 import json
 import unittest
-
-import pandas as pd
-
 import requests
 import tempfile
 
@@ -269,17 +264,6 @@ class MintApiTests(unittest.TestCase):
             )
             self.assertEqual(request.status_code, 200)
 
-    def test_parse_float(self):
-
-        answer = mintapi.api.parse_float("10%")
-        self.assertEqual(answer, float(10))
-
-        answer = mintapi.api.parse_float("$10")
-        self.assertEqual(answer, float(10))
-
-        answer = mintapi.api.parse_float("0.00%")
-        self.assertEqual(answer, float(0))
-
     @patch.object(mintapi.api, "_create_web_driver_at_mint_com")
     @patch.object(mintapi.api, "logger")
     @patch.object(mintapi.api, "sign_in")
@@ -334,14 +318,8 @@ class MintApiTests(unittest.TestCase):
         self.assertEqual(arguments.transactions, True)
         config_file.close()
 
-    @patch.object(mintapi.signIn, "get_web_driver")
-    def test_build_bundledServiceController_url(self, mock_driver):
-        mock_driver.return_value = (TestMock(), "test")
-        url = mintapi.Mint.build_bundledServiceController_url(mock_driver)
-        self.assertTrue(mintapi.api.MINT_ROOT_URL in url)
-
     @patch.object(mintapi.Mint, "_Mint__call_mint_endpoint")
-    def test_get_investment_data_new(self, mock_call_accounts_endpoint):
+    def test_get_account_data(self, mock_call_accounts_endpoint):
         mock_call_accounts_endpoint.return_value = accounts_example
         account_data = mintapi.Mint().get_account_data()[0]
         self.assertFalse("metaData" in account_data)
@@ -359,7 +337,7 @@ class MintApiTests(unittest.TestCase):
         self.assertTrue("parentName" in transaction_data["category"])
 
     @patch.object(mintapi.Mint, "_Mint__call_mint_endpoint")
-    def test_get_investment_data_new(self, mock_call_investments_endpoint):
+    def test_get_investment_data(self, mock_call_investments_endpoint):
         mock_call_investments_endpoint.return_value = investments_example
         investment_data = mintapi.Mint().get_investment_data()[0]
         self.assertFalse("metaData" in investment_data)
@@ -374,34 +352,38 @@ class MintApiTests(unittest.TestCase):
         self.assertTrue("createdDate" in budgets)
         self.assertTrue("lastUpdatedDate" in budgets)
 
-    def test_validate_file_extensions(self):
+    def test_format_filename(self):
         config_file = write_transactions_file()
-        config_file.write("filename=/tmp/transactions.txt")
         arguments = parse_arguments_file(config_file)
-        self.assertRaises(ValueError, mintapi.cli.validate_file_extensions, arguments)
-        config_file = write_transactions_file()
-        config_file.write("filename=/tmp/transactions.csv")
-        arguments = parse_arguments_file(config_file)
-        self.assertEqual(mintapi.cli.validate_file_extensions(arguments), None)
+        filename = mintapi.cli.format_filename(arguments)
+        self.assertEqual(filename, "transactions.csv")
+
         config_file = write_accounts_file()
-        config_file.write("filename=/tmp/accounts.csv")
         arguments = parse_arguments_file(config_file)
-        self.assertRaises(ValueError, mintapi.cli.validate_file_extensions, arguments)
-        config_file = write_accounts_file()
-        config_file.write("filename=/tmp/accounts.json")
+        filename = mintapi.cli.format_filename(arguments)
+        self.assertEqual(filename, "accounts.json")
+
+        config_file = write_investments_file()
         arguments = parse_arguments_file(config_file)
-        self.assertEqual(mintapi.cli.validate_file_extensions(arguments), None)
+        filename = mintapi.cli.format_filename(arguments)
+        self.assertEqual(filename, None)
 
 
 def write_transactions_file():
     config_file = tempfile.NamedTemporaryFile(mode="wt")
-    config_file.write("transactions\n")
+    config_file.write("transactions\nformat=csv\nfilename=transactions")
     return config_file
 
 
 def write_accounts_file():
     config_file = tempfile.NamedTemporaryFile(mode="wt")
-    config_file.write("accounts\n")
+    config_file.write("accounts\nformat=json\nfilename=accounts")
+    return config_file
+
+
+def write_investments_file():
+    config_file = tempfile.NamedTemporaryFile(mode="wt")
+    config_file.write("investments")
     return config_file
 
 
