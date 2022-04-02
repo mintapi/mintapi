@@ -2,7 +2,6 @@ from datetime import datetime
 import email
 import email.header
 import imaplib
-import json
 import io
 import logging
 import os
@@ -76,16 +75,7 @@ STANDARD_MISSING_EXCEPTIONS = (
 )
 
 
-def get_email_code(
-    imap_account, imap_password, imap_server, imap_folder, debug=False, delete=True
-):
-    if debug:
-        warnings.warn(
-            "debug param to get_email_code() is deprecated and will be "
-            "removed soon; use: logging.getLogger('mintapi')"
-            ".setLevel(logging.DEBUG) to show DEBUG log messages.",
-            DeprecationWarning,
-        )
+def get_email_code(imap_account, imap_password, imap_server, imap_folder, delete=True):
     code = None
     try:
         imap_client = imaplib.IMAP4_SSL(imap_server)
@@ -313,12 +303,6 @@ def _create_web_driver_at_mint_com(
     return driver
 
 
-def get_token(driver: Chrome):
-    driver.implicitly_wait(600)
-    value_json = driver.find_element_by_name("javascript-user").get_attribute("value")
-    return json.loads(value_json)["token"]
-
-
 def sign_in(
     email,
     password,
@@ -370,6 +354,7 @@ def sign_in(
         # Wait until logged in, just in case we need to deal with MFA.
         driver.implicitly_wait(1)  # seconds
         bypass_verified_user_page(driver)
+        bypass_passwordless_login_page(driver)
         if mfa_method is not None:
             mfa_selection_page(driver, mfa_method)
         mfa_page(
@@ -390,7 +375,7 @@ def sign_in(
     status_message = None
     if wait_for_sync:
         handle_wait_for_sync(driver, wait_for_sync_timeout)
-    return status_message, get_token(driver)
+    return status_message
 
 
 def user_selection_page(driver):
@@ -464,6 +449,20 @@ def mfa_selection_page(driver, mfa_method):
         mfa_method_submit = driver.find_element_by_id("ius-mfa-options-submit-btn")
         mfa_method_submit.click()
     except STANDARD_MISSING_EXCEPTIONS:
+        pass
+
+
+def bypass_passwordless_login_page(driver):
+    # bypass "Sign in without a password next time" interstitial page
+    try:
+        skip_for_now = driver.find_element_by_id("skipWebauthnRegistration")
+        skip_for_now.click()
+    except (
+        NoSuchElementException,
+        StaleElementReferenceException,
+        ElementNotVisibleException,
+        ElementNotInteractableException,
+    ):
         pass
 
 
@@ -661,55 +660,3 @@ def handle_wait_for_sync(driver, wait_for_sync_timeout):
             "Mint sync apparently incomplete after timeout. "
             "Data retrieved may not be current."
         )
-
-
-def get_web_driver(
-    email,
-    password,
-    headless=False,
-    mfa_method=None,
-    mfa_token=None,
-    mfa_input_callback=None,
-    intuit_account=None,
-    wait_for_sync=True,
-    wait_for_sync_timeout=5 * 60,
-    session_path=None,
-    imap_account=None,
-    imap_password=None,
-    imap_server=None,
-    imap_folder="INBOX",
-    use_chromedriver_on_path=False,
-    chromedriver_download_path=os.getcwd(),
-):
-    warnings.warn(
-        "get_web_driver instance function is going to be deprecated in the next major release"
-        "please use login_and_get_token or sign_in",
-        DeprecationWarning,
-    )
-    driver = _create_web_driver_at_mint_com(
-        headless, session_path, use_chromedriver_on_path, chromedriver_download_path
-    )
-
-    status_message = None
-    try:
-        status_message, _ = sign_in(
-            email,
-            password,
-            driver,
-            mfa_method,
-            mfa_token,
-            mfa_input_callback,
-            intuit_account,
-            wait_for_sync,
-            wait_for_sync_timeout,
-            imap_account,
-            imap_password,
-            imap_server,
-            imap_folder,
-        )
-    except Exception as e:
-        logger.exception(e)
-        driver.quit()
-        driver = None
-
-    return driver, status_message

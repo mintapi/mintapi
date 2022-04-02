@@ -1,6 +1,5 @@
-from datetime import date, datetime, timedelta
-import io
-import json
+from datetime import date, datetime
+from dateutil.relativedelta import relativedelta
 import logging
 import os
 import random
@@ -9,22 +8,53 @@ import requests
 import time
 import warnings
 
-import xmltodict
-import pandas as pd
-
 from mintapi.signIn import sign_in, _create_web_driver_at_mint_com
-
 
 logger = logging.getLogger("mintapi")
 
+ACCOUNT_KEY = "Account"
+BUDGET_KEY = "Budget"
+CATEGORY_KEY = "Category"
+INVESTMENT_KEY = "Investment"
+TRANSACTION_KEY = "Transaction"
 
-def json_date_to_datetime(dateraw):
-    cy = date.today().year
-    try:
-        newdate = datetime.strptime(dateraw + str(cy), "%b %d%Y")
-    except ValueError:
-        newdate = convert_mmddyy_to_datetime(dateraw)
-    return newdate
+ENDPOINTS = {
+    ACCOUNT_KEY: {
+        "apiVersion": "pfm/v1",
+        "endpoint": "accounts",
+        "beginningDate": None,
+        "endingDate": None,
+        "includeCreatedDate": True,
+    },
+    BUDGET_KEY: {
+        "apiVersion": "pfm/v1",
+        "endpoint": "budgets",
+        "beginningDate": "startDate",
+        "endingDate": "endDate",
+        "includeCreatedDate": True,
+    },
+    CATEGORY_KEY: {
+        "apiVersion": "pfm/v1",
+        "endpoint": "categories",
+        "beginningDate": None,
+        "endingDate": None,
+        "includeCreatedDate": False,
+    },
+    INVESTMENT_KEY: {
+        "apiVersion": "pfm/v1",
+        "endpoint": "investments",
+        "beginningDate": None,
+        "endingDate": None,
+        "includeCreatedDate": False,
+    },
+    TRANSACTION_KEY: {
+        "apiVersion": "pfm/v1",
+        "endpoint": "transactions",
+        "beginningDate": "fromDate",
+        "endingDate": "toDate",
+        "includeCreatedDate": False,
+    },
+}
 
 
 def convert_mmddyy_to_datetime(date):
@@ -35,47 +65,9 @@ def convert_mmddyy_to_datetime(date):
     return newdate
 
 
-def convert_date_to_string(date):
-    date_string = None
-    if date:
-        date_string = date.strftime("%m/%d/%Y")
-    return date_string
-
-
 def reverse_credit_amount(row):
     amount = float(row["amount"][1:].replace(",", ""))
     return amount if row["isDebit"] else -amount
-
-
-IGNORE_FLOAT_REGEX = re.compile(r"[$,%]")
-
-
-def parse_float(str_number):
-    try:
-        return float(IGNORE_FLOAT_REGEX.sub("", str_number))
-    except ValueError:
-        return None
-
-
-DATE_FIELDS = [
-    "addAccountDate",
-    "closeDate",
-    "fiLastUpdated",
-    "lastUpdated",
-]
-
-
-def convert_account_dates_to_datetime(account):
-    for df in DATE_FIELDS:
-        if df in account:
-            # Convert from javascript timestamp to unix timestamp
-            # http://stackoverflow.com/a/9744811/5026
-            try:
-                ts = account[df] / 1e3
-            except TypeError:
-                # returned data is not a number, don't parse
-                continue
-            account[df + "InDate"] = datetime.fromtimestamp(ts)
 
 
 MINT_ROOT_URL = "https://mint.intuit.com"
@@ -90,8 +82,6 @@ class MintException(Exception):
 
 
 class Mint(object):
-    request_id = 42  # magic number? random number?
-    token = None
     driver = None
     status_message = None
 
@@ -137,14 +127,8 @@ class Mint(object):
                 chromedriver_download_path=chromedriver_download_path,
             )
 
-    @classmethod
-    def get_rnd(cls):  # {{{
-        return str(int(time.mktime(datetime.now().timetuple()))) + str(
-            random.randrange(999)
-        ).zfill(3)
-
     def _get_api_key_header(self):
-        key_var = "window.MintConfig.browserAuthAPIKey"
+        key_var = "window.__shellInternal.appExperience.appApiKey"
         api_key = self.driver.execute_script("return " + key_var)
         auth = "Intuit_APIKey intuit_apikey=" + api_key
         auth += ", intuit_apikey_version=1.0"
@@ -160,36 +144,6 @@ class Mint(object):
         self.driver.quit()
         self.driver = None
 
-    def request_and_check(
-        self, url, method="get", expected_content_type=None, **kwargs
-    ):
-        """Performs a request, and checks that the status is OK, and that the
-        content-type matches expectations.
-
-        Args:
-          url: URL to request
-          method: either 'get' or 'post'
-          expected_content_type: prefix to match response content-type against
-          **kwargs: passed to the request method directly.
-
-        Raises:
-          RuntimeError if status_code does not match.
-        """
-        assert method in ["get", "post"]
-        result = self.driver.request(method, url, **kwargs)
-        if result.status_code != requests.codes.ok:
-            raise RuntimeError(
-                "Error requesting %r, status = %d" % (url, result.status_code)
-            )
-        if expected_content_type is not None:
-            content_type = result.headers.get("content-type", "")
-            if not re.match(expected_content_type, content_type):
-                raise RuntimeError(
-                    "Error requesting %r, content type %r does not match %r"
-                    % (url, content_type, expected_content_type)
-                )
-        return result
-
     def get(self, url, **kwargs):
         return self.driver.request("GET", url, **kwargs)
 
@@ -201,11 +155,6 @@ class Mint(object):
         if convert_to_text:
             response = response.text
         return response
-
-    def build_bundledServiceController_url(self):
-        return "{}/bundledServiceController.xevent?legacy=false&token={}".format(
-            MINT_ROOT_URL, self.token
-        )
 
     def login_and_get_token(
         self,
@@ -232,7 +181,7 @@ class Mint(object):
         )
 
         try:
-            self.status_message, self.token = sign_in(
+            self.status_message = sign_in(
                 email,
                 password,
                 self.driver,
@@ -250,11 +199,6 @@ class Mint(object):
         except Exception as e:
             logger.exception(e)
             self.driver.quit()
-
-    def get_request_id_str(self):
-        req_id = self.request_id
-        self.request_id += 1
-        return str(req_id)
 
     def get_attention(self):
         attention = None
@@ -274,453 +218,94 @@ class Mint(object):
             headers=self._get_api_key_header(),
         ).json()["bills"]
 
-    def get_invests_json(self):
-        warnings.warn(
-            "We will deprecate get_invests_json method in the next major release due to an updated endpoint for"
-            "investment data.  Transition to use the updated get_investment_data method, which is also now accessible via command-line.",
-            DeprecationWarning,
-        )
-        body = self.get(
-            "{}/investment.event".format(MINT_ROOT_URL),
-        ).text
-        p = re.search(
-            r'<input name="json-import-node" type="hidden" value="json = ([^"]*);"',
-            body,
-        )
-        if p:
-            return p.group(1).replace("&quot;", '"')
-        else:
-            logger.error("FAIL2")
-
-    def get_investment_data(self):
-        investments = self.__call_investments_endpoint()
-        if "Investment" in investments.keys():
-            for i in investments["Investment"]:
+    def get_data(self, name, id=None, start_date=None, end_date=None):
+        endpoint = self.__find_endpoint(name)
+        data = self.__call_mint_endpoint(endpoint, id, start_date, end_date)
+        if name in data.keys():
+            for i in data[name]:
+                if endpoint["includeCreatedDate"]:
+                    i["createdDate"] = i["metaData"]["createdDate"]
                 i["lastUpdatedDate"] = i["metaData"]["lastUpdatedDate"]
                 i.pop("metaData", None)
         else:
-            raise MintException("Cannot find investment data")
-        return investments["Investment"]
+            raise MintException(
+                "Data from the {} endpoint did not containt the expected {} key.".format(
+                    endpoint["endpoint"], name
+                )
+            )
+        return data[name]
 
-    def __call_investments_endpoint(self):
-        return self.get(
-            "{}/pfm/v1/investments".format(MINT_ROOT_URL),
-            headers=self._get_api_key_header(),
-        ).json()
+    def get_account_data(self):
+        return self.get_data(ACCOUNT_KEY)
 
     def get_categories(self):
-        return self.get(
-            "{}/pfm/v1/categories".format(MINT_ROOT_URL),
-            headers=self._get_api_key_header(),
-        ).json()["Category"]
+        return self.get_data(CATEGORY_KEY)
 
-    def get_accounts(self, get_detail=False):  # {{{
-        # Issue service request.
-        req_id = self.get_request_id_str()
-
-        input = {
-            "args": {
-                "types": [
-                    "BANK",
-                    "CREDIT",
-                    "INVESTMENT",
-                    "LOAN",
-                    "MORTGAGE",
-                    "OTHER_PROPERTY",
-                    "REAL_ESTATE",
-                    "VEHICLE",
-                    "UNCLASSIFIED",
-                ]
-            },
-            "id": req_id,
-            "service": "MintAccountService",
-            "task": "getAccountsSorted"
-            # 'task': 'getAccountsSortedByBalanceDescending'
-        }
-
-        data = {"input": json.dumps([input])}
-        response = self.make_post_request(
-            url=self.build_bundledServiceController_url(),
-            data=data,
-            convert_to_text=True,
+    def get_budgets(self):
+        return self.get_data(
+            BUDGET_KEY,
+            None,
+            start_date=self.__x_months_ago(11),
+            end_date=self.__first_of_this_month(),
         )
-        if req_id not in response:
-            raise MintException("Could not parse account data: " + response)
 
-        # Parse the request
-        response = json.loads(response)
-        accounts = response["response"][req_id]["response"]
+    def get_investment_data(self):
+        return self.get_data(INVESTMENT_KEY)
 
-        for account in accounts:
-            convert_account_dates_to_datetime(account)
-
-        if get_detail:
-            accounts = self.populate_extended_account_detail(accounts)
-
-        return accounts
-
-    def set_user_property(self, name, value):
-        req_id = self.get_request_id_str()
-        data = {
-            "input": json.dumps(
-                [
-                    {
-                        "args": {"propertyName": name, "propertyValue": value},
-                        "service": "MintUserService",
-                        "task": "setUserProperty",
-                        "id": req_id,
-                    }
-                ]
-            )
-        }
-        result = self.make_post_request(
-            url=self.build_bundledServiceController_url(), data=data
-        )
-        if result.status_code != 200:
-            raise MintException("Received HTTP error %d" % result.status_code)
-        response = result.text
-        if req_id not in response:
-            raise MintException("Could not parse response to set_user_property")
-
-    def get_transactions_json(
+    def get_transaction_data(
         self,
         include_investment=False,
-        skip_duplicates=False,
         start_date=None,
         end_date=None,
+        remove_pending=True,
         id=0,
     ):
-        """Returns the raw JSON transaction data as downloaded from Mint.  The JSON
-        transaction data includes some additional information missing from the
-        CSV data, such as whether the transaction is pending or completed, but
-        leaves off the year for current year transactions.
-
-        Warning: In order to reliably include or exclude duplicates, it is
-        necessary to change the user account property 'hide_duplicates' to the
-        appropriate value.  This affects what is displayed in the web
-        interface.  Note that the CSV transactions never exclude duplicates.
         """
-
-        # Warning: This is a global property for the user that we are changing.
-        self.set_user_property("hide_duplicates", "T" if skip_duplicates else "F")
-
-        # Converts the start date into datetime format - input must be mm/dd/yy
-        start_date = convert_mmddyy_to_datetime(start_date)
-        # Converts the end date into datetime format - input must be mm/dd/yy
-        end_date = convert_mmddyy_to_datetime(end_date)
-
-        all_txns = []
-        offset = 0
-        # Mint only returns some of the transactions at once.  To get all of
-        # them, we have to keep asking for more until we reach the end.
-        while 1:
-            url = MINT_ROOT_URL + "/getJsonData.xevent"
-            params = {
-                "queryNew": "",
-                "offset": offset,
-                "comparableType": "8",
-                "startDate": convert_date_to_string(start_date),
-                "endDate": convert_date_to_string(end_date),
-                "rnd": Mint.get_rnd(),
-            }
-            # Specifying accountId=0 causes Mint to return investment
-            # transactions as well.  Otherwise they are skipped by
-            # default.
-            if self._include_investments_with_transactions(id, include_investment):
-                params["accountId"] = id
-            if include_investment:
-                params["task"] = "transactions"
-            else:
-                params["task"] = "transactions,txnfilters"
-                params["filterType"] = "cash"
-            result = self.request_and_check(
-                url,
-                headers=JSON_HEADER,
-                params=params,
-                expected_content_type="text/json|application/json",
-            )
-            data = json.loads(result.text)
-            txns = data["set"][0].get("data", [])
-            if not txns:
-                break
-            all_txns.extend(txns)
-            offset += len(txns)
-        return all_txns
-
-    def get_detailed_transactions(
-        self,
-        include_investment=False,
-        skip_duplicates=False,
-        remove_pending=True,
-        start_date=None,
-        end_date=None,
-    ):
-        """Returns the JSON transaction data as a DataFrame, and converts
-        current year dates and prior year dates into consistent datetime
-        format, and reverses credit activity.
-
         Note: start_date and end_date must be in format mm/dd/yy.
         If pulls take too long, consider a narrower range of start and end
-        date. See json explanations of include_investment and skip_duplicates.
+        date. See json explanation of include_investment.
 
         Also note: Mint includes pending transactions, however these sometimes
         change dates/amounts after the transactions post. They have been
         removed by default in this pull, but can be included by changing
         remove_pending to False
-
         """
-        result = self.get_transactions_json(
-            include_investment, skip_duplicates, start_date, end_date
-        )
 
-        df = pd.DataFrame(self.add_parent_category_to_result(result))
-        df["odate"] = df["odate"].apply(json_date_to_datetime)
-
-        if remove_pending:
-            df = df[~df.isPending]
-            df.reset_index(drop=True, inplace=True)
-
-        df.amount = df.apply(reverse_credit_amount, axis=1)
-
-        return df
-
-    def add_parent_category_to_result(self, result):
-        # Finds the parent category name from the categories object based on
-        # the transaction category ID
-        categories = self.get_categories()
-        for transaction in result:
-            category = self.get_category_object_from_id(
-                transaction["categoryId"], categories
+        try:
+            if include_investment:
+                id = 0
+            data = self.get_data(
+                TRANSACTION_KEY,
+                id,
+                convert_mmddyy_to_datetime(start_date),
+                convert_mmddyy_to_datetime(end_date),
             )
-            parent = self._find_parent_from_category(category, categories)
-            transaction["parentCategoryId"] = self.__format_category_id(parent["id"])
-            transaction["parentCategoryName"] = parent["name"]
-
-        return result
-
-    def get_transactions_csv(
-        self, include_investment=False, start_date=None, end_date=None, acct=0
-    ):
-        """Returns the raw CSV transaction data as downloaded from Mint.
-
-        If include_investment == True, also includes transactions that Mint
-        classifies as investment-related.  You may find that the investment
-        transaction data is not sufficiently detailed to actually be useful,
-        however.
-        """
-
-        # Specifying accountId=0 causes Mint to return investment
-        # transactions as well.  Otherwise they are skipped by
-        # default.
-
-        params = {
-            "accountId": acct
-            if self._include_investments_with_transactions(acct, include_investment)
-            else None,
-            "startDate": convert_date_to_string(convert_mmddyy_to_datetime(start_date)),
-            "endDate": convert_date_to_string(convert_mmddyy_to_datetime(end_date)),
-        }
-        result = self.request_and_check(
-            "{}/transactionDownload.event".format(MINT_ROOT_URL),
-            params=params,
-            expected_content_type="text/csv",
-        )
-        return result.content
+            if remove_pending:
+                filtered = filter(
+                    lambda transaction: transaction["isPending"] == False,
+                    data,
+                )
+                data = list(filtered)
+        except Exception:
+            raise Exception
+        return data
 
     def get_net_worth(self, account_data=None):
         if account_data is None:
-            account_data = self.get_accounts()
+            account_data = self.get_account_data()
 
         # account types in this list will be subtracted
-        invert = set(["loan", "loans", "credit"])
+        invert = set(["LoanAccount", "CreditAccount"])
         return sum(
             [
-                -a["currentBalance"]
-                if a["accountType"] in invert
-                else a["currentBalance"]
+                -a["currentBalance"] if a["type"] in invert else a["currentBalance"]
                 for a in account_data
                 if a["isActive"]
             ]
         )
 
-    def get_transactions(
-        self, include_investment=False, start_date=None, end_date=None
-    ):
-        """Returns the transaction data as a Pandas DataFrame."""
-        s = io.BytesIO(
-            self.get_transactions_csv(
-                start_date=start_date,
-                end_date=end_date,
-                include_investment=include_investment,
-            )
-        )
-        s.seek(0)
-        df = pd.read_csv(s, parse_dates=["Date"])
-        df.columns = [c.lower().replace(" ", "_") for c in df.columns]
-        df.category = df.category.str.lower().replace("uncategorized", pd.NA)
-        return df
-
-    def populate_extended_account_detail(self, accounts):  # {{{
-        # I can't find any way to retrieve this information other than by
-        # doing this stupid one-call-per-account to listTransactions.xevent
-        # and parsing the HTML snippet :(
-        for account in accounts:
-            headers = dict(JSON_HEADER)
-            headers["Referer"] = "{}/transaction.event?accountId={}".format(
-                MINT_ROOT_URL, account["id"]
-            )
-
-            list_txn_url = "{}/listTransaction.xevent".format(MINT_ROOT_URL)
-            params = {
-                "accountId": str(account["id"]),
-                "queryNew": "",
-                "offset": 0,
-                "comparableType": 8,
-                "acctChanged": "T",
-                "rnd": Mint.get_rnd(),
-            }
-
-            response = json.loads(
-                self.get(list_txn_url, params=params, headers=headers).text
-            )
-            xml = "<div>" + response["accountHeader"] + "</div>"
-            xml = xml.replace("&#8211;", "-")
-            xml = xmltodict.parse(xml)
-
-            account["availableMoney"] = None
-            account["totalFees"] = None
-            account["totalCredit"] = None
-            account["nextPaymentAmount"] = None
-            account["nextPaymentDate"] = None
-
-            xml = xml["div"]["div"][1]["table"]
-            if "tbody" not in xml:
-                continue
-            xml = xml["tbody"]
-            table_type = xml["@id"]
-            xml = xml["tr"][1]["td"]
-
-            if table_type == "account-table-bank":
-                account["availableMoney"] = parse_float(xml[1]["#text"])
-                account["totalFees"] = parse_float(xml[3]["a"]["#text"])
-                if account["interestRate"] is None:
-                    account["interestRate"] = parse_float(xml[2]["#text"]) / 100.0
-            elif table_type == "account-table-credit":
-                account["availableMoney"] = parse_float(xml[1]["#text"])
-                account["totalCredit"] = parse_float(xml[2]["#text"])
-                account["totalFees"] = parse_float(xml[4]["a"]["#text"])
-                if account["interestRate"] is None:
-                    account["interestRate"] = parse_float(xml[3]["#text"]) / 100.0
-            elif table_type == "account-table-loan":
-                account["nextPaymentAmount"] = parse_float(xml[1]["#text"])
-                account["nextPaymentDate"] = xml[2].get("#text", None)
-            elif table_type == "account-type-investment":
-                account["totalFees"] = parse_float(xml[2]["a"]["#text"])
-
-        return accounts
-
-    def get_budgets(self, hist=None):
-        response = self.__call_budgets_endpoint()
-        categories = self.get_categories()
-        income = response["data"]["income"]
-        spending = response["data"]["spending"]
-        if hist is not None:  # version proofing api
-
-            def mos_to_yrmo(mos_frm_zero):
-                return datetime(
-                    year=int(mos_frm_zero / 12), month=mos_frm_zero % 12 + 1, day=1
-                ).strftime("%Y%m")
-
-            # Error checking 'hist' argument
-            if isinstance(hist, str) or hist > 12:
-                hist = 12  # MINT_ROOT_URL only calls last 12 months of budget data
-            elif hist < 1:
-                hist = 1
-
-            bgt_cur_mo = max(map(int, income.keys()))
-            min_mo_hist = bgt_cur_mo - hist
-
-            # Initialize and populate dictionary for return
-            #   Output 'budgets' dictionary with structure
-            #       { "YYYYMM": {"spending": [{"key": value, ...}, ...],
-            #                      "income": [{"key": value, ...}, ...] } }
-            budgets = {}
-            for months in range(bgt_cur_mo, min_mo_hist, -1):
-                budgets[mos_to_yrmo(months)] = {}
-                budgets[mos_to_yrmo(months)]["income"] = income[str(months)]["bu"]
-                budgets[mos_to_yrmo(months)]["spending"] = spending[str(months)]["bu"]
-
-            # Fill in the return structure
-            for month in budgets.keys():
-                for direction in budgets[month]:
-                    for budget in budgets[month][direction]:
-                        budget = self.__format_budget_categories(budget, categories)
-
-        else:
-            # Make the skeleton return structure
-            budgets = {
-                "income": income[str(max(map(int, income.keys())))]["bu"],
-                "spend": spending[str(max(map(int, spending.keys())))]["bu"],
-            }
-
-            # Fill in the return structure
-            for direction in budgets.keys():
-                for budget in budgets[direction]:
-                    budget = self.__format_budget_categories(budget, categories)
-
-        return budgets
-
-    def __call_budgets_endpoint(self):
-        # Issue request for budget utilization
-        first_of_this_month = date.today().replace(day=1)
-        eleven_months_ago = (first_of_this_month - timedelta(days=330)).replace(day=1)
-        url = "{}/getBudget.xevent".format(MINT_ROOT_URL)
-        params = {
-            "startDate": convert_date_to_string(eleven_months_ago),
-            "endDate": convert_date_to_string(first_of_this_month),
-            "rnd": Mint.get_rnd(),
-        }
-        return json.loads(self.get(url, params=params, headers=JSON_HEADER).text)
-
-    def __format_budget_categories(self, budget, categories):
-        category = self.get_category_object_from_id(budget["cat"], categories)
-        budget["cat"] = category["name"]
-        parent = self._find_parent_from_category(category, categories)
-        budget["parent"] = parent["name"]
-        return budget
-
-    def get_category_object_from_id(self, cid, categories):
-        if cid == 0:
-            return {"parent": "Uncategorized", "depth": 1, "name": "Uncategorized"}
-
-        result = filter(
-            lambda category: self.__format_category_id(category["id"]) == str(cid),
-            categories,
-        )
-        category = list(result)
-        return (
-            category[0]
-            if len(category) > 0
-            else {"parent": "Unknown", "depth": 1, "name": "Unknown"}
-        )
-
-    def __format_category_id(self, cid):
-        return cid if str(cid).find("_") == "-1" else str(cid)[str(cid).find("_") + 1 :]
-
-    def _find_parent_from_category(self, category, categories):
-        if category["depth"] == 1:
-            return {"id": "", "name": ""}
-
-        parent = self.get_category_object_from_id(
-            self.__format_category_id(category["parentId"]), categories
-        )
-        return {"id": parent["id"], "name": parent["name"]}
-
     def initiate_account_refresh(self):
-        data = {"token": self.token}
-        self.make_post_request(
-            url="{}/refreshFILogins.xevent".format(MINT_ROOT_URL), data=data
-        )
+        self.make_post_request(url="{}/refreshFILogins.xevent".format(MINT_ROOT_URL))
 
     def get_credit_score(self):
         # Request a single credit report, and extract the score
@@ -836,18 +421,42 @@ class Mint(object):
                 )
         return utilization
 
-    def _include_investments_with_transactions(self, id, include_investment):
-        return id > 0 or include_investment
+    def __find_endpoint(self, name):
+        return ENDPOINTS[name]
+
+    def __call_mint_endpoint(self, endpoint, id=None, start_date=None, end_date=None):
+        url = "{}/{}/{}?".format(
+            MINT_ROOT_URL, endpoint["apiVersion"], endpoint["endpoint"]
+        )
+        if endpoint["beginningDate"] is not None and start_date is not None:
+            url = url + "{}={}&".format(endpoint["beginningDate"], start_date)
+        if endpoint["endingDate"] is not None and end_date is not None:
+            url = url + "{}={}&".format(endpoint["endingDate"], end_date)
+        if id is not None:
+            url = url + "id={}&".format(id)
+        response = self.get(
+            url,
+            headers=self._get_api_key_header(),
+        )
+        return response.json()
+
+    def __first_of_this_month(self):
+        return date.today().replace(day=1)
+
+    def __x_months_ago(self, months=2):
+        return (self.__first_of_this_month() - relativedelta(months=months)).replace(
+            day=1
+        )
 
 
 def get_accounts(email, password, get_detail=False):
     mint = Mint(email, password)
-    return mint.get_accounts(get_detail=get_detail)
+    return mint.get_account_data(get_detail=get_detail)
 
 
 def get_net_worth(email, password):
     mint = Mint(email, password)
-    account_data = mint.get_accounts()
+    account_data = mint.get_account_data()
     return mint.get_net_worth(account_data)
 
 
