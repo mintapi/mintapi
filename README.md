@@ -184,7 +184,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                    [--transactions] [--credit-score] [--credit-report]
                    [--exclude-inquiries] [--exclude-accounts] [--exclude-utilization]
                    [--start-date [START_DATE]] [--end-date [END_DATE]]
-                   [--include-investment] [--show-pending]
+                   [--limit] [--include-investment] [--show-pending]
                    [--format] [--filename FILENAME] [--keyring] [--headless]
                    [--mfa-method {sms,email,soft-token}]
                    [--categories] [--attention]
@@ -222,6 +222,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                             Used with --transactions. Format: mm/dd/yy
       --investments         Retrieve data related to your investments, whether they be retirement or         personal stock purchases
       --include-investment  Used with --transactions
+      --limit               Number of records to include from the API.  Default is 5000.
       --show-pending        Retrieve pending transactions.
                             Used with --transactions
       --filename FILENAME, -f FILENAME
