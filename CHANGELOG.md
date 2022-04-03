@@ -1,3 +1,28 @@
+2.0 (Pending)
+---
+
+- Add Data Format Option to CLI: `--format` (#432)
+- Update Accounts Endpoint to meet new Mint requirements (#430) 
+- Update Transactions Endpoint to meet new Mint requirements (#429) 
+- Update Budgets Endpoint to meet new Mint requirements (#425)
+- Support removed for hiding duplicate transactions (#427)
+- Fetch the correct API Key to use with Mint API Requests (#420, #423)
+- Removed `get_token` functionality, which is incompatible with the new Mint UI (#421)
+- Update the name of the Account Refresh Class (#415)
+- Update the overview page url (#414) 
+
+BREAKING CHANGES:
+- Because of the new Mint UI and the switchover to different API Endpoints, the data structure associated with each function may be different.  Please verify that the data you are expecting against the new output of each endpoint.
+- To help support the new CLI option for data format (`--format`), we have eliminated the need to specify a file extension in `--filename`.  Be aware that if you do not specify `--format=csv`, then the extension\format will be `json`, which means that any filename you specify will include the extension of `.json`.
+
+
+1.64
+---
+- Resolves Selenium Requests Error #408
+- Resolves Maxretry issue #407
+- Resolves no such element: Unable to locate element: {"method":"css selector","selector":"[id="ius-userid"]"} #406
+- Resolves mintapi logon issues - selenium can't find field to navigate authentication sequence #405
+
 1.63
 ---
 - fix regression introduced in #384 (#398)
