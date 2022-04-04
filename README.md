@@ -72,7 +72,7 @@ mintapi --headless john@example.com my_password
 
 ### MFA Authentication Methods
 
-As of v1.62, `mfa_method` is only required if your login flow presents you with the option to select which Multifactor Authentication Method you wish to use, typically as a result of your account configured to accept different methods.  
+As of v2.0, `mfa_method` is only required if your login flow presents you with the option to select which Multifactor Authentication Method you wish to use, typically as a result of your account configured to accept different methods.  
 
 If `mintapi` detects that your Mint account uses IMAP and your email host provides IMAP access, you can specify your IMAP login details.  This will automate the retrieval of the MFA code from your email and entering it into Mint.  If you use IMAP in conjunction with `keyring`, then you can store your IMAP password (`imap-password`) in keyring.  To do so, simply omit `imap-password` and you will initially be prompted for the password associated with your IMAP account.  Then, on subsequent uses of your IMAP account, you will not have to specify your password.
 
