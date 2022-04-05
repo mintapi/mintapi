@@ -207,7 +207,7 @@ def parse_arguments(args):
             ("--mfa-method",),
             {
                 "choices": ["sms", "email", "soft-token"],
-                "default": "sms",
+                "default": None,
                 "help": "The MFA method to automate.",
             },
         ),
@@ -358,7 +358,7 @@ def main():
         "mintapi", "Mint password: ", email, password, options.keyring
     )
 
-    if mfa_method == "email" and imap_account:
+    if imap_account:
         imap_password = handle_password(
             "mintapi_imap",
             "IMAP password: ",
