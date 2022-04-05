@@ -72,10 +72,13 @@ mintapi --headless john@example.com my_password
 
 ### MFA Authentication Methods
 
-If `mfa-method` is email and your email host provides IMAP access, you can specify your IMAP login details.
-This will automate the retrieval of the MFA code from your email and entering it into Mint.  If you use IMAP in conjunction with `keyring`, then you can store your IMAP password (`imap-password`) in keyring.  To do so, simply omit `imap-password` and you will initially be prompted for the password associated with your IMAP account.  Then, on subsequent uses of your IMAP account, you will not have to specify your password.
+As of v2.0, `mfa_method` is only required if your login flow presents you with the option to select which Multifactor Authentication Method you wish to use, typically as a result of your account configured to accept different methods.  
+
+If `mintapi` detects that your Mint account uses IMAP and your email host provides IMAP access, you can specify your IMAP login details.  This will automate the retrieval of the MFA code from your email and entering it into Mint.  If you use IMAP in conjunction with `keyring`, then you can store your IMAP password (`imap-password`) in keyring.  To do so, simply omit `imap-password` and you will initially be prompted for the password associated with your IMAP account.  Then, on subsequent uses of your IMAP account, you will not have to specify your password.
 
 If `mfa-method` is soft-token then you must also pass your `mfa-token`. The `mfa-token` can be obtained by going to [your mint.com settings](https://mint.intuit.com/settings.event?filter=all) and clicking on 'Intuit Account'. From there go to *Sign In & Security* -> *Two-step verification*. From there, enable the top option however you wish (either text or email is fine). After that, start the process to enable the *Authenticator app* option and when you get the part where you see the QR code, **copy the manual setup code** that appears next to it. Careful where you store this as it allows anyone to generate TOTP codes. This is the token that you will pass to `mfa-token` in either the python api or from the command line.
+
+While Mint supports authentication via Voice, `mintapi` does not currently support this option.  Compatability with this method will be added in a later version.
 
 ### from Python
 
@@ -184,7 +187,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                    [--transactions] [--credit-score] [--credit-report]
                    [--exclude-inquiries] [--exclude-accounts] [--exclude-utilization]
                    [--start-date [START_DATE]] [--end-date [END_DATE]]
-                   [--include-investment] [--show-pending]
+                   [--limit] [--include-investment] [--show-pending]
                    [--format] [--filename FILENAME] [--keyring] [--headless]
                    [--mfa-method {sms,email,soft-token}]
                    [--categories] [--attention]
@@ -222,6 +225,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                             Used with --transactions. Format: mm/dd/yy
       --investments         Retrieve data related to your investments, whether they be retirement or         personal stock purchases
       --include-investment  Used with --transactions
+      --limit               Number of records to include from the API.  Default is 5000.
       --show-pending        Retrieve pending transactions.
                             Used with --transactions
       --filename FILENAME, -f FILENAME
