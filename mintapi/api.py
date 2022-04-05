@@ -128,8 +128,12 @@ class Mint(object):
             )
 
     def _get_api_key_header(self):
-        key_var = "window.__shellInternal.appExperience.appApiKey"
-        api_key = self.driver.execute_script("return " + key_var)
+        # Some users still have the old location for the API Key,
+        # so check for existence of new structure to grab the proper key.
+        key_retrieval_syntax = "return window.__shellInternal ? " + \
+            "window.__shellInternal.appExperience.appApiKey : " + \
+            "window.MintConfig.browserAuthAPIKey"
+        api_key = self.driver.execute_script(key_retrieval_syntax)
         auth = "Intuit_APIKey intuit_apikey=" + api_key
         auth += ", intuit_apikey_version=1.0"
         header = {"authorization": auth}
