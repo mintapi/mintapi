@@ -222,9 +222,9 @@ class Mint(object):
             headers=self._get_api_key_header(),
         ).json()["bills"]
 
-    def get_data(self, name, id=None, start_date=None, end_date=None):
+    def get_data(self, name, limit, id=None, start_date=None, end_date=None):
         endpoint = self.__find_endpoint(name)
-        data = self.__call_mint_endpoint(endpoint, id, start_date, end_date)
+        data = self.__call_mint_endpoint(endpoint, limit, id, start_date, end_date)
         if name in data.keys():
             for i in data[name]:
                 if endpoint["includeCreatedDate"]:
@@ -239,25 +239,42 @@ class Mint(object):
             )
         return data[name]
 
-    def get_account_data(self):
-        return self.get_data(ACCOUNT_KEY)
+    def get_account_data(
+        self,
+        limit=5000,
+    ):
+        return self.get_data(ACCOUNT_KEY, limit)
 
-    def get_categories(self):
-        return self.get_data(CATEGORY_KEY)
+    def get_categories(
+        self,
+        limit=5000,
+    ):
+        return self.get_data(CATEGORY_KEY, limit)
 
-    def get_budgets(self):
+    def get_budgets(
+        self,
+        limit=5000,
+    ):
         return self.get_data(
             BUDGET_KEY,
+            limit,
             None,
             start_date=self.__x_months_ago(11),
             end_date=self.__first_of_this_month(),
         )
 
-    def get_investment_data(self):
-        return self.get_data(INVESTMENT_KEY)
+    def get_investment_data(
+        self,
+        limit=5000,
+    ):
+        return self.get_data(
+            INVESTMENT_KEY,
+            limit,
+        )
 
     def get_transaction_data(
         self,
+        limit=5000,
         include_investment=False,
         start_date=None,
         end_date=None,
@@ -280,6 +297,7 @@ class Mint(object):
                 id = 0
             data = self.get_data(
                 TRANSACTION_KEY,
+                limit,
                 id,
                 convert_mmddyy_to_datetime(start_date),
                 convert_mmddyy_to_datetime(end_date),
@@ -428,9 +446,11 @@ class Mint(object):
     def __find_endpoint(self, name):
         return ENDPOINTS[name]
 
-    def __call_mint_endpoint(self, endpoint, id=None, start_date=None, end_date=None):
-        url = "{}/{}/{}?".format(
-            MINT_ROOT_URL, endpoint["apiVersion"], endpoint["endpoint"]
+    def __call_mint_endpoint(
+        self, endpoint, limit, id=None, start_date=None, end_date=None
+    ):
+        url = "{}/{}/{}?limit={}&".format(
+            MINT_ROOT_URL, endpoint["apiVersion"], endpoint["endpoint"], limit
         )
         if endpoint["beginningDate"] is not None and start_date is not None:
             url = url + "{}={}&".format(endpoint["beginningDate"], start_date)
