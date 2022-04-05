@@ -197,8 +197,11 @@ class Mint(object):
                 imap_folder,
             )
         except Exception as e:
+            msg = f"Could not sign in to Mint. Current page: {self.driver.current_url}"
             logger.exception(e)
             self.driver.quit()
+            self.driver = None
+            raise Exception(msg) from e
 
     def get_attention(self):
         attention = None
