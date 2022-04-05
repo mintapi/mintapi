@@ -272,8 +272,10 @@ class MintApiTests(unittest.TestCase):
     ):
         test_exception = Exception()
         mock_sign_in.side_effect = test_exception
-        mintapi.Mint("test", "test")
+        with self.assertRaises(Exception) as context:
+            mintapi.Mint("test", "test")
         mock_logger.exception.assert_called_with(test_exception)
+        self.assertTrue("Could not sign in to Mint" in str(context.exception))
 
     @patch.multiple(
         mintapi.Mint,

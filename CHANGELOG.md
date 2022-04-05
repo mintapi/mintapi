@@ -1,6 +1,7 @@
 2.0 (Pending)
 ---
 
+- Dynamic Multifactor Authentication Flow (#392)
 - Add Data Format Option to CLI: `--format` (#432)
 - Update Accounts Endpoint to meet new Mint requirements (#430) 
 - Update Transactions Endpoint to meet new Mint requirements (#429) 
@@ -12,8 +13,10 @@
 - Update the overview page url (#414) 
 
 BREAKING CHANGES:
+- :warning: `mfa_method` is only required if your login flow presents you with the option to select which Multifactor Authentication Method you wish to use, typically as a result of your account configured to accept different methods.  #392 provided a way to automatically detect the type of MFA requested by Mint, based on the prompts on the screen.  Because of this, Mintapi now supports the use case where multiple MFA prompts appear.
 - Because of the new Mint UI and the switchover to different API Endpoints, the data structure associated with each function may be different.  Please verify that the data you are expecting against the new output of each endpoint.
 - To help support the new CLI option for data format (`--format`), we have eliminated the need to specify a file extension in `--filename`.  Be aware that if you do not specify `--format=csv`, then the extension\format will be `json`, which means that any filename you specify will include the extension of `.json`.
+
 
 
 1.64

@@ -196,10 +196,18 @@ def parse_arguments(args):
             },
         ),
         (
+            ("--limit",),
+            {
+                "type": int,
+                "default": 5000,
+                "help": "Number of records to include from the API.  Default is 5000.",
+            },
+        ),
+        (
             ("--mfa-method",),
             {
                 "choices": ["sms", "email", "soft-token"],
-                "default": "sms",
+                "default": None,
                 "help": "The MFA method to automate.",
             },
         ),
@@ -350,7 +358,7 @@ def main():
         "mintapi", "Mint password: ", email, password, options.keyring
     )
 
-    if mfa_method == "email" and imap_account:
+    if imap_account:
         imap_password = handle_password(
             "mintapi_imap",
             "IMAP password: ",
@@ -411,42 +419,47 @@ def main():
     data = None
     if options.accounts and options.budgets:
         try:
-            data = mint.get_account_data()
+            data = mint.get_account_data(limit=options.limit)
         except Exception:
             accounts = None
 
         try:
-            budgets = mint.get_budgets()
+            budgets = mint.get_budgets(limit=options.limit)
         except Exception:
             budgets = None
 
         data = {"accounts": accounts, "budgets": budgets}
     elif options.budgets:
         try:
-            data = mint.get_budgets()
+            data = mint.get_budgets(limit=options.limit)
         except Exception:
             data = None
     elif options.budget_hist:
         try:
-            data = mint.get_budgets(hist=12)
+            data = mint.get_budgets(limit=options.limit, hist=12)
         except Exception:
             data = None
     elif options.accounts:
         try:
-            data = mint.get_account_data()
+            data = mint.get_account_data(limit=options.limit)
         except Exception:
             data = None
     elif options.transactions:
         data = mint.get_transaction_data(
+            limit=options.limit,
             start_date=options.start_date,
             end_date=options.end_date,
             include_investment=options.include_investment,
             remove_pending=options.show_pending,
         )
     elif options.categories:
-        data = mint.get_categories()
+        data = mint.get_categories(
+            limit=options.limit,
+        )
     elif options.investments:
-        data = mint.get_investment_data()
+        data = mint.get_investment_data(
+            limit=options.limit,
+        )
     elif options.net_worth:
         data = mint.get_net_worth()
     elif options.credit_score:
