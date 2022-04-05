@@ -410,17 +410,17 @@ def bypass_verified_user_page(driver):
 
 
 def bypass_passwordless_login_page(driver):
-     # bypass "Sign in without a password next time" interstitial page
-     try:
-         skip_for_now = driver.find_element_by_id("skipWebauthnRegistration")
-         skip_for_now.click()
-     except (
-         NoSuchElementException,
-         StaleElementReferenceException,
-         ElementNotVisibleException,
-         ElementNotInteractableException,
-     ):
-         pass
+    # bypass "Sign in without a password next time" interstitial page
+    try:
+        skip_for_now = driver.find_element_by_id("skipWebauthnRegistration")
+        skip_for_now.click()
+    except (
+        NoSuchElementException,
+        StaleElementReferenceException,
+        ElementNotVisibleException,
+        ElementNotInteractableException,
+    ):
+        pass
 
 
 def mfa_page(
