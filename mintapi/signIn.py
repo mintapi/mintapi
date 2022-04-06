@@ -325,6 +325,7 @@ def sign_in(
     driver.implicitly_wait(1)  # seconds
     while not driver.current_url.startswith("https://mint.intuit.com/overview.event"):
         bypass_verified_user_page(driver)
+        bypass_passwordless_login_page(driver)
         mfa_page(
             driver,
             mfa_method,
@@ -398,6 +399,20 @@ def bypass_verified_user_page(driver):
     # bypass "Let's add your current mobile number" interstitial page
     try:
         skip_for_now = driver.find_element_by_id("ius-verified-user-update-btn-skip")
+        skip_for_now.click()
+    except (
+        NoSuchElementException,
+        StaleElementReferenceException,
+        ElementNotVisibleException,
+        ElementNotInteractableException,
+    ):
+        pass
+
+
+def bypass_passwordless_login_page(driver):
+    # bypass "Sign in without a password next time" interstitial page
+    try:
+        skip_for_now = driver.find_element_by_id("skipWebauthnRegistration")
         skip_for_now.click()
     except (
         NoSuchElementException,
