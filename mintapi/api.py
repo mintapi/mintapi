@@ -150,12 +150,6 @@ class Mint(object):
     def post(self, url, **kwargs):
         return self.driver.request("POST", url, **kwargs)
 
-    def make_post_request(self, url, data, convert_to_text=False):
-        response = self.post(url=url, data=data, headers=JSON_HEADER)
-        if convert_to_text:
-            response = response.text
-        return response
-
     def login_and_get_token(
         self,
         email,
@@ -326,7 +320,9 @@ class Mint(object):
         )
 
     def initiate_account_refresh(self):
-        self.make_post_request(url="{}/refreshFILogins.xevent".format(MINT_ROOT_URL))
+        self.post(
+            url="{}/refreshFILogins.xevent".format(MINT_ROOT_URL), headers=JSON_HEADER
+        )
 
     def get_credit_score(self):
         # Request a single credit report, and extract the score
