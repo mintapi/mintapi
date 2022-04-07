@@ -1,0 +1,11 @@
+JSON_FORMAT = "json"
+CSV_FORMAT = "csv"
+
+ACCOUNT_KEY = "Account"
+BUDGET_KEY = "Budget"
+CATEGORY_KEY = "Category"
+INVESTMENT_KEY = "Investment"
+TRANSACTION_KEY = "Transaction"
+NET_WORTH_KEY = "Net_Worth"
+CREDIT_SCORE_KEY = "Credit_Score"
+CREDIT_REPORT_KEY = "Credit_Report"
