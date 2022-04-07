@@ -1,8 +1,12 @@
+--> NOTE! The 1.x release series will only support and contain fixes for the previous Mint UI.
+    New feature work will occur in the 2.x release series and only supports the new Mint UI / endpoints.
+
+1.66
+---
+- handle "Sign in without a password next time" page (#436)
+
 1.65
 ---
-- NOTE: This is intended to be the final release of 1.x.
-  Further work will go towards a 2.0 release which will only support the
-  new Mint UI and endpoints.
 - fix for selenium dependency version (#412, #413, #416)
 
 1.64
