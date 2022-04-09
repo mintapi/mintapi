@@ -11,7 +11,6 @@ import subprocess
 import sys
 import time
 import zipfile
-import warnings
 
 from selenium.common.exceptions import (
     ElementNotInteractableException,
@@ -347,8 +346,8 @@ def sign_in(
             ElementNotVisibleException,
             NoSuchElementException,
         ):
-            handle_different_page_username_password(driver, email, password)
-            driver.implicitly_wait(20)  # seconds
+            handle_different_page_username_password(driver, email)
+            driver.implicitly_wait(5)  # seconds
             password_page(driver, password)
 
         # Wait until logged in, just in case we need to deal with MFA.
@@ -369,12 +368,16 @@ def sign_in(
         )
         account_selection_page(driver, intuit_account)
         password_page(driver, password)
+        # Give the overview page a chance to actually load
+        WebDriverWait(driver, 5).until(
+            expected_conditions.url_changes("https://mint.intuit.com/overview")
+        )
 
     driver.implicitly_wait(20)  # seconds
     # Wait until the overview page has actually loaded, and if wait_for_sync==True, sync has completed.
     status_message = None
     if wait_for_sync:
-        handle_wait_for_sync(driver, wait_for_sync_timeout)
+        status_message = handle_wait_for_sync(driver, wait_for_sync_timeout)
     return status_message
 
 
@@ -403,7 +406,7 @@ def handle_same_page_username_password(driver, email, password):
     ).submit()
 
 
-def handle_different_page_username_password(driver, email, password):
+def handle_different_page_username_password(driver, email):
     try:
         email_input = driver.find_element_by_css_selector(
             '#ius-identifier, [data-testid="IdentifierFirstIdentifierInput"]'
@@ -491,11 +494,10 @@ def mfa_page(
     # mfa screen
     if mfa_method == MFA_VIA_SOFT_TOKEN:
         handle_soft_token(
-            driver, mfa_token_input, mfa_token_button, mfa_input_callback, mfa_token
+            mfa_token_input, mfa_token_button, mfa_input_callback, mfa_token
         )
     elif mfa_method == MFA_VIA_EMAIL and imap_account:
         handle_email_by_imap(
-            driver,
             mfa_token_input,
             mfa_token_button,
             mfa_input_callback,
@@ -505,7 +507,7 @@ def mfa_page(
             imap_folder,
         )
     else:
-        handle_other_mfa(driver, mfa_token_input, mfa_token_button, mfa_input_callback)
+        handle_other_mfa(mfa_token_input, mfa_token_button, mfa_input_callback)
 
 
 def search_mfa_method(driver):
@@ -552,21 +554,18 @@ def set_mfa_method(driver, mfa_method):
     return mfa_token_input, mfa_token_button, mfa_method
 
 
-def handle_soft_token(
-    driver, mfa_token_input, mfa_token_button, mfa_input_callback, mfa_token
-):
+def handle_soft_token(mfa_token_input, mfa_token_button, mfa_input_callback, mfa_token):
     try:
         if mfa_token is not None:
             mfa_code = oathtool.generate_otp(mfa_token)
         else:
             mfa_code = (mfa_input_callback or input)(DEFAULT_MFA_INPUT_PROMPT)
-        submit_mfa_code(driver, mfa_token_input, mfa_token_button, mfa_code)
+        submit_mfa_code(mfa_token_input, mfa_token_button, mfa_code)
     except (NoSuchElementException, ElementNotInteractableException):
         logger.info("Not on Soft Token MFA Screen")
 
 
 def handle_email_by_imap(
-    driver,
     mfa_token_input,
     mfa_token_button,
     mfa_input_callback,
@@ -584,20 +583,20 @@ def handle_email_by_imap(
         )
         if mfa_code is None:
             mfa_code = (mfa_input_callback or input)(DEFAULT_MFA_INPUT_PROMPT)
-        submit_mfa_code(driver, mfa_token_input, mfa_token_button, mfa_code)
+        submit_mfa_code(mfa_token_input, mfa_token_button, mfa_code)
     except (NoSuchElementException, ElementNotInteractableException):
         logger.info("Not on Email MFA Screen")
 
 
-def handle_other_mfa(driver, mfa_token_input, mfa_token_button, mfa_input_callback):
+def handle_other_mfa(mfa_token_input, mfa_token_button, mfa_input_callback):
     try:
         mfa_code = (mfa_input_callback or input)(DEFAULT_MFA_INPUT_PROMPT)
-        submit_mfa_code(driver, mfa_token_input, mfa_token_button, mfa_code)
+        submit_mfa_code(mfa_token_input, mfa_token_button, mfa_code)
     except (NoSuchElementException, ElementNotInteractableException):
         logger.info("Not on SMS or Authenticator MFA Screen")
 
 
-def submit_mfa_code(driver, mfa_token_input, mfa_token_button, mfa_code):
+def submit_mfa_code(mfa_token_input, mfa_token_button, mfa_code):
     mfa_token_input.clear()
     mfa_token_input.send_keys(mfa_code)
     mfa_token_button.click()
@@ -654,7 +653,7 @@ def handle_wait_for_sync(driver, wait_for_sync_timeout):
             lambda x: "Account refresh complete"
             in status_web_element.get_attribute("innerHTML")
         )
-        status_message = status_web_element.text
+        return status_web_element.text
     except (TimeoutException, StaleElementReferenceException):
         logger.warning(
             "Mint sync apparently incomplete after timeout. "
