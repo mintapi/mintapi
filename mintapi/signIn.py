@@ -370,7 +370,7 @@ def sign_in(
         password_page(driver, password)
         # Give the overview page a chance to actually load
         WebDriverWait(driver, 5).until(
-            expected_conditions.url_changes("https://mint.intuit.com/overview")
+            expected_conditions.url_contains("https://mint.intuit.com/overview")
         )
 
     driver.implicitly_wait(20)  # seconds
