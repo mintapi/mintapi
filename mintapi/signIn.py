@@ -34,6 +34,7 @@ MFA_VIA_AUTHENTICATOR = "authenticator"
 MFA_VIA_EMAIL = "email"
 MFA_VIA_SMS = "sms"
 MFA_METHOD_LABEL = "mfa_method"
+SELECT_CSS_SELECTORS_LABEL = "select_css_selectors"
 INPUT_CSS_SELECTORS_LABEL = "input_css_selectors"
 SPAN_CSS_SELECTORS_LABEL = "span_css_selectors"
 BUTTON_CSS_SELECTORS_LABEL = "button_css_selectors"
@@ -41,25 +42,29 @@ BUTTON_CSS_SELECTORS_LABEL = "button_css_selectors"
 MFA_METHODS = [
     {
         MFA_METHOD_LABEL: MFA_VIA_SOFT_TOKEN,
+        SELECT_CSS_SELECTORS_LABEL: '#iux-mfa-soft-token-verification-code, #ius-mfa-soft-token, [data-testid="VerifySoftTokenInput"]',
         INPUT_CSS_SELECTORS_LABEL: '#iux-mfa-soft-token-verification-code, #ius-mfa-soft-token, [data-testid="VerifySoftTokenInput"]',
         SPAN_CSS_SELECTORS_LABEL: "",
         BUTTON_CSS_SELECTORS_LABEL: '#ius-mfa-soft-token-submit-btn, [data-testid="VerifySoftTokenSubmitButton"]',
     },
     {
         MFA_METHOD_LABEL: MFA_VIA_AUTHENTICATOR,
+        SELECT_CSS_SELECTORS_LABEL: '#iux-mfa-soft-token-verification-code, #ius-mfa-soft-token, [data-testid="VerifySoftTokenInput"]',
         INPUT_CSS_SELECTORS_LABEL: '#iux-mfa-soft-token-verification-code, #ius-mfa-soft-token, [data-testid="VerifySoftTokenInput"]',
         SPAN_CSS_SELECTORS_LABEL: '[data-testid="VerifySoftTokenSubHeader"]',
         BUTTON_CSS_SELECTORS_LABEL: '#ius-mfa-soft-token-submit-btn, [data-testid="VerifySoftTokenSubmitButton"]',
     },
     {
         MFA_METHOD_LABEL: MFA_VIA_EMAIL,
-        INPUT_CSS_SELECTORS_LABEL: "#ius-label-mfa-email-otp, #ius-mfa-email-otp-card-challenge, #ius-sublabel-mfa-email-otp, #ius-mfa-confirm-code",
+        SELECT_CSS_SELECTORS_LABEL: "#ius-label-mfa-email-otp, #ius-mfa-email-otp-card-challenge, #ius-sublabel-mfa-email-otp",
+        INPUT_CSS_SELECTORS_LABEL: "#ius-mfa-confirm-code",
         SPAN_CSS_SELECTORS_LABEL: '[data-testid="VerifyOtpHeaderText"]',
         BUTTON_CSS_SELECTORS_LABEL: '#ius-mfa-otp-submit-btn, [data-testid="VerifyOtpSubmitButton"]',
     },
     {
         MFA_METHOD_LABEL: MFA_VIA_SMS,
-        INPUT_CSS_SELECTORS_LABEL: "#ius-mfa-sms-otp-card-challenge, #ius-mfa-confirm-code",
+        SELECT_CSS_SELECTORS_LABEL: "#ius-mfa-sms-otp-card-challenge",
+        INPUT_CSS_SELECTORS_LABEL: "#ius-mfa-confirm-code",
         SPAN_CSS_SELECTORS_LABEL: '[data-testid="VerifyOtpHeaderText"]',
         BUTTON_CSS_SELECTORS_LABEL: '#ius-mfa-otp-submit-btn, [data-testid="VerifyOtpSubmitButton"]',
     },
@@ -514,6 +519,10 @@ def search_mfa_method(driver):
     for method in MFA_METHODS:
         mfa_token_input = mfa_token_button = mfa_method = span_text = result = None
         try:
+            mfa_token_select = driver.find_element_by_css_selector(
+                method[SELECT_CSS_SELECTORS_LABEL]
+            )
+            mfa_token_select.click()
             mfa_token_input = driver.find_element_by_css_selector(
                 method[INPUT_CSS_SELECTORS_LABEL]
             )
@@ -540,6 +549,10 @@ def set_mfa_method(driver, mfa_method):
     )
     mfa_result = list(mfa)[0]
     try:
+        mfa_token_select = driver.find_element_by_css_selector(
+            mfa_result[SELECT_CSS_SELECTORS_LABEL]
+        )
+        mfa_token_select.click()
         mfa_token_input = driver.find_element_by_css_selector(
             mfa_result[INPUT_CSS_SELECTORS_LABEL]
         )
