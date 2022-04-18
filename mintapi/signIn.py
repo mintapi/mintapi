@@ -377,14 +377,12 @@ def sign_in(
 
         count = count + 1
         if count > 10:
-            if 'Intuit Accounts - Sign In' in driver.page_source.encode('ascii', 'replace').decode('ascii'):
-                raise RuntimeError(
-                    "Login to Mint failed"
-                )
+            if "Intuit Accounts - Sign In" in driver.page_source.encode(
+                "ascii", "replace"
+            ).decode('ascii'):
+                raise RuntimeError("Login to Mint failed")
             else:
-                raise RuntimeError(
-                    "Timeout while logging in"
-                )
+                raise RuntimeError("Timeout while logging in")
 
     driver.implicitly_wait(20)  # seconds
     # Wait until the overview page has actually loaded, and if wait_for_sync==True, sync has completed.
