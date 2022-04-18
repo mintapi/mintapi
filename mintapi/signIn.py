@@ -379,7 +379,7 @@ def sign_in(
         if count > 10:
             if "Intuit Accounts - Sign In" in driver.page_source.encode(
                 "ascii", "replace"
-            ).decode('ascii'):
+            ).decode("ascii"):
                 raise RuntimeError("Login to Mint failed")
             else:
                 raise RuntimeError("Timeout while logging in")
