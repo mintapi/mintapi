@@ -342,21 +342,22 @@ def sign_in(
 
     user_selection_page(driver)
 
-    while not driver.current_url.startswith("https://mint.intuit.com/overview"):
-        try:  # try to enter in credentials if username and password are on same page
-            handle_same_page_username_password(driver, email, password)
-        # try to enter in credentials if username and password are on different pages
-        except (
-            ElementNotInteractableException,
-            ElementNotVisibleException,
-            NoSuchElementException,
-        ):
-            handle_different_page_username_password(driver, email)
-            driver.implicitly_wait(5)  # seconds
-            password_page(driver, password)
+    try:  # try to enter in credentials if username and password are on same page
+        handle_same_page_username_password(driver, email, password)
+    # try to enter in credentials if username and password are on different pages
+    except (
+        ElementNotInteractableException,
+        ElementNotVisibleException,
+        NoSuchElementException,
+    ):
+        handle_different_page_username_password(driver, email)
+        driver.implicitly_wait(5)  # seconds
+        password_page(driver, password)
 
+    driver.implicitly_wait(1)  # seconds
+    count = 0
+    while not "https://mint.intuit.com/overview" in driver.current_url:
         # Wait until logged in, just in case we need to deal with MFA.
-        driver.implicitly_wait(1)  # seconds
         bypass_verified_user_page(driver)
         bypass_passwordless_login_page(driver)
         if mfa_method is not None:
@@ -373,10 +374,17 @@ def sign_in(
         )
         account_selection_page(driver, intuit_account)
         password_page(driver, password)
-        # Give the overview page a chance to actually load
-        WebDriverWait(driver, 5).until(
-            expected_conditions.url_contains("https://mint.intuit.com/overview")
-        )
+
+        count = count + 1
+        if count > 10:
+            if 'Intuit Accounts - Sign In' in driver.page_source.encode('ascii', 'replace').decode('ascii'):
+                raise RuntimeError(
+                    "Login to Mint failed"
+                )
+            else:
+                raise RuntimeError(
+                    "Timeout while logging in"
+                )
 
     driver.implicitly_wait(20)  # seconds
     # Wait until the overview page has actually loaded, and if wait_for_sync==True, sync has completed.
