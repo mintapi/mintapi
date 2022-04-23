@@ -5,7 +5,7 @@ import json
 import unittest
 import requests
 import tempfile
-import mintapi.constants as constants
+from mintapi import constants
 from unittest.mock import patch, DEFAULT
 
 
