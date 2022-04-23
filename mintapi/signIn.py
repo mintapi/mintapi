@@ -368,10 +368,14 @@ def sign_in(
         )
         account_selection_page(driver, intuit_account)
         password_page(driver, password)
-        # Give the overview page a chance to actually load
-        WebDriverWait(driver, 5).until(
-            expected_conditions.url_contains("https://mint.intuit.com/overview")
-        )
+        # Give the overview page a chance to actually load.
+        # If it doesn't, then there may be another round of MFA.
+        try:
+            WebDriverWait(driver, 5).until(
+                expected_conditions.url_contains("https://mint.intuit.com/overview")
+            )
+        except Exception:
+            pass
 
     driver.implicitly_wait(20)  # seconds
     # Wait until the overview page has actually loaded, and if wait_for_sync==True, sync has completed.
