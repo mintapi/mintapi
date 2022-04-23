@@ -4,7 +4,7 @@ import os
 import sys
 import json
 import getpass
-import mintapi.constants as constants
+from mintapi import constants
 import keyring
 import configargparse
 
@@ -418,78 +418,51 @@ def main():
         attention_msg = mint.get_attention()
 
     if options.accounts:
-        try:
-            data = mint.get_account_data(limit=options.limit)
-            output_data(options, data, constants.ACCOUNT_KEY, attention_msg)
-        except Exception:
-            data = None
+        data = mint.get_account_data(limit=options.limit)
+        output_data(options, data, constants.ACCOUNT_KEY, attention_msg)
 
     if options.budgets:
-        try:
-            data = mint.get_budgets(limit=options.limit)
-            output_data(options, data, constants.BUDGET_KEY, attention_msg)
-        except Exception:
-            data = None
+        data = mint.get_budgets(limit=options.limit)
+        output_data(options, data, constants.BUDGET_KEY, attention_msg)
     elif options.budget_hist:
-        try:
-            data = mint.get_budgets(limit=options.limit, hist=12)
-            output_data(options, data, constants.BUDGET_KEY, attention_msg)
-        except Exception:
-            data = None
+        data = mint.get_budgets(limit=options.limit, hist=12)
+        output_data(options, data, constants.BUDGET_KEY, attention_msg)
 
     if options.transactions:
-        try:
-            data = mint.get_transaction_data(
-                limit=options.limit,
-                start_date=options.start_date,
-                end_date=options.end_date,
-                include_investment=options.include_investment,
-                remove_pending=options.show_pending,
-            )
-            output_data(options, data, constants.TRANSACTION_KEY, attention_msg)
-        except Exception:
-            data = None
+        data = mint.get_transaction_data(
+            limit=options.limit,
+            start_date=options.start_date,
+            end_date=options.end_date,
+            include_investment=options.include_investment,
+            remove_pending=options.show_pending,
+        )
+        output_data(options, data, constants.TRANSACTION_KEY, attention_msg)
 
     if options.categories:
-        try:
-            data = mint.get_categories(
-                limit=options.limit,
-            )
-            output_data(options, data, constants.CATEGORY_KEY, attention_msg)
-        except Exception:
-            data = None
+        data = mint.get_categories(
+            limit=options.limit,
+        )
+        output_data(options, data, constants.CATEGORY_KEY, attention_msg)
 
     if options.investments:
-        try:
-            data = mint.get_investment_data(
-                limit=options.limit,
-            )
-            output_data(options, data, constants.INVESTMENT_KEY, attention_msg)
-        except Exception:
-            data = None
+        data = mint.get_investment_data(
+            limit=options.limit,
+        )
+        output_data(options, data, constants.INVESTMENT_KEY, attention_msg)
 
     if options.net_worth:
-        try:
-            data = mint.get_net_worth()
-            output_data(options, data, constants.NET_WORTH_KEY, attention_msg)
-        except Exception:
-            data = None
+        data = mint.get_net_worth()
+        output_data(options, data, constants.NET_WORTH_KEY, attention_msg)
 
     if options.credit_score:
-        try:
-            data = mint.get_credit_score()
-            output_data(options, data, constants.CREDIT_SCORE_KEY, attention_msg)
-        except Exception:
-            data = None
+        data = mint.get_credit_score()
+        output_data(options, data, constants.CREDIT_SCORE_KEY, attention_msg)
 
     if options.credit_report:
-        try:
-            data = mint.get_credit_report(
-                details=True,
-                exclude_inquiries=options.exclude_inquiries,
-                exclude_accounts=options.exclude_accounts,
-                exclude_utilization=options.exclude_utilization,
-            )
-            output_data(options, data, constants.CREDIT_REPORT_KEY, attention_msg)
-        except Exception:
-            data = None
+        data = mint.get_credit_report(
+            details=True,
+            exclude_inquiries=options.exclude_inquiries,
+            exclude_accounts=options.exclude_accounts,
+            exclude_utilization=options.exclude_utilization,
+        )
+        output_data(options, data, constants.CREDIT_REPORT_KEY, attention_msg)

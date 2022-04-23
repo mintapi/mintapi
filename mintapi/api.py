@@ -1,6 +1,6 @@
 from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
-import mintapi.constants as constants
+from mintapi import constants
 import logging
 import os
 import random
