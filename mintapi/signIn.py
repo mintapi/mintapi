@@ -337,6 +337,7 @@ def sign_in(
 
     user_selection_page(driver)
 
+    count = 0
     while not driver.current_url.startswith("https://mint.intuit.com/overview"):
         try:  # try to enter in credentials if username and password are on same page
             handle_same_page_username_password(driver, email, password)
@@ -375,7 +376,11 @@ def sign_in(
                 expected_conditions.url_contains("https://mint.intuit.com/overview")
             )
         except Exception:
-            pass
+            count += 1
+            if count > 10:
+                raise RuntimeError(
+                    "Login to Mint failed due to timeout in the Multifactor Method Loop"
+                )
 
     driver.implicitly_wait(20)  # seconds
     # Wait until the overview page has actually loaded, and if wait_for_sync==True, sync has completed.
