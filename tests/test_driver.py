@@ -5,7 +5,7 @@ import json
 import unittest
 import requests
 import tempfile
-
+from mintapi import constants
 from unittest.mock import patch, DEFAULT
 
 
@@ -357,29 +357,31 @@ class MintApiTests(unittest.TestCase):
     def test_format_filename(self):
         config_file = write_transactions_file()
         arguments = parse_arguments_file(config_file)
-        filename = mintapi.cli.format_filename(arguments)
-        self.assertEqual(filename, "transactions.csv")
+        type = constants.TRANSACTION_KEY.lower()
+        filename = mintapi.cli.format_filename(arguments, type)
+        self.assertEqual(filename, "current_{}.csv".format(type))
 
         config_file = write_accounts_file()
         arguments = parse_arguments_file(config_file)
-        filename = mintapi.cli.format_filename(arguments)
-        self.assertEqual(filename, "accounts.json")
+        type = constants.ACCOUNT_KEY.lower()
+        filename = mintapi.cli.format_filename(arguments, type)
+        self.assertEqual(filename, "current_{}.json".format(type))
 
         config_file = write_investments_file()
         arguments = parse_arguments_file(config_file)
-        filename = mintapi.cli.format_filename(arguments)
+        filename = mintapi.cli.format_filename(arguments, None)
         self.assertEqual(filename, None)
 
 
 def write_transactions_file():
     config_file = tempfile.NamedTemporaryFile(mode="wt")
-    config_file.write("transactions\nformat=csv\nfilename=transactions")
+    config_file.write("transactions\nformat=csv\nfilename=current")
     return config_file
 
 
 def write_accounts_file():
     config_file = tempfile.NamedTemporaryFile(mode="wt")
-    config_file.write("accounts\nformat=json\nfilename=accounts")
+    config_file.write("accounts\nformat=json\nfilename=current")
     return config_file
 
 

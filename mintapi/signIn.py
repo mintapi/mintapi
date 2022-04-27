@@ -29,7 +29,7 @@ import oathtool
 
 logger = logging.getLogger("mintapi")
 
-MFA_VIA_SOFT_TOKEN = "soft_token"
+MFA_VIA_SOFT_TOKEN = "soft-token"
 MFA_VIA_AUTHENTICATOR = "authenticator"
 MFA_VIA_EMAIL = "email"
 MFA_VIA_SMS = "sms"

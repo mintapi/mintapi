@@ -4,7 +4,7 @@ import os
 import sys
 import json
 import getpass
-
+from mintapi import constants
 import keyring
 import configargparse
 
@@ -13,9 +13,6 @@ from mintapi.signIn import get_email_code
 from pandas import json_normalize
 
 logger = logging.getLogger("mintapi")
-
-JSON_FORMAT = "json"
-CSV_FORMAT = "csv"
 
 
 def parse_arguments(args):
@@ -152,8 +149,8 @@ def parse_arguments(args):
         (
             ("--format",),
             {
-                "choices": [JSON_FORMAT, CSV_FORMAT],
-                "default": JSON_FORMAT,
+                "choices": [constants.JSON_FORMAT, constants.CSV_FORMAT],
+                "default": constants.JSON_FORMAT,
                 "help": "The format used to return data.",
             },
         ),
@@ -303,30 +300,30 @@ def handle_password(type, prompt, email, password, use_keyring=False):
     return password
 
 
-def format_filename(options):
+def format_filename(options, type):
     if options.filename is None:
         filename = None
     else:
-        filename = "{}.{}".format(options.filename, options.format)
+        filename = "{}_{}.{}".format(options.filename, type.lower(), options.format)
     return filename
 
 
-def output_data(options, data, attention_msg=None):
-    filename = format_filename(options)
+def output_data(options, data, type, attention_msg=None):
+    filename = format_filename(options, type)
     if filename is None:
-        if options.format == CSV_FORMAT:
+        if options.format == constants.CSV_FORMAT:
             print(json_normalize(data).to_csv(index=False))
         else:
             print(json.dumps(data, indent=2))
         # NOTE: While this logic is here, unless validate_file_extensions
         #       allows for other data types to export to CSV, this will
         #       only include investment data.
-    elif options.format == CSV_FORMAT:
+    elif options.format == constants.CSV_FORMAT:
         # NOTE: Currently, investment_data, which is a flat JSON, is the only
         #       type of data that uses this section.  So, if we open this up to
         #       other non-flat JSON data, we will need to revisit this.
         json_normalize(data).to_csv(filename, index=False)
-    elif options.format == JSON_FORMAT:
+    elif options.format == constants.JSON_FORMAT:
         with open(filename, "w+") as f:
             json.dump(data, f, indent=2)
 
@@ -416,35 +413,22 @@ def main():
         print("MFA CODE:", mfa_code)
         sys.exit()
 
-    data = None
-    if options.accounts and options.budgets:
-        try:
-            data = mint.get_account_data(limit=options.limit)
-        except Exception:
-            accounts = None
+    attention_msg = None
+    if options.attention:
+        attention_msg = mint.get_attention()
 
-        try:
-            budgets = mint.get_budgets(limit=options.limit)
-        except Exception:
-            budgets = None
+    if options.accounts:
+        data = mint.get_account_data(limit=options.limit)
+        output_data(options, data, constants.ACCOUNT_KEY, attention_msg)
 
-        data = {"accounts": accounts, "budgets": budgets}
-    elif options.budgets:
-        try:
-            data = mint.get_budgets(limit=options.limit)
-        except Exception:
-            data = None
+    if options.budgets:
+        data = mint.get_budgets(limit=options.limit)
+        output_data(options, data, constants.BUDGET_KEY, attention_msg)
     elif options.budget_hist:
-        try:
-            data = mint.get_budgets(limit=options.limit, hist=12)
-        except Exception:
-            data = None
-    elif options.accounts:
-        try:
-            data = mint.get_account_data(limit=options.limit)
-        except Exception:
-            data = None
-    elif options.transactions:
+        data = mint.get_budgets(limit=options.limit, hist=12)
+        output_data(options, data, constants.BUDGET_KEY, attention_msg)
+
+    if options.transactions:
         data = mint.get_transaction_data(
             limit=options.limit,
             start_date=options.start_date,
@@ -452,27 +436,33 @@ def main():
             include_investment=options.include_investment,
             remove_pending=options.show_pending,
         )
-    elif options.categories:
+        output_data(options, data, constants.TRANSACTION_KEY, attention_msg)
+
+    if options.categories:
         data = mint.get_categories(
             limit=options.limit,
         )
-    elif options.investments:
+        output_data(options, data, constants.CATEGORY_KEY, attention_msg)
+
+    if options.investments:
         data = mint.get_investment_data(
             limit=options.limit,
         )
-    elif options.net_worth:
+        output_data(options, data, constants.INVESTMENT_KEY, attention_msg)
+
+    if options.net_worth:
         data = mint.get_net_worth()
-    elif options.credit_score:
+        output_data(options, data, constants.NET_WORTH_KEY, attention_msg)
+
+    if options.credit_score:
         data = mint.get_credit_score()
-    elif options.credit_report:
+        output_data(options, data, constants.CREDIT_SCORE_KEY, attention_msg)
+
+    if options.credit_report:
         data = mint.get_credit_report(
             details=True,
             exclude_inquiries=options.exclude_inquiries,
             exclude_accounts=options.exclude_accounts,
             exclude_utilization=options.exclude_utilization,
         )
-
-    attention_msg = None
-    if options.attention:
-        attention_msg = mint.get_attention()
-    output_data(options, data, attention_msg)
+        output_data(options, data, constants.CREDIT_REPORT_KEY, attention_msg)
