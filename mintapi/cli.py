@@ -452,7 +452,8 @@ def main():
 
     if options.net_worth:
         data = mint.get_net_worth()
-        output_data(options, data, constants.NET_WORTH_KEY, attention_msg)
+        formatted_data = {"net_worth": data}
+        output_data(options, formatted_data, constants.NET_WORTH_KEY, attention_msg)
 
     if options.credit_score:
         data = mint.get_credit_score()
