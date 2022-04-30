@@ -363,9 +363,9 @@ def sign_in(
             ):
                 # no need to enter credentials, likely alreadly logged in
                 pass
+            driver.implicitly_wait(1)  # seconds
 
         # Wait until logged in, just in case we need to deal with MFA.
-        driver.implicitly_wait(1)  # seconds
 
         if not bypass_verified_user_page(driver):
             # if bypass_verified_user_page was present, then MFA already done
