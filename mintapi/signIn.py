@@ -377,7 +377,7 @@ def sign_in(
             )
         except Exception:
             count += 1
-            if count > 10:
+            if count > 4:
                 raise RuntimeError(
                     "Login to Mint failed due to timeout in the Multifactor Method Loop"
                 )
