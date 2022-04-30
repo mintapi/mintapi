@@ -342,47 +342,60 @@ def sign_in(
 
     user_selection_page(driver)
 
-    try:  # try to enter in credentials if username and password are on same page
-        handle_same_page_username_password(driver, email, password)
-    # try to enter in credentials if username and password are on different pages
-    except (
-        ElementNotInteractableException,
-        ElementNotVisibleException,
-        NoSuchElementException,
-    ):
-        handle_different_page_username_password(driver, email)
-        driver.implicitly_wait(5)  # seconds
-        password_page(driver, password)
-
     driver.implicitly_wait(1)  # seconds
     count = 0
-    while not "https://mint.intuit.com/overview" in driver.current_url:
+    while not driver.current_url.startswith("https://mint.intuit.com/overview"):
+        try:  # try to enter in credentials if username and password are on same page
+            handle_same_page_username_password(driver, email, password)
+        except (
+            ElementNotInteractableException,
+            ElementNotVisibleException,
+            NoSuchElementException,
+        ):
+            try:  # try to enter in credentials if username and password are on different pages
+                handle_different_page_username_password(driver, email)
+                driver.implicitly_wait(5)  # seconds
+                password_page(driver, password)
+            except (
+                ElementNotInteractableException,
+                ElementNotVisibleException,
+                NoSuchElementException,
+            ):
+                # no need to enter credentials, likely alreadly logged in
+                pass
+
         # Wait until logged in, just in case we need to deal with MFA.
-        bypass_verified_user_page(driver)
-        bypass_passwordless_login_page(driver)
-        if mfa_method is not None:
-            mfa_selection_page(driver, mfa_method)
-        mfa_page(
-            driver,
-            mfa_method,
-            mfa_token,
-            mfa_input_callback,
-            imap_account,
-            imap_password,
-            imap_server,
-            imap_folder,
-        )
+        driver.implicitly_wait(1)  # seconds
+
+        if not bypass_verified_user_page(driver):
+            # if bypass_verified_user_page was present, then MFA already done
+            bypass_passwordless_login_page(driver)
+            if mfa_method is not None:
+                mfa_selection_page(driver, mfa_method)
+            mfa_page(
+                driver,
+                mfa_method,
+                mfa_token,
+                mfa_input_callback,
+                imap_account,
+                imap_password,
+                imap_server,
+                imap_folder,
+            )
         account_selection_page(driver, intuit_account)
         password_page(driver, password)
-
-        count = count + 1
-        if count > 10:
-            if "Intuit Accounts - Sign In" in driver.page_source.encode(
-                "ascii", "replace"
-            ).decode("ascii"):
-                raise RuntimeError("Login to Mint failed")
-            else:
-                raise RuntimeError("Timeout while logging in")
+        # Give the overview page a chance to actually load.
+        # If it doesn't, then there may be another round of MFA.
+        try:
+            WebDriverWait(driver, 5).until(
+                expected_conditions.url_contains("https://mint.intuit.com/overview")
+            )
+        except Exception:
+            count += 1
+            if count > 4:
+                raise RuntimeError(
+                    "Login to Mint failed due to timeout in the Multifactor Method Loop"
+                )
 
     driver.implicitly_wait(20)  # seconds
     # Wait until the overview page has actually loaded, and if wait_for_sync==True, sync has completed.
@@ -441,16 +454,18 @@ def handle_different_page_username_password(driver, email):
 
 def bypass_verified_user_page(driver):
     # bypass "Let's add your current mobile number" interstitial page
+    # returns True is page is bypassed
     try:
         skip_for_now = driver.find_element_by_id("ius-verified-user-update-btn-skip")
         skip_for_now.click()
+        return True
     except (
         NoSuchElementException,
         StaleElementReferenceException,
         ElementNotVisibleException,
         ElementNotInteractableException,
     ):
-        pass
+        return False
 
 
 def mfa_selection_page(driver, mfa_method):
