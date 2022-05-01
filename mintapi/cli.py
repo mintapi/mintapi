@@ -203,7 +203,11 @@ def parse_arguments(args):
         (
             ("--mfa-method",),
             {
-                "choices": ["sms", "email", "soft-token"],
+                "choices": [
+                    constants.MFA_VIA_SMS,
+                    constants.MFA_VIA_EMAIL,
+                    constants.MFA_VIA_SOFT_TOKEN,
+                ],
                 "default": None,
                 "help": "The MFA method to automate.",
             },
@@ -291,7 +295,7 @@ def handle_password(type, prompt, email, password, use_keyring=False):
 
     if not password:
         # If we still don't have a password, prompt for it
-        password = getpass.getpass("Mint password: ")
+        password = getpass.getpass(prompt)
 
     if use_keyring:
         # If keyring option is specified, save the password in the keyring

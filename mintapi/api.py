@@ -3,16 +3,9 @@ from dateutil.relativedelta import relativedelta
 from mintapi import constants
 import logging
 import os
-import random
-import re
-import requests
-import time
-import warnings
-
 from mintapi.signIn import sign_in, _create_web_driver_at_mint_com
 
 logger = logging.getLogger("mintapi")
-
 
 ENDPOINTS = {
     constants.ACCOUNT_KEY: {
@@ -64,13 +57,6 @@ def convert_mmddyy_to_datetime(date):
 def reverse_credit_amount(row):
     amount = float(row["amount"][1:].replace(",", ""))
     return amount if row["isDebit"] else -amount
-
-
-MINT_ROOT_URL = "https://mint.intuit.com"
-MINT_ACCOUNTS_URL = "https://accounts.intuit.com"
-MINT_CREDIT_URL = "https://credit.finance.intuit.com"
-
-JSON_HEADER = {"accept": "application/json"}
 
 
 class MintException(Exception):
@@ -129,7 +115,7 @@ class Mint(object):
         auth = "Intuit_APIKey intuit_apikey=" + api_key
         auth += ", intuit_apikey_version=1.0"
         header = {"authorization": auth}
-        header.update(JSON_HEADER)
+        header.update(constants.JSON_HEADER)
         return header
 
     def close(self):
@@ -207,7 +193,7 @@ class Mint(object):
 
     def get_bills(self):
         return self.get(
-            "{}/bps/v2/payer/bills".format(MINT_ROOT_URL),
+            "{}/bps/v2/payer/bills".format(constants.MINT_ROOT_URL),
             headers=self._get_api_key_header(),
         ).json()["bills"]
 
@@ -317,7 +303,8 @@ class Mint(object):
 
     def initiate_account_refresh(self):
         self.post(
-            url="{}/refreshFILogins.xevent".format(MINT_ROOT_URL), headers=JSON_HEADER
+            url="{}/refreshFILogins.xevent".format(constants.MINT_ROOT_URL),
+            headers=constants.JSON_HEADER,
         )
 
     def get_credit_score(self):
@@ -378,16 +365,18 @@ class Mint(object):
         # Because cookies are involved and you cannot add cookies for another
         # domain, we have to first load up the MINT_CREDIT_URL.  Once the new
         # domain has loaded, we can proceed with the pull of credit data.
-        return self.driver.get(MINT_CREDIT_URL)
+        return self.driver.get(constants.MINT_CREDIT_URL)
 
     def _get_credit_reports(self, limit, credit_header):
         return self.get(
-            "{}/v1/creditreports?limit={}".format(MINT_CREDIT_URL, limit),
+            "{}/v1/creditreports?limit={}".format(constants.MINT_CREDIT_URL, limit),
             headers=credit_header,
         ).json()
 
     def _get_credit_details(self, url, credit_header):
-        return self.get(url.format(MINT_CREDIT_URL), headers=credit_header).json()
+        return self.get(
+            url.format(constants.MINT_CREDIT_URL), headers=credit_header
+        ).json()
 
     def get_credit_inquiries(self, credit_header):
         return self._get_credit_details(
@@ -441,7 +430,7 @@ class Mint(object):
         self, endpoint, limit, id=None, start_date=None, end_date=None
     ):
         url = "{}/{}/{}?limit={}&".format(
-            MINT_ROOT_URL, endpoint["apiVersion"], endpoint["endpoint"], limit
+            constants.MINT_ROOT_URL, endpoint["apiVersion"], endpoint["endpoint"], limit
         )
         if endpoint["beginningDate"] is not None and start_date is not None:
             url = url + "{}={}&".format(endpoint["beginningDate"], start_date)
@@ -493,14 +482,3 @@ def get_credit_report(email, password):
 def initiate_account_refresh(email, password):
     mint = Mint(email, password)
     return mint.initiate_account_refresh()
-
-
-if __name__ == "__main__":
-    warnings.warn(
-        "Calling command line code from api.py will be deprecated in a future release.\n"
-        "Please call mintapi directly. For examples, see the README.md",
-        DeprecationWarning,
-    )
-    from mintapi.cli import main
-
-    main()
