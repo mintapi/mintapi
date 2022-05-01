@@ -540,10 +540,6 @@ def search_mfa_method(driver):
     for method in MFA_METHODS:
         mfa_token_input = mfa_token_button = mfa_method = span_text = result = None
         try:
-            mfa_token_select = driver.find_element_by_css_selector(
-                method[SELECT_CSS_SELECTORS_LABEL]
-            )
-            mfa_token_select.click()
             mfa_token_input = driver.find_element_by_css_selector(
                 method[INPUT_CSS_SELECTORS_LABEL]
             )
