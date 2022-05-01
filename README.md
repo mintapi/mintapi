@@ -12,6 +12,7 @@ An unofficial screen-scraping API for Mint.com.
 Please [join us on Discord](https://discord.gg/YjJEuJRAu9) to get help or just chat with fellow mintapi users :)
 
 ## Installation
+
 Ensure you have Python 3 and pip (`easy_install pip`) and then:
 
 ```shell
@@ -22,7 +23,7 @@ pip install mintapi
 
 ## Usage
 
-### from the command line
+### From the Command Line
 
 From the command line, the most automated invocation will be:
 
@@ -43,9 +44,11 @@ If you're running mintapi in a server environment on an automatic schedule, cons
 If you need to download the chromedriver manually, be sure to get the version that matches your chrome version and make the chromedriver available to your python interpreter either by putting the chromedriver in your python working directory or inside your `PATH` as described in the [python selenium documentation](https://www.selenium.dev/selenium/docs/api/py/index.html#drivers).
 
 ### General Automation Scenarios
+
 When running this inside of a cron job or other long-term automation scripts, it might be helpful to specify chrome and chromedriver executables so as not to conflict with other chrome versions you may have. Selenium by default just gets these from your `PATH` environment variable, so customizing your environment can force a deterministic behavior from mintapi. To use a different browser besides Chrome or Chromium, see the [python api](#from-python). Below are two examples.
 
 #### Unix Environment
+
 If I wanted to make sure that mintapi used the chromium executable in my /usr/bin directory when executing a cron job, I could write the following cron line:
 ```cron
 0 7 * * FRI PATH=/usr/bin:$PATH mintapi --headless john@example.com my_password
@@ -53,6 +56,7 @@ If I wanted to make sure that mintapi used the chromium executable in my /usr/bi
 where prepending the /usr/bin path to path will make those binaries found first. This will only affect the cron job and will not change the environment for any other process.
 
 #### Docker Image
+
 You can also use the docker image to help manage your environment so you don't have to worry about chrome or chromedriver versions. There are a few caveats:
 1. Headless mode is recommended. GUI works but introduces the need to configure an X11 server which varies with setup. Google is your friend.
 2. Almost always use the flag `--use-chromedriver-on-path` as the chrome and chromedriver built into the docker image already match and getting the latest will break the image.
@@ -64,7 +68,9 @@ docker run --rm --shm-size=2g ghcr.io/mintapi/mintapi mintapi john@example.com m
 ```
 
 #### Windows Environment
+
 You can do a similar thing in windows by executing the following in Powershell.
+
 ```powershell
 $ENV:PATH = "C:\Program Files\Google\Chrome;$ENV:PATH"
 mintapi --headless john@example.com my_password
@@ -80,7 +86,24 @@ If `mfa-method` is soft-token then you must also pass your `mfa-token`. The `mfa
 
 While Mint supports authentication via Voice, `mintapi` does not currently support this option.  Compatability with this method will be added in a later version.
 
-### from Python
+### Multi-Data Support
+
+As of v2.0, MintAPI supports returning multiple types of data in one call to MintAPI.  When exporting multiple data types, you can either send it directly to `stdout` or you can export to a data file.  What MintAPI will do with your specified filename is add a suffix based on the type of data you are exporting.  The following table outlines the option selected and its corresponding suffix:
+
+| Option       | Suffix       |
+| -----------  | -----------  |
+| accounts     | account      |
+| budgets      | budget       |
+| transactions | transaction  |
+| categories   | category     |
+| investments  | investment   |
+| net-worth    | net_worth    |
+| credit-score | credit_score |
+| credit-report| credit_report|
+
+For example, if you specify `current` as your filename, format as csv, and you export `account` and `transaction`, then you will receive two files: `current_account.csv` and `current_transaction.csv`.
+
+### From Python
 
 From python, instantiate the Mint class (from the mintapi package) and you can
 make calls to retrieve account/budget information.  We recommend using the

@@ -1,5 +1,6 @@
 from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
+from mintapi import constants
 import logging
 import os
 import random
@@ -12,42 +13,37 @@ from mintapi.signIn import sign_in, _create_web_driver_at_mint_com
 
 logger = logging.getLogger("mintapi")
 
-ACCOUNT_KEY = "Account"
-BUDGET_KEY = "Budget"
-CATEGORY_KEY = "Category"
-INVESTMENT_KEY = "Investment"
-TRANSACTION_KEY = "Transaction"
 
 ENDPOINTS = {
-    ACCOUNT_KEY: {
+    constants.ACCOUNT_KEY: {
         "apiVersion": "pfm/v1",
         "endpoint": "accounts",
         "beginningDate": None,
         "endingDate": None,
         "includeCreatedDate": True,
     },
-    BUDGET_KEY: {
+    constants.BUDGET_KEY: {
         "apiVersion": "pfm/v1",
         "endpoint": "budgets",
         "beginningDate": "startDate",
         "endingDate": "endDate",
         "includeCreatedDate": True,
     },
-    CATEGORY_KEY: {
+    constants.CATEGORY_KEY: {
         "apiVersion": "pfm/v1",
         "endpoint": "categories",
         "beginningDate": None,
         "endingDate": None,
         "includeCreatedDate": False,
     },
-    INVESTMENT_KEY: {
+    constants.INVESTMENT_KEY: {
         "apiVersion": "pfm/v1",
         "endpoint": "investments",
         "beginningDate": None,
         "endingDate": None,
         "includeCreatedDate": False,
     },
-    TRANSACTION_KEY: {
+    constants.TRANSACTION_KEY: {
         "apiVersion": "pfm/v1",
         "endpoint": "transactions",
         "beginningDate": "fromDate",
@@ -239,20 +235,20 @@ class Mint(object):
         self,
         limit=5000,
     ):
-        return self.get_data(ACCOUNT_KEY, limit)
+        return self.get_data(constants.ACCOUNT_KEY, limit)
 
     def get_categories(
         self,
         limit=5000,
     ):
-        return self.get_data(CATEGORY_KEY, limit)
+        return self.get_data(constants.CATEGORY_KEY, limit)
 
     def get_budgets(
         self,
         limit=5000,
     ):
         return self.get_data(
-            BUDGET_KEY,
+            constants.BUDGET_KEY,
             limit,
             None,
             start_date=self.__x_months_ago(11),
@@ -264,7 +260,7 @@ class Mint(object):
         limit=5000,
     ):
         return self.get_data(
-            INVESTMENT_KEY,
+            constants.INVESTMENT_KEY,
             limit,
         )
 
@@ -292,7 +288,7 @@ class Mint(object):
             if include_investment:
                 id = 0
             data = self.get_data(
-                TRANSACTION_KEY,
+                constants.TRANSACTION_KEY,
                 limit,
                 id,
                 convert_mmddyy_to_datetime(start_date),
@@ -318,7 +314,7 @@ class Mint(object):
             [
                 -a["currentBalance"] if a["type"] in invert else a["currentBalance"]
                 for a in account_data
-                if a["isActive"]
+                if a["isActive"] and "currentBalance" in a
             ]
         )
 
