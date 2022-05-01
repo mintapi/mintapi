@@ -34,6 +34,7 @@ MFA_VIA_AUTHENTICATOR = "authenticator"
 MFA_VIA_EMAIL = "email"
 MFA_VIA_SMS = "sms"
 MFA_METHOD_LABEL = "mfa_method"
+SELECT_CSS_SELECTORS_LABEL = "select_css_selectors"
 INPUT_CSS_SELECTORS_LABEL = "input_css_selectors"
 SPAN_CSS_SELECTORS_LABEL = "span_css_selectors"
 BUTTON_CSS_SELECTORS_LABEL = "button_css_selectors"
@@ -41,25 +42,29 @@ BUTTON_CSS_SELECTORS_LABEL = "button_css_selectors"
 MFA_METHODS = [
     {
         MFA_METHOD_LABEL: MFA_VIA_SOFT_TOKEN,
+        SELECT_CSS_SELECTORS_LABEL: '#iux-mfa-soft-token-verification-code, #ius-mfa-soft-token, [data-testid="VerifySoftTokenInput"]',
         INPUT_CSS_SELECTORS_LABEL: '#iux-mfa-soft-token-verification-code, #ius-mfa-soft-token, [data-testid="VerifySoftTokenInput"]',
         SPAN_CSS_SELECTORS_LABEL: "",
         BUTTON_CSS_SELECTORS_LABEL: '#ius-mfa-soft-token-submit-btn, [data-testid="VerifySoftTokenSubmitButton"]',
     },
     {
         MFA_METHOD_LABEL: MFA_VIA_AUTHENTICATOR,
+        SELECT_CSS_SELECTORS_LABEL: '#iux-mfa-soft-token-verification-code, #ius-mfa-soft-token, [data-testid="VerifySoftTokenInput"]',
         INPUT_CSS_SELECTORS_LABEL: '#iux-mfa-soft-token-verification-code, #ius-mfa-soft-token, [data-testid="VerifySoftTokenInput"]',
         SPAN_CSS_SELECTORS_LABEL: '[data-testid="VerifySoftTokenSubHeader"]',
         BUTTON_CSS_SELECTORS_LABEL: '#ius-mfa-soft-token-submit-btn, [data-testid="VerifySoftTokenSubmitButton"]',
     },
     {
         MFA_METHOD_LABEL: MFA_VIA_EMAIL,
-        INPUT_CSS_SELECTORS_LABEL: "#ius-label-mfa-email-otp, #ius-mfa-email-otp-card-challenge, #ius-sublabel-mfa-email-otp, #ius-mfa-confirm-code",
+        SELECT_CSS_SELECTORS_LABEL: "#ius-label-mfa-email-otp, #ius-mfa-email-otp-card-challenge, #ius-sublabel-mfa-email-otp",
+        INPUT_CSS_SELECTORS_LABEL: "#ius-mfa-confirm-code",
         SPAN_CSS_SELECTORS_LABEL: '[data-testid="VerifyOtpHeaderText"]',
         BUTTON_CSS_SELECTORS_LABEL: '#ius-mfa-otp-submit-btn, [data-testid="VerifyOtpSubmitButton"]',
     },
     {
         MFA_METHOD_LABEL: MFA_VIA_SMS,
-        INPUT_CSS_SELECTORS_LABEL: "#ius-mfa-sms-otp-card-challenge, #ius-mfa-confirm-code",
+        SELECT_CSS_SELECTORS_LABEL: "#ius-mfa-sms-otp-card-challenge",
+        INPUT_CSS_SELECTORS_LABEL: "#ius-mfa-confirm-code",
         SPAN_CSS_SELECTORS_LABEL: '[data-testid="VerifyOtpHeaderText"]',
         BUTTON_CSS_SELECTORS_LABEL: '#ius-mfa-otp-submit-btn, [data-testid="VerifyOtpSubmitButton"]',
     },
@@ -337,36 +342,46 @@ def sign_in(
 
     user_selection_page(driver)
 
+    driver.implicitly_wait(1)  # seconds
     count = 0
     while not driver.current_url.startswith("https://mint.intuit.com/overview"):
         try:  # try to enter in credentials if username and password are on same page
             handle_same_page_username_password(driver, email, password)
-        # try to enter in credentials if username and password are on different pages
         except (
             ElementNotInteractableException,
             ElementNotVisibleException,
             NoSuchElementException,
         ):
-            handle_different_page_username_password(driver, email)
-            driver.implicitly_wait(5)  # seconds
-            password_page(driver, password)
+            try:  # try to enter in credentials if username and password are on different pages
+                handle_different_page_username_password(driver, email)
+                driver.implicitly_wait(5)  # seconds
+                password_page(driver, password)
+            except (
+                ElementNotInteractableException,
+                ElementNotVisibleException,
+                NoSuchElementException,
+            ):
+                # no need to enter credentials, likely alreadly logged in
+                pass
+            driver.implicitly_wait(1)  # seconds
 
         # Wait until logged in, just in case we need to deal with MFA.
-        driver.implicitly_wait(1)  # seconds
-        bypass_verified_user_page(driver)
-        bypass_passwordless_login_page(driver)
-        if mfa_method is not None:
-            mfa_selection_page(driver, mfa_method)
-        mfa_page(
-            driver,
-            mfa_method,
-            mfa_token,
-            mfa_input_callback,
-            imap_account,
-            imap_password,
-            imap_server,
-            imap_folder,
-        )
+
+        if not bypass_verified_user_page(driver):
+            # if bypass_verified_user_page was present, then MFA already done
+            bypass_passwordless_login_page(driver)
+            if mfa_method is not None:
+                mfa_selection_page(driver, mfa_method)
+            mfa_page(
+                driver,
+                mfa_method,
+                mfa_token,
+                mfa_input_callback,
+                imap_account,
+                imap_password,
+                imap_server,
+                imap_folder,
+            )
         account_selection_page(driver, intuit_account)
         password_page(driver, password)
         # Give the overview page a chance to actually load.
@@ -439,16 +454,18 @@ def handle_different_page_username_password(driver, email):
 
 def bypass_verified_user_page(driver):
     # bypass "Let's add your current mobile number" interstitial page
+    # returns True is page is bypassed
     try:
         skip_for_now = driver.find_element_by_id("ius-verified-user-update-btn-skip")
         skip_for_now.click()
+        return True
     except (
         NoSuchElementException,
         StaleElementReferenceException,
         ElementNotVisibleException,
         ElementNotInteractableException,
     ):
-        pass
+        return False
 
 
 def mfa_selection_page(driver, mfa_method):
@@ -549,6 +566,10 @@ def set_mfa_method(driver, mfa_method):
     )
     mfa_result = list(mfa)[0]
     try:
+        mfa_token_select = driver.find_element_by_css_selector(
+            mfa_result[SELECT_CSS_SELECTORS_LABEL]
+        )
+        mfa_token_select.click()
         mfa_token_input = driver.find_element_by_css_selector(
             mfa_result[INPUT_CSS_SELECTORS_LABEL]
         )
