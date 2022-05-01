@@ -311,7 +311,7 @@ class Mint(object):
             [
                 -a["currentBalance"] if a["type"] in invert else a["currentBalance"]
                 for a in account_data
-                if a["isActive"]
+                if a["isActive"] and "currentBalance" in a
             ]
         )
 
