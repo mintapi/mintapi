@@ -288,27 +288,27 @@ class MintApiTests(unittest.TestCase):
     )
     def test_exclude_credit_details(self, **_):
         mint = mintapi.Mint()
-        credit_report = mint.get_credit_report(
+        credit_report = mint.get_credit_report_data(
             limit=2, details=True, exclude_inquiries=True
         )
         self.assertFalse("inquiries" in credit_report)
-        credit_report = mint.get_credit_report(
+        credit_report = mint.get_credit_report_data(
             limit=2, details=True, exclude_inquiries=False
         )
         self.assertTrue("inquiries" in credit_report)
-        credit_report = mint.get_credit_report(
+        credit_report = mint.get_credit_report_data(
             limit=2, details=True, exclude_accounts=True
         )
         self.assertFalse("accounts" in credit_report)
-        credit_report = mint.get_credit_report(
+        credit_report = mint.get_credit_report_data(
             limit=2, details=True, exclude_accounts=False
         )
         self.assertTrue("accounts" in credit_report)
-        credit_report = mint.get_credit_report(
+        credit_report = mint.get_credit_report_data(
             limit=2, details=True, exclude_utilization=True
         )
         self.assertFalse("utilization" in credit_report)
-        credit_report = mint.get_credit_report(
+        credit_report = mint.get_credit_report_data(
             limit=2, details=True, exclude_utilization=False
         )
         self.assertTrue("utilization" in credit_report)
@@ -349,7 +349,7 @@ class MintApiTests(unittest.TestCase):
     @patch.object(mintapi.Mint, "_Mint__call_mint_endpoint")
     def test_get_budgets(self, mock_call_budgets_endpoint):
         mock_call_budgets_endpoint.return_value = budgets_example
-        budgets = mintapi.Mint().get_budgets()[0]
+        budgets = mintapi.Mint().get_budget_data()[0]
         self.assertFalse("metaData" in budgets)
         self.assertTrue("createdDate" in budgets)
         self.assertTrue("lastUpdatedDate" in budgets)

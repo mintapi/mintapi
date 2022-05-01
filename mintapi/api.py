@@ -234,13 +234,13 @@ class Mint(object):
     ):
         return self.get_data(constants.ACCOUNT_KEY, limit)
 
-    def get_categories(
+    def get_category_data(
         self,
         limit=5000,
     ):
         return self.get_data(constants.CATEGORY_KEY, limit)
 
-    def get_budgets(
+    def get_budget_data(
         self,
         limit=5000,
     ):
@@ -301,7 +301,7 @@ class Mint(object):
             raise Exception
         return data
 
-    def get_net_worth(self, account_data=None):
+    def get_net_worth_data(self, account_data=None):
         if account_data is None:
             account_data = self.get_account_data()
 
@@ -320,9 +320,9 @@ class Mint(object):
             url="{}/refreshFILogins.xevent".format(MINT_ROOT_URL), headers=JSON_HEADER
         )
 
-    def get_credit_score(self):
+    def get_credit_score_data(self):
         # Request a single credit report, and extract the score
-        report = self.get_credit_report(
+        report = self.get_credit_report_data(
             limit=1,
             details=False,
             exclude_inquiries=False,
@@ -335,7 +335,7 @@ class Mint(object):
         except (KeyError, IndexError):
             raise Exception("No Credit Score Found")
 
-    def get_credit_report(
+    def get_credit_report_data(
         self,
         limit=2,
         details=True,
