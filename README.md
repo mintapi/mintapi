@@ -143,6 +143,7 @@ make calls to retrieve account/budget information.  We recommend using the
     wait_for_sync_timeout=300,  # number of seconds to wait for sync
 	use_chromedriver_on_path=False,  # True will use a system provided chromedriver binary that
 	                                 # is on the PATH (instead of downloading the latest version)
+    driver=None        # pre-configured driver. If None, Mint will initialize the WebDriver.
   )
 
   # Get basic account information
@@ -286,4 +287,15 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       },
       ...
     ]
+```
+
+#### AWS Lambda Environment
+
+AWS Lambda may need a [specific chrome driver with specific options](https://robertorocha.info/setting-up-a-selenium-web-scraper-on-aws-lambda-with-python/). You can initialize Mint with the pre-configured headless serverless chrome through the constructor:
+
+
+```python
+driver = initialize_serverless_chrome_driver(...)
+mint = mintapi.Mint(..., driver=driver)
+...
 ```
