@@ -55,6 +55,15 @@ If I wanted to make sure that mintapi used the chromium executable in my /usr/bi
 ```
 where prepending the /usr/bin path to path will make those binaries found first. This will only affect the cron job and will not change the environment for any other process.
 
+#### Windows Environment
+
+You can do a similar thing in windows by executing the following in Powershell.
+
+```powershell
+$ENV:PATH = "C:\Program Files\Google\Chrome;$ENV:PATH"
+mintapi --headless john@example.com my_password
+```
+
 #### Docker Image
 
 You can also use the docker image to help manage your environment so you don't have to worry about chrome or chromedriver versions. There are a few caveats:
@@ -67,14 +76,17 @@ To use the image:
 docker run --rm --shm-size=2g ghcr.io/mintapi/mintapi mintapi john@example.com my_password --headless --use-chromedriver-on-path
 ```
 
-#### Windows Environment
+#### AWS Lambda Environment
 
-You can do a similar thing in windows by executing the following in Powershell.
+AWS Lambda may need a [specific chrome driver with specific options](https://robertorocha.info/setting-up-a-selenium-web-scraper-on-aws-lambda-with-python/). You can initialize Mint with the pre-configured headless serverless chrome through the constructor:
 
-```powershell
-$ENV:PATH = "C:\Program Files\Google\Chrome;$ENV:PATH"
-mintapi --headless john@example.com my_password
+
+```python
+driver = initialize_serverless_chrome_driver(...)
+mint = mintapi.Mint(..., driver=driver)
+...
 ```
+
 
 ### MFA Authentication Methods
 
@@ -143,6 +155,7 @@ make calls to retrieve account/budget information.  We recommend using the
     wait_for_sync_timeout=300,  # number of seconds to wait for sync
 	use_chromedriver_on_path=False,  # True will use a system provided chromedriver binary that
 	                                 # is on the PATH (instead of downloading the latest version)
+    driver=None        # pre-configured driver. If None, Mint will initialize the WebDriver.
   )
 
   # Get account information
