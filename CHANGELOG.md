@@ -17,6 +17,7 @@ BREAKING CHANGES:
 - Because of the new Mint UI and the switchover to different API Endpoints, the data structure associated with each function may be different.  Please verify that the data you are expecting against the new output of each endpoint.
 - To help support the new CLI option for data format (`--format`), we have eliminated the need to specify a file extension in `--filename`.  Be aware that if you do not specify `--format=csv`, then the extension\format will be `json`, which means that any filename you specify will include the extension of `.json`.
 - In addition to the above, the CLI now supports receiving multiple types of data in one call to MintAPI.  When exporting multiple data types, you can either send it directly to the `stdout` or you can export to a data file.  What MintAPI will do with your specified filename is add a suffix based on the type of data you are exporting.  For example, if you specify `current` as your filename and you export `account` and `transaction`, then you will receive two files: `current_account` and `current_transaction`.
+- You will note that to implement consistency and to call attention to the fact that some input and outputs of the primary methods to fetch Mint data has changed, the API methods for each data type may be different.  However, (with the exception of bills), all data fetch methods follow the same sort of pattern, i.e. `get_<data type>_data`.  For example, instead of `get_accounts`, we now have `get_account_data`.
 
 
 1.64

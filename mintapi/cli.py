@@ -426,10 +426,10 @@ def main():
         output_data(options, data, constants.ACCOUNT_KEY, attention_msg)
 
     if options.budgets:
-        data = mint.get_budgets(limit=options.limit)
+        data = mint.get_budget_data(limit=options.limit)
         output_data(options, data, constants.BUDGET_KEY, attention_msg)
     elif options.budget_hist:
-        data = mint.get_budgets(limit=options.limit, hist=12)
+        data = mint.get_budget_data(limit=options.limit, hist=12)
         output_data(options, data, constants.BUDGET_KEY, attention_msg)
 
     if options.transactions:
@@ -443,7 +443,7 @@ def main():
         output_data(options, data, constants.TRANSACTION_KEY, attention_msg)
 
     if options.categories:
-        data = mint.get_categories(
+        data = mint.get_category_data(
             limit=options.limit,
         )
         output_data(options, data, constants.CATEGORY_KEY, attention_msg)
@@ -455,16 +455,16 @@ def main():
         output_data(options, data, constants.INVESTMENT_KEY, attention_msg)
 
     if options.net_worth:
-        data = mint.get_net_worth()
+        data = mint.get_net_worth_data()
         formatted_data = {"net_worth": data}
         output_data(options, formatted_data, constants.NET_WORTH_KEY, attention_msg)
 
     if options.credit_score:
-        data = mint.get_credit_score()
+        data = mint.get_credit_score_data()
         output_data(options, data, constants.CREDIT_SCORE_KEY, attention_msg)
 
     if options.credit_report:
-        data = mint.get_credit_report(
+        data = mint.get_credit_report_data(
             details=True,
             exclude_inquiries=options.exclude_inquiries,
             exclude_accounts=options.exclude_accounts,

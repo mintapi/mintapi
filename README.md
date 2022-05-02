@@ -158,35 +158,31 @@ make calls to retrieve account/budget information.  We recommend using the
     driver=None        # pre-configured driver. If None, Mint will initialize the WebDriver.
   )
 
-  # Get basic account information
-  mint.get_accounts()
-
-  # Get extended account detail at the expense of speed - requires an
-  # additional API call for each account
-  mint.get_accounts(True)
+  # Get account information
+  mint.get_account_data()
 
   # Get budget information
-  mint.get_budgets()
+  mint.get_budget_data()
 
   # Get transactions
   mint.get_transaction_data() # as pandas dataframe
 
   # Get transactions for a specific account
-  accounts = mint.get_accounts(True)
+  accounts = mint.get_account_data()
   for account in accounts:
     mint.get_transaction_data(id=account["id"])
 
   # Get net worth
-  mint.get_net_worth()
+  mint.get_net_worth_data()
 
   # Get credit score
-  mint.get_credit_score()
+  mint.get_credit_score_data()
 
   # Get bills
   mint.get_bills()
 
   # Get investments (holdings and transactions)
-  mint.get_invests_json()
+  mint.get_investment_data()
 
   # Close session and exit cleanly from selenium/chromedriver
   mint.close()
