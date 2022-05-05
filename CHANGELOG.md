@@ -15,12 +15,12 @@
 - Update the name of the Account Refresh Class (#415)
 - Update the overview page url (#414)
 
-BREAKING CHANGES:
-- :warning: `mfa_method` is only required if your login flow presents you with the option to select which Multifactor Authentication Method you wish to use, typically as a result of your account configured to accept different methods.  #392 provided a way to automatically detect the type of MFA requested by Mint, based on the prompts on the screen.  Because of this, MintAPI now supports the use case where multiple MFA prompts appear.
-- Because of the new Mint UI and the switchover to different API Endpoints, the data structure associated with each function may be different.  Please verify that the data you are expecting against the new output of each endpoint.
-- To help support the new CLI option for data format (`--format`), we have eliminated the need to specify a file extension in `--filename`.  Be aware that if you do not specify `--format=csv`, then the extension\format will be `json`, which means that any filename you specify will include the extension of `.json`.
-- In addition to the above, the CLI now supports receiving multiple types of data in one call to MintAPI.  When exporting multiple data types, you can either send it directly to the `stdout` or you can export to a data file.  What MintAPI will do with your specified filename is add a suffix based on the type of data you are exporting.  For example, if you specify `current` as your filename and you export `account` and `transaction`, then you will receive two files: `current_account` and `current_transaction`.
-- You will note that to implement consistency and to call attention to the fact that some input and outputs of the primary methods to fetch Mint data has changed, the API methods for each data type may be different.  However, (with the exception of bills), all data fetch methods follow the same sort of pattern, i.e. `get_<data type>_data`.  For example, instead of `get_accounts`, we now have `get_account_data`.
+:warning: BREAKING CHANGES :warning:
+- As of version 2.0, mintapi only supports the new Mint.com UI and endpoints. Please see the README to learn which version of mintapi you need.
+- `mfa_method` is only required if your login flow presents you with the option to select which Multifactor Authentication Method you wish to use, typically as a result of your account configured to accept different methods.  We now automatically detect the type of MFA requested by Mint, based on the prompts on the screen.  Because of this, mintapi now supports the use case where multiple MFA prompts appear.
+- Due to the new Mint UI and the switchover to different API Endpoints, the data structure associated with each function may be different.  Please verify that the data you are expecting against the new output of each endpoint.
+- To implement consistency and to call attention to the fact that some input and output of methods has changed, some API methods have been renamed.  With the exception of bills, all data fetch methods now follow the same sort of pattern: `get_<data type>_data`.  For example, instead of `get_accounts`, we now have `get_account_data`.
+- To help support the new CLI option for data format (`--format`), we have eliminated the need to specify a file extension in `--filename`.  Be aware that if you do not specify `--format=csv`, then the extension/format will be `json`, and any filename will automatically include the extension of `.json`. In addition, the CLI now supports receiving multiple types of data in one call to mintapi. See the "Multi-Data Support" section of the README for more information.
 
 1.66
 ---
