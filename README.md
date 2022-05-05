@@ -7,6 +7,13 @@
 
 An unofficial screen-scraping API for Mint.com.
 
+## IMPORTANT: mintapi 2.0 vs 1.x
+
+We recently released 2.0, which supports (and only supports) the new Mint UI. If your account still has the original UI with the
+nav on *top*, please install the latest 1.x release: `pip install mintapi<2.0`. If your account has the new UI with the nav on the *left*, you'll need to install at least 2.0: `pip install mintapi>=2.0`.
+
+Please note that due to data changes on the Mint.com side as well as various new features and changes on the mintapi side, there are various breaking changes. Please see [the CHANGELOG](https://github.com/mintapi/mintapi/blob/main/CHANGELOG.md) for details.
+
 ## Community
 
 Please [join us on Discord](https://discord.gg/YjJEuJRAu9) to get help or just chat with fellow mintapi users :)
@@ -100,7 +107,7 @@ While Mint supports authentication via Voice, `mintapi` does not currently suppo
 
 ### Multi-Data Support
 
-As of v2.0, MintAPI supports returning multiple types of data in one call to MintAPI.  When exporting multiple data types, you can either send it directly to `stdout` or you can export to a data file.  What MintAPI will do with your specified filename is add a suffix based on the type of data you are exporting.  The following table outlines the option selected and its corresponding suffix:
+As of v2.0, mintapi supports returning multiple types of data in one call to mintapi.  When exporting multiple data types, you can either send it directly to `stdout` or you can export to a data file.  What mintapi will do with your specified filename is add a suffix based on the type of data you are exporting.  The following table outlines the option selected and its corresponding suffix:
 
 | Option       | Suffix       |
 | -----------  | -----------  |
@@ -215,7 +222,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
 
 ```shell
     usage: mintapi [-h] [--session-path [SESSION_PATH]] [--accounts] [--investment]
-                   [--budgets | --budget_hist] [--net-worth] [--extended-accounts] 
+                   [--budgets | --budget_hist] [--net-worth] [--extended-accounts]
                    [--transactions] [--credit-score] [--credit-report]
                    [--exclude-inquiries] [--exclude-accounts] [--exclude-utilization]
                    [--start-date [START_DATE]] [--end-date [END_DATE]]

@@ -1,16 +1,19 @@
-2.0 (Pending)
----
+--> NOTE! The 1.x release series only supports and contain fixes for the previous Mint UI.
+    New feature work occurs in the 2.x release series and only supports the new Mint UI / endpoints.
+    Please see the README for more information.
 
+2.0
+---
 - Dynamic Multifactor Authentication Flow (#392)
 - Add Data Format Option to CLI: `--format` (#432)
-- Update Accounts Endpoint to meet new Mint requirements (#430) 
-- Update Transactions Endpoint to meet new Mint requirements (#429) 
+- Update Accounts Endpoint to meet new Mint requirements (#430)
+- Update Transactions Endpoint to meet new Mint requirements (#429)
 - Update Budgets Endpoint to meet new Mint requirements (#425)
 - Support removed for hiding duplicate transactions (#427)
 - Fetch the correct API Key to use with Mint API Requests (#420, #423)
 - Removed `get_token` functionality, which is incompatible with the new Mint UI (#421)
 - Update the name of the Account Refresh Class (#415)
-- Update the overview page url (#414) 
+- Update the overview page url (#414)
 
 BREAKING CHANGES:
 - :warning: `mfa_method` is only required if your login flow presents you with the option to select which Multifactor Authentication Method you wish to use, typically as a result of your account configured to accept different methods.  #392 provided a way to automatically detect the type of MFA requested by Mint, based on the prompts on the screen.  Because of this, MintAPI now supports the use case where multiple MFA prompts appear.
@@ -19,6 +22,13 @@ BREAKING CHANGES:
 - In addition to the above, the CLI now supports receiving multiple types of data in one call to MintAPI.  When exporting multiple data types, you can either send it directly to the `stdout` or you can export to a data file.  What MintAPI will do with your specified filename is add a suffix based on the type of data you are exporting.  For example, if you specify `current` as your filename and you export `account` and `transaction`, then you will receive two files: `current_account` and `current_transaction`.
 - You will note that to implement consistency and to call attention to the fact that some input and outputs of the primary methods to fetch Mint data has changed, the API methods for each data type may be different.  However, (with the exception of bills), all data fetch methods follow the same sort of pattern, i.e. `get_<data type>_data`.  For example, instead of `get_accounts`, we now have `get_account_data`.
 
+1.66
+---
+- handle "Sign in without a password next time" page (#436)
+
+1.65
+---
+- fix for selenium dependency version (#412, #413, #416)
 
 1.64
 ---
