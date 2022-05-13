@@ -215,7 +215,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
 
 ```shell
     usage: mintapi [-h] [--session-path [SESSION_PATH]] [--accounts] [--investment]
-                   [--budgets | --budget_hist] [--net-worth] [--extended-accounts] 
+                   [--beta] [--budgets | --budget_hist] [--net-worth] [--extended-accounts] 
                    [--transactions] [--credit-score] [--credit-report]
                    [--exclude-inquiries] [--exclude-accounts] [--exclude-utilization]
                    [--start-date [START_DATE]] [--end-date [END_DATE]]
@@ -237,6 +237,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                             Directory to save browser session, including cookies. Used to prevent repeated
                             MFA prompts. Defaults to $HOME/.mintapi/session. Set to None to use a temporary
                             profile.
+      --beta                Use the beta version of Mint
       --budgets             Retrieve budget information for current month
       --budget_hist         Retrieve historical budget information (past 12 months)
       --categories          Retrieve your configured Mint categories

@@ -317,14 +317,20 @@ def sign_in(
     imap_password=None,
     imap_server=None,
     imap_folder="INBOX",
+    beta=False,
 ):
+    if beta:
+        url = constants.MINT_BETA_ROOT_URL
+    else:
+        url = constants.MINT_ROOT_URL
     """
     Takes in a web driver and gets it through the Mint sign in process
     """
     driver.implicitly_wait(20)  # seconds
-    driver.get("https://www.mint.com")
-    element = driver.find_element_by_link_text("Sign in")
-    element.click()
+    driver.get(url)
+    if not beta:
+        element = driver.find_element_by_link_text("Sign in")
+        element.click()
 
     WebDriverWait(driver, 20).until(
         expected_conditions.presence_of_element_located(
@@ -340,7 +346,7 @@ def sign_in(
 
     driver.implicitly_wait(1)  # seconds
     count = 0
-    while not driver.current_url.startswith("https://mint.intuit.com/overview"):
+    while not driver.current_url.startswith("{}/".format(url)):
         try:  # try to enter in credentials if username and password are on same page
             handle_same_page_username_password(driver, email, password)
         except (
@@ -384,7 +390,7 @@ def sign_in(
         # If it doesn't, then there may be another round of MFA.
         try:
             WebDriverWait(driver, 5).until(
-                expected_conditions.url_contains("https://mint.intuit.com/overview")
+                expected_conditions.url_contains("{}/".format(url))
             )
         except Exception:
             count += 1
