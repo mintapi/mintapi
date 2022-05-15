@@ -461,7 +461,8 @@ def main():
 
     if options.credit_score:
         data = mint.get_credit_score_data()
-        output_data(options, data, constants.CREDIT_SCORE_KEY, attention_msg)
+        formatted_data = {"credit_score": data}
+        output_data(options, formatted_data, constants.CREDIT_SCORE_KEY, attention_msg)
 
     if options.credit_report:
         data = mint.get_credit_report_data(
