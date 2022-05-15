@@ -109,7 +109,7 @@ While Mint supports authentication via Voice, `mintapi` does not currently suppo
 
 ### Multi-Data Support
 
-As of v2.0, mintapi supports returning multiple types of data in one call to mintapi.  When exporting multiple data types, you can either send it directly to `stdout` or you can export to a data file.  What mintapi will do with your specified filename is add a suffix based on the type of data you are exporting.  The following table outlines the option selected and its corresponding suffix:
+As of v2.0, mintapi supports returning multiple types of data in one call, such as: `mintapi --accounts --budgets --transactions`.  When exporting multiple data types, you can either send it directly to `stdout` or you can export to a file via `--filename`.  mintapi will create a file for each type of data, with a suffix based on the format.  For example, if you run `mintapi --accounts --transactions --filename=current --format=csv`, then you will receive two files: `current_account.csv` and `current_transaction.csv`.  The following table outlines the option selected and its corresponding suffix:
 
 | Option       | Suffix       |
 | -----------  | -----------  |
@@ -117,12 +117,11 @@ As of v2.0, mintapi supports returning multiple types of data in one call to min
 | budgets      | budget       |
 | transactions | transaction  |
 | categories   | category     |
-| investments  | investment   |
+| investment   | investment   |
 | net-worth    | net_worth    |
 | credit-score | credit_score |
 | credit-report| credit_report|
 
-For example, if you specify `current` as your filename, format as csv, and you export `account` and `transaction`, then you will receive two files: `current_account.csv` and `current_transaction.csv`.
 
 ### From Python
 
