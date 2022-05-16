@@ -117,7 +117,7 @@ As of v2.0, mintapi supports returning multiple types of data in one call, such 
 | budgets      | budget       |
 | transactions | transaction  |
 | categories   | category     |
-| investment   | investment   |
+| investments  | investment   |
 | net-worth    | net_worth    |
 | credit-score | credit_score |
 | credit-report| credit_report|
@@ -222,7 +222,7 @@ make calls to retrieve account/budget information.  We recommend using the
 Run it as a sub-process from your favorite language; `pip install mintapi` creates a binary in your $PATH. From the command-line, the output is JSON:
 
 ```shell
-    usage: mintapi [-h] [--session-path [SESSION_PATH]] [--accounts] [--investment]
+    usage: mintapi [-h] [--session-path [SESSION_PATH]] [--accounts] [--investments]
                    [--budgets | --budget_hist] [--net-worth] [--extended-accounts]
                    [--transactions] [--credit-score] [--credit-report]
                    [--exclude-inquiries] [--exclude-accounts] [--exclude-utilization]
