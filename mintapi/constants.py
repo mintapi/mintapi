@@ -11,6 +11,7 @@ CREDIT_SCORE_KEY = "Credit_Score"
 CREDIT_REPORT_KEY = "Credit_Report"
 
 MINT_ROOT_URL = "https://mint.intuit.com"
+MINT_BETA_ROOT_URL = "https://beta.mint.intuit.com"
 MINT_CREDIT_URL = "https://credit.finance.intuit.com"
 
 JSON_HEADER = {"accept": "application/json"}
