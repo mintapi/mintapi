@@ -2,6 +2,11 @@
     New feature work occurs in the 2.x release series and only supports the new Mint UI / endpoints.
     Please see the README for more information.
 
+2.1
+---
+- Add `--beta` switch to force using the new Mint endpoints (#470)
+- Fix for credit score data (#472)
+
 2.0
 ---
 - Dynamic Multifactor Authentication Flow (#392)
