@@ -510,7 +510,12 @@ def mfa_page(
     if mfa_method is None:
         mfa_result = search_mfa_method(driver)
     else:
-        mfa_result = set_mfa_method(driver, mfa_method)
+        try:
+            mfa_result = set_mfa_method(driver, mfa_method)
+        except Exception as e:
+            # MFA is optional for devices that were registered to Mint by clicking on "Remember my device"
+            logger.info(str(e))
+            return
     mfa_token_input = mfa_result[0]
     mfa_token_button = mfa_result[1]
     mfa_method = mfa_result[2]
