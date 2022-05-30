@@ -256,7 +256,6 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       --exclude-accounts    Used in conjunction with --credit-report, ignores credit account data.
       --exclude-utilization Used in conjunction with --credit-report, ignores credit utilization data.
       --net-worth           Retrieve net worth information
-      --extended-accounts   Retrieve extended account information (slower, implies --accounts)
       --transactions, -t    Retrieve transactions
       --start-date [START_DATE]
                             Earliest date for which to retrieve transactions.
