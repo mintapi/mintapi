@@ -30,6 +30,11 @@ import oathtool
 
 logger = logging.getLogger("mintapi")
 
+
+class MFAMethodNotAvailableError(RuntimeError):
+    pass
+
+
 SELECT_CSS_SELECTORS_LABEL = "select_css_selectors"
 INPUT_CSS_SELECTORS_LABEL = "input_css_selectors"
 SPAN_CSS_SELECTORS_LABEL = "span_css_selectors"
@@ -512,7 +517,7 @@ def mfa_page(
     else:
         try:
             mfa_result = set_mfa_method(driver, mfa_method)
-        except Exception as e:
+        except MFAMethodNotAvailableError as e:
             # MFA is optional for devices that were registered to Mint by clicking on "Remember my device"
             logger.info(str(e))
             return
@@ -584,10 +589,10 @@ def set_mfa_method(driver, mfa_method):
             mfa_result[BUTTON_CSS_SELECTORS_LABEL]
         )
         mfa_method = mfa_result[constants.MFA_METHOD_LABEL]
-    except (NoSuchElementException, ElementNotInteractableException):
-        raise RuntimeError(
+    except (NoSuchElementException, ElementNotInteractableException) as e:
+        raise MFAMethodNotAvailableError(
             "The Multifactor Method {} supplied is not available.".format(mfa_method)
-        )
+        ) from e
     return mfa_token_input, mfa_token_button, mfa_method
 
 
