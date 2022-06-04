@@ -6,19 +6,15 @@ from typing import Dict, List, Optional
 from dateutil.relativedelta import relativedelta
 
 from mintapi import constants
-from mintapi.signIn import _create_web_driver_at_mint_com, sign_in
-from mintapi.trends import (
-    DateFilter as TrendDateFilter,
-    ReportView,
-    TrendRequest,
-)
-
 from mintapi.filters import (
     CategoryIdFilter,
     DescriptionNameFilter,
     SearchFilter,
     TagIdFilter,
 )
+from mintapi.signIn import _create_web_driver_at_mint_com, sign_in
+from mintapi.trends import DateFilter as TrendDateFilter
+from mintapi.trends import ReportView, TrendRequest
 
 logger = logging.getLogger("mintapi")
 
