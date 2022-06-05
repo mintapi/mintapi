@@ -1,16 +1,9 @@
 JSON_FORMAT = "json"
 CSV_FORMAT = "csv"
 
-ACCOUNT_KEY = "Account"
-BILL_KEY = "Bill"
-BUDGET_KEY = "Budget"
-CATEGORY_KEY = "Category"
-INVESTMENT_KEY = "Investment"
-TRANSACTION_KEY = "Transaction"
-NET_WORTH_KEY = "Net_Worth"
 CREDIT_SCORE_KEY = "Credit_Score"
 CREDIT_REPORT_KEY = "Credit_Report"
-TRENDS_KEY = "Trends"
+
 
 MINT_ROOT_URL = "https://mint.intuit.com"
 MINT_BETA_ROOT_URL = "https://beta.mint.intuit.com"
