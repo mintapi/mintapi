@@ -8,20 +8,19 @@ class Mint(SeleniumBrowser):
     pass
 
 
-def get_accounts(email, password, get_detail=False):
+def get_accounts(email, password):
     mint = Mint(email, password)
-    return mint.get_account_data(get_detail=get_detail)
+    return mint.get_account_data()
 
 
 def get_net_worth(email, password):
     mint = Mint(email, password)
-    account_data = mint.get_account_data()
-    return mint.get_net_worth(account_data)
+    return mint.get_net_worth_data()
 
 
 def get_budgets(email, password):
     mint = Mint(email, password)
-    return mint.get_budgets()
+    return mint.get_budget_data()
 
 
 def get_credit_score(email, password):
