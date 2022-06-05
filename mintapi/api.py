@@ -1,11 +1,41 @@
 from mintapi.browser import SeleniumBrowser
+from mintapi.rest import RESTClient
 
 
-class Mint(SeleniumBrowser):
-    # For now keep the signature unchanged as the selenium browser
-    # TODO: change this class to accept a passed cookie or instantiate a browser session
-    # only to extract a cookie then use the REST client
-    pass
+class Mint(object):
+    """
+    Composed API client to route through the browser or REST calls
+    """
+
+    def __init__(self, **kwargs):
+        """
+        Passes forward parameters to the browser and rest client
+
+        Pass a driver or email + password to authenticate with the browser
+        OR pass in an api_key or cookie to auth directly with the rest client
+        """
+        self.browser = SeleniumBrowser(**kwargs)
+        self.rest_client = RESTClient(**kwargs)
+
+        if self.browser.driver is not None:
+            self.transfer_auth()
+
+    def transfer_auth(self):
+        api_key = self.browser._get_api_key_header()["authorization"]
+        cookies = self.browser._get_cookies()
+        self.rest_client.authorize(cookies=cookies, api_key=api_key)
+
+    def __getattr__(self, attr):
+        """
+        Automatically handle routing to prefer the rest client but fallback to the browser for uinimplemented
+        methods
+        """
+        if hasattr(self.rest_client, attr):
+            return getattr(self.rest_client, attr)
+        elif hasattr(self.browser, attr):
+            return getattr(self.browser, attr)
+        else:
+            raise NotImplementedError
 
 
 def get_accounts(email, password):

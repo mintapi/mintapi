@@ -102,6 +102,9 @@ class SeleniumBrowser(MintEndpoints):
         header.update(constants.JSON_HEADER)
         return header
 
+    def _get_cookies(self):
+        return self.driver.get_cookies()
+
     def login_and_get_token(
         self,
         email,

@@ -3,12 +3,10 @@ Module for REST based API
 """
 
 import logging
-import uuid
-from typing import List, Optional
+from typing import Dict, List, Optional, Union
 
 from requests import Response, Session
 
-from mintapi.constants import MINT_ROOT_URL
 from mintapi.endpoints import MintEndpoints
 
 LOGGER = logging.getLogger(__name__)
@@ -20,9 +18,7 @@ class RESTClient(MintEndpoints):
 
     Motivated by fickleness of selenium to find the appropriate css selectors.
     Through introspection, the mint API can be accessed via REST with
-    a header based auth pattern (cookie, api key, and transaction ID of which
-    it seems only cookie is a necessary real value. mocked others with random
-    values and seemed to work as long as they are present in the request)
+    a header and/or cookie based auth pattern
 
     Auth values can be extracted using selenium flow or manually passed from browser
     inspection
@@ -31,17 +27,18 @@ class RESTClient(MintEndpoints):
     def __init__(
         self,
         api_key: Optional[str] = None,
-        cookie: Optional[str] = None,
+        cookies: Optional[Union[str, List[Dict]]] = None,
         **kwargs,
     ):
         self.session = Session()
 
-        if api_key and cookie:
-            self.authorize(api_key=api_key, cookie=cookie)
+        if api_key or cookies:
+            self.authorize(api_key=api_key, cookies=cookies)
 
-    def authorize(self, cookie: str, api_key: str):
+    def authorize(self, cookies: Union[str, List[Dict]] = None, api_key: str = None):
         """
-        _summary_
+        Auth can be configured via an api key + cookie string in the headers
+        or just the api key and cookies as cookies in the session
 
         Parameters
         ----------
@@ -50,7 +47,34 @@ class RESTClient(MintEndpoints):
         api_key : str
             _description_
         """
-        self.session.headers.update({"authorization": api_key, "cookie": cookie})
+        if isinstance(cookies, list):
+            self.update_cookies(cookies)
+            cookies = None
+
+        self.session.headers.update(
+            {
+                k: v
+                for k, v in {"authorization": api_key, "cookie": cookies}.items()
+                if v is not None
+            }
+        )
+
+    def update_cookies(self, cookies: List[Dict]):
+        """
+        _summary_
+
+        Parameters
+        ----------
+        cookies : List[Dict]
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
+        for cookie in cookies:
+            self.session.cookies.set(cookie["name"], str(cookie["value"]))
 
     """
     Accessor Methods
