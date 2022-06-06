@@ -15,6 +15,14 @@ class MatchFilter(metaclass=ABCMeta):
 
 
 @dataclass
+class AccountIdFilter(MatchFilter):
+    value: str
+
+    def to_dict(self):
+        return {"type": "AccountIdFilter", "accountId": self.value}
+
+
+@dataclass
 class CategoryIdFilter(MatchFilter):
     value: str
     include_child_categories: bool
