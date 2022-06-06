@@ -4,6 +4,8 @@ Shared Endpoint module to keep definitions independent of implementation
 """
 
 
+import json
+import logging
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
 from typing import List, Optional
@@ -13,6 +15,7 @@ from requests import Response
 
 from mintapi.constants import MINT_CREDIT_URL, MINT_ROOT_URL
 from mintapi.trends import (
+    AccountMatchFilter,
     CategoryMatchFilter,
     DateFilter,
     DescriptionMatchFilter,
@@ -21,6 +24,8 @@ from mintapi.trends import (
     TagMatchFilter,
     TrendRequest,
 )
+
+LOGGER = logging.getLogger(__name__)
 
 
 class MintEndpoints(object, metaclass=ABCMeta):
@@ -79,13 +84,17 @@ class MintEndpoints(object, metaclass=ABCMeta):
         json_data = response.json()
 
         # early abort if no data extraction theme
-        if data_key is None:
-            return json_data
+        if data_key is None or data_key not in json_data:
+            LOGGER.warning("Data key not in response data, returning empty list")
+            LOGGER.debug(json_data)
+            return data
 
         data.extend(json_data[data_key])
 
         # early abort if no pagination mechanism defined
-        if metadata_key is None:
+        if metadata_key is None or metadata_key not in json_data:
+            if metadata_key is not None:
+                LOGGER.warning("Metadata key not in response data, not iterating")
             return data
 
         metadata = _ResponseMetadata(json_data[metadata_key])
@@ -552,6 +561,7 @@ class MintEndpoints(object, metaclass=ABCMeta):
         date_filter: DateFilter.Options,
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
+        account_ids: List[str] = None,
         category_ids: List[str] = None,
         tag_ids: List[str] = None,
         descriptions: List[str] = None,
@@ -574,6 +584,8 @@ class MintEndpoints(object, metaclass=ABCMeta):
             optional start date (YYYY-mm-dd) if using enum CUSTOM, by default None
         end_date : Optional[str], optional
             optional end date (YYYY-mm-dd) if using enum CUSTOM, by default None
+        account_ids : List[str], optional
+            optional list of account ids to filter by, by default None
         category_ids : List[str], optional
             optional list of category ids to filter by, by default None
         tag_ids : List[str], optional
@@ -593,6 +605,9 @@ class MintEndpoints(object, metaclass=ABCMeta):
             returns a list of trend results (each dict)
         """
         search_clauses = []
+        if account_ids:
+            for account_id in account_ids:
+                search_clauses.append(AccountMatchFilter(account_id=account_id))
         if category_ids:
             for category_id in category_ids:
                 search_clauses.append(
@@ -698,6 +713,37 @@ class MintEndpoints(object, metaclass=ABCMeta):
             return vendor["creditReportList"][0]["creditScore"]
         except (KeyError, IndexError):
             raise Exception("No Credit Score Found")
+
+    def get_account_balance_history(self):
+        """
+        Convenience wrapper to iterate through all accounts and get trend data
+        by account
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
+        # Account Balance history by account
+        balances = []
+
+        accounts = self.get_account_data()
+        for account in accounts:
+            account_id = account["id"]
+            # try extracting as asset and debt
+            for report in (
+                ReportView.Options.ASSETS_TIME,
+                ReportView.Options.DEBTS_TIME,
+            ):
+                data = self.get_trend_data(
+                    report_type=report,
+                    date_filter=DateFilter.Options.ALL_TIME,
+                    account_ids=[account_id],
+                )
+                for d in data:
+                    d["account_id"] = account_id
+                balances.extend(data)
+        return balances
 
 
 class _ResponseMetadata(object):
