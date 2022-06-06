@@ -73,6 +73,10 @@ class SeleniumBrowser(MintEndpoints):
                 beta=beta,
             )
 
+    """
+    Selenium Interaction
+    """
+
     def close(self):
         """Logs out and quits the current web driver/selenium session."""
         if not self.driver:
@@ -80,30 +84,6 @@ class SeleniumBrowser(MintEndpoints):
 
         self.driver.quit()
         self.driver = None
-
-    def request(
-        self, *, method: str, api_url: str, api_section: str, uri_path: str, **kwargs
-    ):
-        url = f"{api_url}{api_section}{uri_path}"
-        return self.driver.request(method=method, url=url, **kwargs)
-
-    def get(self, **kwargs):
-        return self.request(method="GET", **kwargs)
-
-    def post(self, **kwargs):
-        return self.request(method="POST", **kwargs)
-
-    def _get_api_key_header(self):
-        key_var = "window.__shellInternal.appExperience.appApiKey"
-        api_key = self.driver.execute_script("return " + key_var)
-        auth = "Intuit_APIKey intuit_apikey=" + api_key
-        auth += ", intuit_apikey_version=1.0"
-        header = {"authorization": auth}
-        header.update(constants.JSON_HEADER)
-        return header
-
-    def _get_cookies(self):
-        return self.driver.get_cookies()
 
     def login_and_get_token(
         self,
@@ -167,129 +147,68 @@ class SeleniumBrowser(MintEndpoints):
             pass
         return attention
 
-    # TODO: these methods should be abstractable to the generic rest calls but they werent the focus of my work
-    # ported legacy definitions as is -- can revisit in the future (or someone else can pick it up)
     def _load_mint_credit_url(self):
         # Because cookies are involved and you cannot add cookies for another
         # domain, we have to first load up the MINT_CREDIT_URL.  Once the new
         # domain has loaded, we can proceed with the pull of credit data.
         return self.driver.get(constants.MINT_CREDIT_URL)
 
-    def initiate_account_refresh(self):
-        self.post(
-            api_url=constants.MINT_ROOT_URL,
-            api_section="",
-            uri_path="/refreshFILogins.xevent",
-            headers=constants.JSON_HEADER,
-        )
+    """
+    Accessor Methods
+    """
 
-    def _get_credit_reports(self, limit, credit_header):
-        return self.get(
-            api_url=constants.MINT_CREDIT_URL,
-            api_section="",
-            uri_path="/v1/creditreports?limit={}".format(limit),
-            headers=credit_header,
-        ).json()
-
-    def _get_credit_details(self, uri_path, credit_header):
-        return self.get(
-            api_url=constants.MINT_CREDIT_URL,
-            api_section="",
-            uri_path=uri_path,
-            headers=credit_header,
-        ).json()
-
-    def get_credit_inquiries(self, credit_header):
-        return self._get_credit_details("/v1/creditreports/0/inquiries", credit_header)
-
-    def get_credit_accounts(self, credit_header):
-        return self._get_credit_details("/v1/creditreports/0/tradelines", credit_header)
-
-    def get_credit_utilization(self, credit_header):
-        return self._process_utilization(
-            self._get_credit_details(
-                "/v1/creditreports/creditutilizationhistory", credit_header
-            )
-        )
-
-    def get_credit_report_data(
+    def request(
         self,
-        limit=2,
-        details=True,
-        exclude_inquiries=False,
-        exclude_accounts=False,
-        exclude_utilization=False,
+        *,
+        method: str,
+        api_url: str,
+        api_section: str,
+        uri_path: str,
+        data_key: str,
+        metadata_key: str,
+        paginate=True,
+        headers=None,
+        **kwargs,
     ):
-        # Get the browser API key, build auth header
-        credit_header = self._get_api_key_header()
+        url = f"{api_url}{api_section}{uri_path}"
 
-        # Get credit reports. The UI shows 2 by default, but more are available!
-        # At least 8, but could be all the TransUnion reports Mint has
-        # How the "bands" are defined, and other metadata, is available at a
-        # /v1/creditscoreproviders/3 endpoint (3 = TransUnion)
-        credit_report = dict()
+        # inject headers for each request
+        if headers is None:
+            headers = {}
+        auth_headers = self._get_api_key_header()
+        auth_headers.update(headers)
 
-        self._load_mint_credit_url()
-
-        credit_report["reports"] = self._get_credit_reports(limit, credit_header)
-
-        # If we want details, request the detailed sub-reports
-        if details:
-            # Get full list of credit inquiries
-            if not exclude_inquiries:
-                credit_report["inquiries"] = self.get_credit_inquiries(credit_header)
-
-            # Get full list of credit accounts
-            if not exclude_accounts:
-                credit_report["accounts"] = self.get_credit_accounts(credit_header)
-
-            # Get credit utilization history (~3 months, by account)
-            if not exclude_utilization:
-                credit_report["utilization"] = self.get_credit_utilization(
-                    credit_header
-                )
-
-        return credit_report
-
-    def get_credit_score_data(self):
-        # Request a single credit report, and extract the score
-        report = self.get_credit_report_data(
-            limit=1,
-            details=False,
-            exclude_inquiries=False,
-            exclude_accounts=False,
-            exclude_utilization=False,
+        response = self.driver.request(
+            method=method, url=url, headers=auth_headers, **kwargs
         )
-        try:
-            vendor = report["reports"]["vendorReports"][0]
-            return vendor["creditReportList"][0]["creditScore"]
-        except (KeyError, IndexError):
-            raise Exception("No Credit Score Found")
+        response.raise_for_status()
 
-    def _process_utilization(self, data):
-        # Function to clean up the credit utilization history data
-        utilization = []
-        utilization.extend(self._flatten_utilization(data["cumulative"]))
-        for trade in data["tradelines"]:
-            utilization.extend(self._flatten_utilization(trade))
-        return utilization
+        if paginate:
+            return self._paginate(
+                api_url=api_url,
+                api_section=api_section,
+                method=method,
+                data_key=data_key,
+                metadata_key=metadata_key,
+                response=response,
+                headers=headers,
+                **kwargs,
+            )
+        else:
+            return response
 
-    def _flatten_utilization(self, data):
-        # The utilization history data has a nested format, grouped by year
-        # and then by month. Let's flatten that into a list of dates.
-        utilization = []
-        name = data.get("creditorName", "Total")
-        for cu in data["creditUtilization"]:
-            year = cu["year"]
-            for cu_month in cu["months"]:
-                date = datetime.strptime(cu_month["name"], "%B").replace(
-                    day=1, year=int(year)
-                )
-                utilization.append(
-                    {
-                        "name": name,
-                        "date": date.strftime("%Y-%m-%d"),
-                        "utilization": cu_month["creditUtilization"],
-                    }
-                )
-        return utilization
+    """
+    Session Extraction
+    """
+
+    def _get_api_key_header(self):
+        key_var = "window.__shellInternal.appExperience.appApiKey"
+        api_key = self.driver.execute_script("return " + key_var)
+        auth = "Intuit_APIKey intuit_apikey=" + api_key
+        auth += ", intuit_apikey_version=1.0"
+        header = {"authorization": auth}
+        header.update(constants.JSON_HEADER)
+        return header
+
+    def _get_cookies(self):
+        return self.driver.get_cookies()
