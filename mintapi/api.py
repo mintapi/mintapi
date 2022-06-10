@@ -1,17 +1,49 @@
 from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
+from mintapi import constants
 import logging
 import os
-import random
-import re
-import requests
-import time
-import warnings
-
 from mintapi.signIn import sign_in, _create_web_driver_at_mint_com
 
-
 logger = logging.getLogger("mintapi")
+
+ENDPOINTS = {
+    constants.ACCOUNT_KEY: {
+        "apiVersion": "pfm/v1",
+        "endpoint": "accounts",
+        "beginningDate": None,
+        "endingDate": None,
+        "includeCreatedDate": True,
+    },
+    constants.BUDGET_KEY: {
+        "apiVersion": "pfm/v1",
+        "endpoint": "budgets",
+        "beginningDate": "startDate",
+        "endingDate": "endDate",
+        "includeCreatedDate": True,
+    },
+    constants.CATEGORY_KEY: {
+        "apiVersion": "pfm/v1",
+        "endpoint": "categories",
+        "beginningDate": None,
+        "endingDate": None,
+        "includeCreatedDate": False,
+    },
+    constants.INVESTMENT_KEY: {
+        "apiVersion": "pfm/v1",
+        "endpoint": "investments",
+        "beginningDate": None,
+        "endingDate": None,
+        "includeCreatedDate": False,
+    },
+    constants.TRANSACTION_KEY: {
+        "apiVersion": "pfm/v1",
+        "endpoint": "transactions",
+        "beginningDate": "fromDate",
+        "endingDate": "toDate",
+        "includeCreatedDate": False,
+    },
+}
 
 
 def convert_mmddyy_to_datetime(date):
@@ -25,13 +57,6 @@ def convert_mmddyy_to_datetime(date):
 def reverse_credit_amount(row):
     amount = float(row["amount"][1:].replace(",", ""))
     return amount if row["isDebit"] else -amount
-
-
-MINT_ROOT_URL = "https://mint.intuit.com"
-MINT_ACCOUNTS_URL = "https://accounts.intuit.com"
-MINT_CREDIT_URL = "https://credit.finance.intuit.com"
-
-JSON_HEADER = {"accept": "application/json"}
 
 
 class MintException(Exception):
@@ -60,6 +85,8 @@ class Mint(object):
         wait_for_sync_timeout=5 * 60,
         use_chromedriver_on_path=False,
         chromedriver_download_path=os.getcwd(),
+        driver=None,
+        beta=False,
     ):
         self.driver = None
         self.status_message = None
@@ -82,6 +109,8 @@ class Mint(object):
                 wait_for_sync_timeout=wait_for_sync_timeout,
                 use_chromedriver_on_path=use_chromedriver_on_path,
                 chromedriver_download_path=chromedriver_download_path,
+                driver=driver,
+                beta=beta,
             )
 
     def _get_api_key_header(self):
@@ -90,7 +119,7 @@ class Mint(object):
         auth = "Intuit_APIKey intuit_apikey=" + api_key
         auth += ", intuit_apikey_version=1.0"
         header = {"authorization": auth}
-        header.update(JSON_HEADER)
+        header.update(constants.JSON_HEADER)
         return header
 
     def close(self):
@@ -106,12 +135,6 @@ class Mint(object):
 
     def post(self, url, **kwargs):
         return self.driver.request("POST", url, **kwargs)
-
-    def make_post_request(self, url, data, convert_to_text=False):
-        response = self.post(url=url, data=data, headers=JSON_HEADER)
-        if convert_to_text:
-            response = response.text
-        return response
 
     def login_and_get_token(
         self,
@@ -131,9 +154,11 @@ class Mint(object):
         wait_for_sync_timeout=5 * 60,
         use_chromedriver_on_path=False,
         chromedriver_download_path=os.getcwd(),
+        driver=None,
+        beta=False,
     ):
 
-        self.driver = _create_web_driver_at_mint_com(
+        self.driver = driver or _create_web_driver_at_mint_com(
             headless, session_path, use_chromedriver_on_path, chromedriver_download_path
         )
 
@@ -152,10 +177,14 @@ class Mint(object):
                 imap_password,
                 imap_server,
                 imap_folder,
+                beta,
             )
         except Exception as e:
+            msg = f"Could not sign in to Mint. Current page: {self.driver.current_url}"
             logger.exception(e)
             self.driver.quit()
+            self.driver = None
+            raise Exception(msg) from e
 
     def get_attention(self):
         attention = None
@@ -171,39 +200,63 @@ class Mint(object):
 
     def get_bills(self):
         return self.get(
-            "{}/bps/v2/payer/bills".format(MINT_ROOT_URL),
+            "{}/bps/v2/payer/bills".format(constants.MINT_ROOT_URL),
             headers=self._get_api_key_header(),
         ).json()["bills"]
 
-    def get_investment_data(self):
-        investments = self.__call_investments_endpoint()
-        if "Investment" in investments.keys():
-            for i in investments["Investment"]:
+    def get_data(self, name, limit, id=None, start_date=None, end_date=None):
+        endpoint = self.__find_endpoint(name)
+        data = self.__call_mint_endpoint(endpoint, limit, id, start_date, end_date)
+        if name in data.keys():
+            for i in data[name]:
+                if endpoint["includeCreatedDate"]:
+                    i["createdDate"] = i["metaData"]["createdDate"]
                 i["lastUpdatedDate"] = i["metaData"]["lastUpdatedDate"]
                 i.pop("metaData", None)
         else:
-            raise MintException("Cannot find investment data")
-        return investments["Investment"]
+            raise MintException(
+                "Data from the {} endpoint did not containt the expected {} key.".format(
+                    endpoint["endpoint"], name
+                )
+            )
+        return data[name]
 
-    def get_account_data(self):
-        accounts = self.__call_accounts_endpoint()
-        if "Account" in accounts.keys():
-            for i in accounts["Account"]:
-                i["createdDate"] = i["metaData"]["createdDate"]
-                i["lastUpdatedDate"] = i["metaData"]["lastUpdatedDate"]
-                i.pop("metaData", None)
-        else:
-            raise MintException("Cannot find account data")
-        return accounts["Account"]
+    def get_account_data(
+        self,
+        limit=5000,
+    ):
+        return self.get_data(constants.ACCOUNT_KEY, limit)
 
-    def __call_accounts_endpoint(self):
-        return self.get(
-            "{}/pfm/v1/accounts".format(MINT_ROOT_URL),
-            headers=self._get_api_key_header(),
-        ).json()
+    def get_category_data(
+        self,
+        limit=5000,
+    ):
+        return self.get_data(constants.CATEGORY_KEY, limit)
+
+    def get_budget_data(
+        self,
+        limit=5000,
+    ):
+        return self.get_data(
+            constants.BUDGET_KEY,
+            limit,
+            None,
+            start_date=self.__x_months_ago(11),
+            end_date=self.__first_of_this_month(),
+        )
+
+    def get_investment_data(
+        self,
+        limit=5000,
+    ):
+        return self.get_data(
+            constants.INVESTMENT_KEY,
+            limit,
+        )
 
     def get_transaction_data(
         self,
+        limit=5000,
         include_investment=False,
         start_date=None,
         end_date=None,
@@ -221,68 +274,27 @@ class Mint(object):
         remove_pending to False
         """
 
-        result = self.__call_transactions_endpoint(
-            include_investment, start_date, end_date, id
-        )
-        if "Transaction" in result.keys():
+        try:
+            if include_investment:
+                id = 0
+            data = self.get_data(
+                constants.TRANSACTION_KEY,
+                limit,
+                id,
+                convert_mmddyy_to_datetime(start_date),
+                convert_mmddyy_to_datetime(end_date),
+            )
             if remove_pending:
                 filtered = filter(
                     lambda transaction: transaction["isPending"] == False,
-                    result["Transaction"],
+                    data,
                 )
-                transactions = list(filtered)
-            else:
-                transactions = result["Transaction"]
-            for i in transactions:
-                i["lastUpdatedDate"] = i["metaData"]["lastUpdatedDate"]
-                i.pop("metaData", None)
+                data = list(filtered)
+        except Exception:
+            raise Exception
+        return data
 
-        else:
-            raise MintException("Cannot find transaction data")
-        return transactions
-
-    def __call_transactions_endpoint(
-        self, include_investment=False, start_date=None, end_date=None, id=0
-    ):
-        # Specifying accountId=0 causes Mint to return investment
-        # transactions as well.  Otherwise they are skipped by
-        # default.
-        if include_investment:
-            id = 0
-        if start_date is None:
-            start_date = self.__x_months_ago(2)
-        else:
-            start_date = convert_mmddyy_to_datetime(start_date)
-        if end_date is None:
-            end_date = date.today()
-        else:
-            end_date = convert_mmddyy_to_datetime(end_date)
-        return self.get(
-            "{}/pfm/v1/transactions?id={}&fromDate={}&toDate={}".format(
-                MINT_ROOT_URL, id, start_date, end_date
-            ),
-            headers=self._get_api_key_header(),
-        ).json()
-
-    def __call_investments_endpoint(self):
-        return self.get(
-            "{}/pfm/v1/investments".format(MINT_ROOT_URL),
-            headers=self._get_api_key_header(),
-        ).json()
-
-    def get_categories(self):
-        return self.get(
-            "{}/pfm/v1/categories".format(MINT_ROOT_URL),
-            headers=self._get_api_key_header(),
-        ).json()["Category"]
-
-    def __call_accounts_endpoint(self):
-        return self.get(
-            "{}/pfm/v1/accounts".format(MINT_ROOT_URL),
-            headers=self._get_api_key_header(),
-        ).json()
-
-    def get_net_worth(self, account_data=None):
+    def get_net_worth_data(self, account_data=None):
         if account_data is None:
             account_data = self.get_account_data()
 
@@ -292,34 +304,19 @@ class Mint(object):
             [
                 -a["currentBalance"] if a["type"] in invert else a["currentBalance"]
                 for a in account_data
-                if a["isActive"]
+                if a["isActive"] and "currentBalance" in a
             ]
         )
 
-    def get_budgets(self):
-        budgets = self.__call_budgets_endpoint()
-        if "Budget" in budgets.keys():
-            for i in budgets["Budget"]:
-                i["lastUpdatedDate"] = i["metaData"]["lastUpdatedDate"]
-                i.pop("metaData", None)
-        else:
-            raise MintException("Cannot find budget data")
-        return budgets["Budget"]
-
-    def __call_budgets_endpoint(self):
-        return self.get(
-            "{}/pfm/v1/budgets?startDate={}&endDate={}".format(
-                MINT_ROOT_URL, self.__x_months_ago(11), self.__first_of_this_month()
-            ),
-            headers=self._get_api_key_header(),
-        ).json()
-
     def initiate_account_refresh(self):
-        self.make_post_request(url="{}/refreshFILogins.xevent".format(MINT_ROOT_URL))
+        self.post(
+            url="{}/refreshFILogins.xevent".format(constants.MINT_ROOT_URL),
+            headers=constants.JSON_HEADER,
+        )
 
-    def get_credit_score(self):
+    def get_credit_score_data(self):
         # Request a single credit report, and extract the score
-        report = self.get_credit_report(
+        report = self.get_credit_report_data(
             limit=1,
             details=False,
             exclude_inquiries=False,
@@ -332,7 +329,7 @@ class Mint(object):
         except (KeyError, IndexError):
             raise Exception("No Credit Score Found")
 
-    def get_credit_report(
+    def get_credit_report_data(
         self,
         limit=2,
         details=True,
@@ -375,16 +372,18 @@ class Mint(object):
         # Because cookies are involved and you cannot add cookies for another
         # domain, we have to first load up the MINT_CREDIT_URL.  Once the new
         # domain has loaded, we can proceed with the pull of credit data.
-        return self.driver.get(MINT_CREDIT_URL)
+        return self.driver.get(constants.MINT_CREDIT_URL)
 
     def _get_credit_reports(self, limit, credit_header):
         return self.get(
-            "{}/v1/creditreports?limit={}".format(MINT_CREDIT_URL, limit),
+            "{}/v1/creditreports?limit={}".format(constants.MINT_CREDIT_URL, limit),
             headers=credit_header,
         ).json()
 
     def _get_credit_details(self, url, credit_header):
-        return self.get(url.format(MINT_CREDIT_URL), headers=credit_header).json()
+        return self.get(
+            url.format(constants.MINT_CREDIT_URL), headers=credit_header
+        ).json()
 
     def get_credit_inquiries(self, credit_header):
         return self._get_credit_details(
@@ -431,6 +430,27 @@ class Mint(object):
                 )
         return utilization
 
+    def __find_endpoint(self, name):
+        return ENDPOINTS[name]
+
+    def __call_mint_endpoint(
+        self, endpoint, limit, id=None, start_date=None, end_date=None
+    ):
+        url = "{}/{}/{}?limit={}&".format(
+            constants.MINT_ROOT_URL, endpoint["apiVersion"], endpoint["endpoint"], limit
+        )
+        if endpoint["beginningDate"] is not None and start_date is not None:
+            url = url + "{}={}&".format(endpoint["beginningDate"], start_date)
+        if endpoint["endingDate"] is not None and end_date is not None:
+            url = url + "{}={}&".format(endpoint["endingDate"], end_date)
+        if id is not None:
+            url = url + "id={}&".format(id)
+        response = self.get(
+            url,
+            headers=self._get_api_key_header(),
+        )
+        return response.json()
+
     def __first_of_this_month(self):
         return date.today().replace(day=1)
 
@@ -469,14 +489,3 @@ def get_credit_report(email, password):
 def initiate_account_refresh(email, password):
     mint = Mint(email, password)
     return mint.initiate_account_refresh()
-
-
-if __name__ == "__main__":
-    warnings.warn(
-        "Calling command line code from api.py will be deprecated in a future release.\n"
-        "Please call mintapi directly. For examples, see the README.md",
-        DeprecationWarning,
-    )
-    from mintapi.cli import main
-
-    main()

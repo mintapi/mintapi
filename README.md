@@ -7,11 +7,21 @@
 
 An unofficial screen-scraping API for Mint.com.
 
+## IMPORTANT: mintapi 2.0 vs 1.x
+
+We recently released 2.0, which supports (and only supports) the new Mint UI:
+
+ * If your account has the new UI with the nav on the *left*, you'll need to install at least 2.0: `pip install mintapi>=2.0`
+ * If your account still has the original UI with the nav on *top*, to use 2.0, you will need to specify `--beta` in your command-line options or submit `beta=True` when initializing the class.  Otherwise, please install the latest 1.x release: `pip install mintapi<2.0`
+
+Please note that due to data changes on the Mint.com side as well as various new features and changes on the mintapi side, there are several breaking changes in 2.0. Please see [the CHANGELOG](https://github.com/mintapi/mintapi/blob/main/CHANGELOG.md) for details.
+
 ## Community
 
 Please [join us on Discord](https://discord.gg/YjJEuJRAu9) to get help or just chat with fellow mintapi users :)
 
 ## Installation
+
 Ensure you have Python 3 and pip (`easy_install pip`) and then:
 
 ```shell
@@ -22,7 +32,7 @@ pip install mintapi
 
 ## Usage
 
-### from the command line
+### From the Command Line
 
 From the command line, the most automated invocation will be:
 
@@ -43,16 +53,28 @@ If you're running mintapi in a server environment on an automatic schedule, cons
 If you need to download the chromedriver manually, be sure to get the version that matches your chrome version and make the chromedriver available to your python interpreter either by putting the chromedriver in your python working directory or inside your `PATH` as described in the [python selenium documentation](https://www.selenium.dev/selenium/docs/api/py/index.html#drivers).
 
 ### General Automation Scenarios
+
 When running this inside of a cron job or other long-term automation scripts, it might be helpful to specify chrome and chromedriver executables so as not to conflict with other chrome versions you may have. Selenium by default just gets these from your `PATH` environment variable, so customizing your environment can force a deterministic behavior from mintapi. To use a different browser besides Chrome or Chromium, see the [python api](#from-python). Below are two examples.
 
 #### Unix Environment
+
 If I wanted to make sure that mintapi used the chromium executable in my /usr/bin directory when executing a cron job, I could write the following cron line:
 ```cron
 0 7 * * FRI PATH=/usr/bin:$PATH mintapi --headless john@example.com my_password
 ```
 where prepending the /usr/bin path to path will make those binaries found first. This will only affect the cron job and will not change the environment for any other process.
 
+#### Windows Environment
+
+You can do a similar thing in windows by executing the following in Powershell.
+
+```powershell
+$ENV:PATH = "C:\Program Files\Google\Chrome;$ENV:PATH"
+mintapi --headless john@example.com my_password
+```
+
 #### Docker Image
+
 You can also use the docker image to help manage your environment so you don't have to worry about chrome or chromedriver versions. There are a few caveats:
 1. Headless mode is recommended. GUI works but introduces the need to configure an X11 server which varies with setup. Google is your friend.
 2. Almost always use the flag `--use-chromedriver-on-path` as the chrome and chromedriver built into the docker image already match and getting the latest will break the image.
@@ -63,21 +85,45 @@ To use the image:
 docker run --rm --shm-size=2g ghcr.io/mintapi/mintapi mintapi john@example.com my_password --headless --use-chromedriver-on-path
 ```
 
-#### Windows Environment
-You can do a similar thing in windows by executing the following in Powershell.
-```powershell
-$ENV:PATH = "C:\Program Files\Google\Chrome;$ENV:PATH"
-mintapi --headless john@example.com my_password
+#### AWS Lambda Environment
+
+AWS Lambda may need a [specific chrome driver with specific options](https://robertorocha.info/setting-up-a-selenium-web-scraper-on-aws-lambda-with-python/). You can initialize Mint with the pre-configured headless serverless chrome through the constructor:
+
+
+```python
+driver = initialize_serverless_chrome_driver(...)
+mint = mintapi.Mint(..., driver=driver)
+...
 ```
+
 
 ### MFA Authentication Methods
 
-If `mfa-method` is email and your email host provides IMAP access, you can specify your IMAP login details.
-This will automate the retrieval of the MFA code from your email and entering it into Mint.  If you use IMAP in conjunction with `keyring`, then you can store your IMAP password (`imap-password`) in keyring.  To do so, simply omit `imap-password` and you will initially be prompted for the password associated with your IMAP account.  Then, on subsequent uses of your IMAP account, you will not have to specify your password.
+As of v2.0, `mfa_method` is only required if your login flow presents you with the option to select which Multifactor Authentication Method you wish to use, typically as a result of your account configured to accept different methods.  
+
+If `mintapi` detects that your Mint account uses IMAP and your email host provides IMAP access, you can specify your IMAP login details.  This will automate the retrieval of the MFA code from your email and entering it into Mint.  If you use IMAP in conjunction with `keyring`, then you can store your IMAP password (`imap-password`) in keyring.  To do so, simply omit `imap-password` and you will initially be prompted for the password associated with your IMAP account.  Then, on subsequent uses of your IMAP account, you will not have to specify your password.
 
 If `mfa-method` is soft-token then you must also pass your `mfa-token`. The `mfa-token` can be obtained by going to [your mint.com settings](https://mint.intuit.com/settings.event?filter=all) and clicking on 'Intuit Account'. From there go to *Sign In & Security* -> *Two-step verification*. From there, enable the top option however you wish (either text or email is fine). After that, start the process to enable the *Authenticator app* option and when you get the part where you see the QR code, **copy the manual setup code** that appears next to it. Careful where you store this as it allows anyone to generate TOTP codes. This is the token that you will pass to `mfa-token` in either the python api or from the command line.
 
-### from Python
+While Mint supports authentication via Voice, `mintapi` does not currently support this option.  Compatability with this method will be added in a later version.
+
+### Multi-Data Support
+
+As of v2.0, mintapi supports returning multiple types of data in one call, such as: `mintapi --accounts --budgets --transactions`.  When exporting multiple data types, you can either send it directly to `stdout` or you can export to a file via `--filename`.  mintapi will create a file for each type of data, with a suffix based on the format.  For example, if you run `mintapi --accounts --transactions --filename=current --format=csv`, then you will receive two files: `current_account.csv` and `current_transaction.csv`.  The following table outlines the option selected and its corresponding suffix:
+
+| Option       | Suffix       |
+| -----------  | -----------  |
+| accounts     | account      |
+| budgets      | budget       |
+| transactions | transaction  |
+| categories   | category     |
+| investments  | investment   |
+| net-worth    | net_worth    |
+| credit-score | credit_score |
+| credit-report| credit_report|
+
+
+### From Python
 
 From python, instantiate the Mint class (from the mintapi package) and you can
 make calls to retrieve account/budget information.  We recommend using the
@@ -117,37 +163,34 @@ make calls to retrieve account/budget information.  We recommend using the
     wait_for_sync_timeout=300,  # number of seconds to wait for sync
 	use_chromedriver_on_path=False,  # True will use a system provided chromedriver binary that
 	                                 # is on the PATH (instead of downloading the latest version)
+    driver=None        # pre-configured driver. If None, Mint will initialize the WebDriver.
   )
 
-  # Get basic account information
-  mint.get_accounts()
-
-  # Get extended account detail at the expense of speed - requires an
-  # additional API call for each account
-  mint.get_accounts(True)
+  # Get account information
+  mint.get_account_data()
 
   # Get budget information
-  mint.get_budgets()
+  mint.get_budget_data()
 
   # Get transactions
   mint.get_transaction_data() # as pandas dataframe
 
   # Get transactions for a specific account
-  accounts = mint.get_accounts(True)
+  accounts = mint.get_account_data()
   for account in accounts:
     mint.get_transaction_data(id=account["id"])
 
   # Get net worth
-  mint.get_net_worth()
+  mint.get_net_worth_data()
 
   # Get credit score
-  mint.get_credit_score()
+  mint.get_credit_score_data()
 
   # Get bills
   mint.get_bills()
 
   # Get investments (holdings and transactions)
-  mint.get_invests_json()
+  mint.get_investment_data()
 
   # Close session and exit cleanly from selenium/chromedriver
   mint.close()
@@ -179,12 +222,12 @@ make calls to retrieve account/budget information.  We recommend using the
 Run it as a sub-process from your favorite language; `pip install mintapi` creates a binary in your $PATH. From the command-line, the output is JSON:
 
 ```shell
-    usage: mintapi [-h] [--session-path [SESSION_PATH]] [--accounts] [--investment]
-                   [--budgets | --budget_hist] [--net-worth] [--extended-accounts] 
+    usage: mintapi [-h] [--session-path [SESSION_PATH]] [--accounts] [--investments]
+                   [--beta] [--budgets | --budget_hist] [--net-worth]
                    [--transactions] [--credit-score] [--credit-report]
                    [--exclude-inquiries] [--exclude-accounts] [--exclude-utilization]
                    [--start-date [START_DATE]] [--end-date [END_DATE]]
-                   [--include-investment] [--show-pending]
+                   [--limit] [--include-investment] [--show-pending]
                    [--format] [--filename FILENAME] [--keyring] [--headless]
                    [--mfa-method {sms,email,soft-token}]
                    [--categories] [--attention]
@@ -202,6 +245,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                             Directory to save browser session, including cookies. Used to prevent repeated
                             MFA prompts. Defaults to $HOME/.mintapi/session. Set to None to use a temporary
                             profile.
+      --beta                Use the beta version of Mint
       --budgets             Retrieve budget information for current month
       --budget_hist         Retrieve historical budget information (past 12 months)
       --categories          Retrieve your configured Mint categories
@@ -212,7 +256,6 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       --exclude-accounts    Used in conjunction with --credit-report, ignores credit account data.
       --exclude-utilization Used in conjunction with --credit-report, ignores credit utilization data.
       --net-worth           Retrieve net worth information
-      --extended-accounts   Retrieve extended account information (slower, implies --accounts)
       --transactions, -t    Retrieve transactions
       --start-date [START_DATE]
                             Earliest date for which to retrieve transactions.
@@ -222,7 +265,8 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                             Used with --transactions. Format: mm/dd/yy
       --investments         Retrieve data related to your investments, whether they be retirement or         personal stock purchases
       --include-investment  Used with --transactions
-      --show-pending        Exclude pending transactions from being retrieved.
+      --limit               Number of records to include from the API.  Default is 5000.
+      --show-pending        Retrieve pending transactions.
                             Used with --transactions
       --filename FILENAME, -f FILENAME
                             write results to file. If no file is specified, then data is written to stdout.  Do not specify the file extension as it is determined based on the selection of `--format`.
