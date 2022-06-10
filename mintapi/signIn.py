@@ -42,13 +42,6 @@ BUTTON_CSS_SELECTORS_LABEL = "button_css_selectors"
 
 MFA_METHODS = [
     {
-        constants.MFA_METHOD_LABEL: constants.MFA_VIA_SOFT_TOKEN,
-        SELECT_CSS_SELECTORS_LABEL: '#iux-mfa-soft-token-verification-code, #ius-mfa-soft-token, [data-testid="VerifySoftTokenInput"]',
-        INPUT_CSS_SELECTORS_LABEL: '#iux-mfa-soft-token-verification-code, #ius-mfa-soft-token, [data-testid="VerifySoftTokenInput"]',
-        SPAN_CSS_SELECTORS_LABEL: "",
-        BUTTON_CSS_SELECTORS_LABEL: '#ius-mfa-soft-token-submit-btn, [data-testid="VerifySoftTokenSubmitButton"]',
-    },
-    {
         constants.MFA_METHOD_LABEL: constants.MFA_VIA_AUTHENTICATOR,
         SELECT_CSS_SELECTORS_LABEL: '#iux-mfa-soft-token-verification-code, #ius-mfa-soft-token, [data-testid="VerifySoftTokenInput"]',
         INPUT_CSS_SELECTORS_LABEL: '#iux-mfa-soft-token-verification-code, #ius-mfa-soft-token, [data-testid="VerifySoftTokenInput"]',
@@ -530,7 +523,7 @@ def mfa_page(
         return
 
     # mfa screen
-    if mfa_method == constants.MFA_VIA_SOFT_TOKEN:
+    if mfa_method == constants.MFA_VIA_AUTHENTICATOR:
         handle_soft_token(
             mfa_token_input, mfa_token_button, mfa_input_callback, mfa_token
         )
@@ -567,7 +560,9 @@ def search_mfa_method(driver):
                 if result is True:
                     break
         except (NoSuchElementException, ElementNotInteractableException):
-            logger.info("{} MFA Method Not Found".format(constants.MFA_METHOD_LABEL))
+            logger.info(
+                "{} MFA Method Not Found".format(method[constants.MFA_METHOD_LABEL])
+            )
     return mfa_token_input, mfa_token_button, mfa_method
 
 
