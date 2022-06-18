@@ -50,6 +50,14 @@ def parse_arguments(args):
             },
         ),
         (
+            ("--beta",),
+            {
+                "action": "store_true",
+                "default": False,
+                "help": "Use the beta version of Mint",
+            },
+        ),
+        (
             ("--budgets",),
             {
                 "action": "store_true",
@@ -412,6 +420,7 @@ def main():
         fail_if_stale=options.fail_if_stale,
         use_chromedriver_on_path=options.use_chromedriver_on_path,
         chromedriver_download_path=options.chromedriver_download_path,
+        beta=options.beta,
     )
     atexit.register(mint.close)  # Ensure everything is torn down.
 
