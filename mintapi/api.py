@@ -86,6 +86,7 @@ class Mint(object):
         use_chromedriver_on_path=False,
         chromedriver_download_path=os.getcwd(),
         driver=None,
+        beta=False,
     ):
         self.driver = None
         self.status_message = None
@@ -109,6 +110,7 @@ class Mint(object):
                 use_chromedriver_on_path=use_chromedriver_on_path,
                 chromedriver_download_path=chromedriver_download_path,
                 driver=driver,
+                beta=beta,
             )
 
     def _get_api_key_header(self):
@@ -153,6 +155,7 @@ class Mint(object):
         use_chromedriver_on_path=False,
         chromedriver_download_path=os.getcwd(),
         driver=None,
+        beta=False,
     ):
 
         self.driver = driver or _create_web_driver_at_mint_com(
@@ -174,6 +177,7 @@ class Mint(object):
                 imap_password,
                 imap_server,
                 imap_folder,
+                beta,
             )
         except Exception as e:
             msg = f"Could not sign in to Mint. Current page: {self.driver.current_url}"

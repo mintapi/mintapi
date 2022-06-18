@@ -11,8 +11,8 @@ An unofficial screen-scraping API for Mint.com.
 
 We recently released 2.0, which supports (and only supports) the new Mint UI:
 
- * If your account still has the original UI with the nav on *top*, please install the latest 1.x release: `pip install mintapi<2.0`
  * If your account has the new UI with the nav on the *left*, you'll need to install at least 2.0: `pip install mintapi>=2.0`
+ * If your account still has the original UI with the nav on *top*, to use 2.0, you will need to specify `--beta` in your command-line options or submit `beta=True` when initializing the class.  Otherwise, please install the latest 1.x release: `pip install mintapi<2.0`
 
 Please note that due to data changes on the Mint.com side as well as various new features and changes on the mintapi side, there are several breaking changes in 2.0. Please see [the CHANGELOG](https://github.com/mintapi/mintapi/blob/main/CHANGELOG.md) for details.
 
@@ -223,7 +223,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
 
 ```shell
     usage: mintapi [-h] [--session-path [SESSION_PATH]] [--accounts] [--investments]
-                   [--budgets | --budget_hist] [--net-worth] [--extended-accounts]
+                   [--beta] [--budgets | --budget_hist] [--net-worth]
                    [--transactions] [--credit-score] [--credit-report]
                    [--exclude-inquiries] [--exclude-accounts] [--exclude-utilization]
                    [--start-date [START_DATE]] [--end-date [END_DATE]]
@@ -245,6 +245,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                             Directory to save browser session, including cookies. Used to prevent repeated
                             MFA prompts. Defaults to $HOME/.mintapi/session. Set to None to use a temporary
                             profile.
+      --beta                Use the beta version of Mint
       --budgets             Retrieve budget information for current month
       --budget_hist         Retrieve historical budget information (past 12 months)
       --categories          Retrieve your configured Mint categories
@@ -255,7 +256,6 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       --exclude-accounts    Used in conjunction with --credit-report, ignores credit account data.
       --exclude-utilization Used in conjunction with --credit-report, ignores credit utilization data.
       --net-worth           Retrieve net worth information
-      --extended-accounts   Retrieve extended account information (slower, implies --accounts)
       --transactions, -t    Retrieve transactions
       --start-date [START_DATE]
                             Earliest date for which to retrieve transactions.
