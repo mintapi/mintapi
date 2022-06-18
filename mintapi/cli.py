@@ -141,6 +141,14 @@ def parse_arguments(args):
             },
         ),
         (
+            ("--fail-if-stale",),
+            {
+                "action": "store_true",
+                "default": False,
+                "help": "At login, Mint attempts to refresh your data.  If you wish to exit when the sync fails, use this option.",
+            },
+        ),
+        (
             ("--filename", "-f"),
             {
                 "help": "write results to file. can be {csv,json} format. default is to write to stdout."
@@ -401,6 +409,7 @@ def main():
         imap_folder=options.imap_folder,
         wait_for_sync=not options.no_wait_for_sync,
         wait_for_sync_timeout=options.wait_for_sync_timeout,
+        fail_if_stale=options.fail_if_stale,
         use_chromedriver_on_path=options.use_chromedriver_on_path,
         chromedriver_download_path=options.chromedriver_download_path,
     )
