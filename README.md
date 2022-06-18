@@ -304,3 +304,9 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       ...
     ]
 ```
+
+### Special Considerations
+
+#### Email\Account Access
+
+Because of the inter-connected nature of Intuit's products, when signing in to Mint for one account, you may see accounts associated with Intuit products other than Mint.  If you do have multiple Intuit accounts, you should be aware that if one email is associated with two different usernames (and multiple Intuit products, such as TurboTax or Quickbooks), you may receive a prompt for Multifactor Authentication, even with a saved session.  One possible solution is separating the two accounts to use two different emails.  For many email clients, you can route different email addresses to the same account by using a suffix.  For example, I could do "myaccount+mint@gmail.com" and "myaccount+quickbooks@gmail.com" and receive emails for both in the "myaccount@gmail.com" inbox.
