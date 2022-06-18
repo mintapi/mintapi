@@ -22,7 +22,7 @@
 
 :warning: BREAKING CHANGES :warning:
 - As of version 2.0, mintapi only supports the new Mint.com UI and endpoints. Please see the README to learn which version of mintapi you need.
-- `mfa_method` is only required if your login flow presents you with the option to select which Multifactor Authentication Method you wish to use, typically as a result of your account configured to accept different methods.  We now automatically detect the type of MFA requested by Mint, based on the prompts on the screen.  Because of this, mintapi now supports the use case where multiple MFA prompts appear.
+- `mfa_type` is only required if your login flow presents you with the option to select which Multifactor Authentication Method you wish to use, typically as a result of your account configured to accept different methods.  We now automatically detect the type of MFA requested by Mint, based on the prompts on the screen.  Because of this, mintapi now supports the use case where multiple MFA prompts appear.
 - Due to the new Mint UI and the switchover to different API Endpoints, the data structure associated with each function may be different.  Please verify that the data you are expecting against the new output of each endpoint.
 - To implement consistency and to call attention to the fact that some input and output of methods has changed, some API methods have been renamed.  With the exception of bills, all data fetch methods now follow the same sort of pattern: `get_<data type>_data`.  For example, instead of `get_accounts`, we now have `get_account_data`.
 - To help support the new CLI option for data format (`--format`), we have eliminated the need to specify a file extension in `--filename`.  Be aware that if you do not specify `--format=csv`, then the extension/format will be `json`, and any filename will automatically include the extension of `.json`. In addition, the CLI now supports receiving multiple types of data in one call to mintapi. See the "Multi-Data Support" section of the README for more information.
@@ -157,7 +157,7 @@
 
 1.41
 ---
-- support soft token mfa method (github#193)
+- support soft token mfa type (github#193)
 - allow retrieving brokerage holdings via get_invests_json (github#192)
 - add more methods to README and fix typo (github#191, github#189)
 

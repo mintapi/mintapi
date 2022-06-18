@@ -209,7 +209,7 @@ def parse_arguments(args):
             },
         ),
         (
-            ("--mfa-method",),
+            ("--mfa-type",),
             {
                 "choices": [
                     constants.MFA_VIA_SMS,
@@ -217,7 +217,7 @@ def parse_arguments(args):
                     constants.MFA_VIA_SOFT_TOKEN,
                 ],
                 "default": None,
-                "help": "The MFA method to automate.",
+                "help": "The MFA type to automate.",
             },
         ),
         (
@@ -357,7 +357,7 @@ def main():
     password = options.password
     imap_account = options.imap_account
     imap_password = options.imap_password
-    mfa_method = options.mfa_method
+    mfa_type = options.mfa_type
 
     if not email:
         # If the user did not provide an e-mail, prompt for it
@@ -399,7 +399,7 @@ def main():
     mint = Mint(
         email,
         password,
-        mfa_method=mfa_method,
+        mfa_type=mfa_type,
         mfa_token=options.mfa_token,
         session_path=session_path,
         headless=options.headless,

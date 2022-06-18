@@ -40,30 +40,30 @@ INPUT_CSS_SELECTORS_LABEL = "input_css_selectors"
 SPAN_CSS_SELECTORS_LABEL = "span_css_selectors"
 BUTTON_CSS_SELECTORS_LABEL = "button_css_selectors"
 
-MFA_METHODS = [
+MFA_TYPES = [
     {
-        constants.MFA_METHOD_LABEL: constants.MFA_VIA_SOFT_TOKEN,
+        constants.MFA_TYPE_LABEL: constants.MFA_VIA_SOFT_TOKEN,
         SELECT_CSS_SELECTORS_LABEL: '#iux-mfa-soft-token-verification-code, #ius-mfa-soft-token, [data-testid="VerifySoftTokenInput"]',
         INPUT_CSS_SELECTORS_LABEL: '#iux-mfa-soft-token-verification-code, #ius-mfa-soft-token, [data-testid="VerifySoftTokenInput"]',
         SPAN_CSS_SELECTORS_LABEL: "",
         BUTTON_CSS_SELECTORS_LABEL: '#ius-mfa-soft-token-submit-btn, [data-testid="VerifySoftTokenSubmitButton"]',
     },
     {
-        constants.MFA_METHOD_LABEL: constants.MFA_VIA_AUTHENTICATOR,
+        constants.MFA_TYPE_LABEL: constants.MFA_VIA_AUTHENTICATOR,
         SELECT_CSS_SELECTORS_LABEL: '#iux-mfa-soft-token-verification-code, #ius-mfa-soft-token, [data-testid="VerifySoftTokenInput"]',
         INPUT_CSS_SELECTORS_LABEL: '#iux-mfa-soft-token-verification-code, #ius-mfa-soft-token, [data-testid="VerifySoftTokenInput"]',
         SPAN_CSS_SELECTORS_LABEL: '[data-testid="VerifySoftTokenSubHeader"]',
         BUTTON_CSS_SELECTORS_LABEL: '#ius-mfa-soft-token-submit-btn, [data-testid="VerifySoftTokenSubmitButton"]',
     },
     {
-        constants.MFA_METHOD_LABEL: constants.MFA_VIA_EMAIL,
+        constants.MFA_TYPE_LABEL: constants.MFA_VIA_EMAIL,
         SELECT_CSS_SELECTORS_LABEL: "#ius-label-mfa-email-otp, #ius-mfa-email-otp-card-challenge, #ius-sublabel-mfa-email-otp",
         INPUT_CSS_SELECTORS_LABEL: "#ius-mfa-confirm-code",
         SPAN_CSS_SELECTORS_LABEL: '[data-testid="VerifyOtpHeaderText"]',
         BUTTON_CSS_SELECTORS_LABEL: '#ius-mfa-otp-submit-btn, [data-testid="VerifyOtpSubmitButton"]',
     },
     {
-        constants.MFA_METHOD_LABEL: constants.MFA_VIA_SMS,
+        constants.MFA_TYPE_LABEL: constants.MFA_VIA_SMS,
         SELECT_CSS_SELECTORS_LABEL: "#ius-mfa-sms-otp-card-challenge",
         INPUT_CSS_SELECTORS_LABEL: "#ius-mfa-confirm-code",
         SPAN_CSS_SELECTORS_LABEL: '[data-testid="VerifyOtpHeaderText"]',
@@ -312,7 +312,7 @@ def sign_in(
     email,
     password,
     driver,
-    mfa_method=None,
+    mfa_type=None,
     mfa_token=None,
     mfa_input_callback=None,
     intuit_account=None,
@@ -377,11 +377,11 @@ def sign_in(
         if not bypass_verified_user_page(driver):
             # if bypass_verified_user_page was present, then MFA already done
             bypass_passwordless_login_page(driver)
-            if mfa_method is not None:
-                mfa_selection_page(driver, mfa_method)
+            if mfa_type is not None:
+                mfa_selection_page(driver, mfa_type)
             mfa_page(
                 driver,
-                mfa_method,
+                mfa_type,
                 mfa_token,
                 mfa_input_callback,
                 imap_account,
@@ -475,15 +475,15 @@ def bypass_verified_user_page(driver):
         return False
 
 
-def mfa_selection_page(driver, mfa_method):
+def mfa_selection_page(driver, mfa_type):
     try:
         driver.find_element_by_id("ius-mfa-options-form")
-        mfa_method_option = driver.find_element_by_id(
-            "ius-mfa-option-{}".format(mfa_method)
+        mfa_type_option = driver.find_element_by_id(
+            "ius-mfa-option-{}".format(mfa_type)
         )
-        mfa_method_option.click()
-        mfa_method_submit = driver.find_element_by_id("ius-mfa-options-submit-btn")
-        mfa_method_submit.click()
+        mfa_type_option.click()
+        mfa_type_submit = driver.find_element_by_id("ius-mfa-options-submit-btn")
+        mfa_type_submit.click()
     except STANDARD_MISSING_EXCEPTIONS:
         pass
 
@@ -504,7 +504,7 @@ def bypass_passwordless_login_page(driver):
 
 def mfa_page(
     driver,
-    mfa_method,
+    mfa_type,
     mfa_token,
     mfa_input_callback,
     imap_account,
@@ -512,29 +512,29 @@ def mfa_page(
     imap_server,
     imap_folder,
 ):
-    if mfa_method is None:
-        mfa_result = search_mfa_method(driver)
+    if mfa_type is None:
+        mfa_result = search_mfa_type(driver)
     else:
         try:
-            mfa_result = set_mfa_method(driver, mfa_method)
+            mfa_result = set_mfa_type(driver, mfa_type)
         except MFAMethodNotAvailableError as e:
             # MFA is optional for devices that were registered to Mint by clicking on "Remember my device"
             logger.info(str(e))
             return
     mfa_token_input = mfa_result[0]
     mfa_token_button = mfa_result[1]
-    mfa_method = mfa_result[2]
-    if mfa_method is None:
+    mfa_type = mfa_result[2]
+    if mfa_type is None:
         # MFA is optional for devices that were registered to Mint by clicking on "Remember my device"
         logger.info("Your Mint Account does not require Multifactor Authentication.")
         return
 
     # mfa screen
-    if mfa_method == constants.MFA_VIA_SOFT_TOKEN:
+    if mfa_type == constants.MFA_VIA_SOFT_TOKEN:
         handle_soft_token(
             mfa_token_input, mfa_token_button, mfa_input_callback, mfa_token
         )
-    elif mfa_method == constants.MFA_VIA_EMAIL and imap_account:
+    elif mfa_type == constants.MFA_VIA_EMAIL and imap_account:
         handle_email_by_imap(
             mfa_token_input,
             mfa_token_button,
@@ -548,9 +548,9 @@ def mfa_page(
         handle_other_mfa(mfa_token_input, mfa_token_button, mfa_input_callback)
 
 
-def search_mfa_method(driver):
-    for method in MFA_METHODS:
-        mfa_token_input = mfa_token_button = mfa_method = span_text = result = None
+def search_mfa_type(driver):
+    for method in MFA_TYPES:
+        mfa_token_input = mfa_token_button = mfa_type = span_text = result = None
         try:
             mfa_token_input = driver.find_element_by_css_selector(
                 method[INPUT_CSS_SELECTORS_LABEL]
@@ -558,23 +558,23 @@ def search_mfa_method(driver):
             mfa_token_button = driver.find_element_by_css_selector(
                 method[BUTTON_CSS_SELECTORS_LABEL]
             )
-            mfa_method = method[constants.MFA_METHOD_LABEL]
+            mfa_type = method[constants.MFA_TYPE_LABEL]
             span_text = driver.find_element_by_css_selector(
                 method[SPAN_CSS_SELECTORS_LABEL]
             ).text.lower()
             if span_text is not None:
-                result = mfa_method in span_text
+                result = mfa_type in span_text
                 if result is True:
                     break
         except (NoSuchElementException, ElementNotInteractableException):
-            logger.info("{} MFA Method Not Found".format(constants.MFA_METHOD_LABEL))
-    return mfa_token_input, mfa_token_button, mfa_method
+            logger.info("{} MFA Type Not Found".format(constants.MFA_TYPE_LABEL))
+    return mfa_token_input, mfa_token_button, mfa_type
 
 
-def set_mfa_method(driver, mfa_method):
+def set_mfa_type(driver, mfa_type):
     mfa = filter(
-        lambda method: method[constants.MFA_METHOD_LABEL] == mfa_method,
-        MFA_METHODS,
+        lambda method: method[constants.MFA_TYPE_LABEL] == mfa_type,
+        MFA_TYPES,
     )
     mfa_result = list(mfa)[0]
     try:
@@ -588,12 +588,12 @@ def set_mfa_method(driver, mfa_method):
         mfa_token_button = driver.find_element_by_css_selector(
             mfa_result[BUTTON_CSS_SELECTORS_LABEL]
         )
-        mfa_method = mfa_result[constants.MFA_METHOD_LABEL]
-    except (NoSuchElementException, ElementNotInteractableException) as e:
-        raise MFAMethodNotAvailableError(
-            "The Multifactor Method {} supplied is not available.".format(mfa_method)
-        ) from e
-    return mfa_token_input, mfa_token_button, mfa_method
+        mfa_type = mfa_result[constants.MFA_TYPE_LABEL]
+    except (NoSuchElementException, ElementNotInteractableException):
+        raise RuntimeError(
+            "The Multifactor Method {} supplied is not available.".format(mfa_type)
+        )
+    return mfa_token_input, mfa_token_button, mfa_type
 
 
 def handle_soft_token(mfa_token_input, mfa_token_button, mfa_input_callback, mfa_token):

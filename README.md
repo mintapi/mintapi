@@ -41,7 +41,7 @@ From the command line, the most automated invocation will be:
 This will store your credentials securely in your system keyring, and use a
 headless (invisible) browser to log in and grab the account data. If this triggers
 an MFA prompt, you'll be prompted on the command line for your code, which by default
-goes to SMS unless you specify `--mfa-method=email`. This will also persist a browser
+goes to SMS unless you specify `--mfa-type=email`. This will also persist a browser
 session in $HOME/.mintapi/session to avoid an MFA in the future, unless you specify `--session-path=None`.
 
 If you wish to simplify the number of arguments passed in the command line, you can use a configuration file by specifying `--config-file`.  For arguments such as `--transactions`, you can add a line in your config file that says `transactions`.  For other arguments that have input, such as `--start-date`, you would add a line such as `start-date=10/01/21`.  There are two exceptions to what you can add to the config file: email and password.  Since these arguments do not include `--`, you cannot add them to the config file.
@@ -99,11 +99,11 @@ mint = mintapi.Mint(..., driver=driver)
 
 ### MFA Authentication Methods
 
-As of v2.0, `mfa_method` is only required if your login flow presents you with the option to select which Multifactor Authentication Method you wish to use, typically as a result of your account configured to accept different methods.  
+As of v2.0, `mfa_type`, formerly known as `mfa_method` is only required if your login flow presents you with the option to select which Multifactor Authentication Method you wish to use, typically as a result of your account configured to accept different methods.  We intentionally renamed from `mfa_method` to `mfa_type` to force users to make an intended effort to use this option. 
 
 If `mintapi` detects that your Mint account uses IMAP and your email host provides IMAP access, you can specify your IMAP login details.  This will automate the retrieval of the MFA code from your email and entering it into Mint.  If you use IMAP in conjunction with `keyring`, then you can store your IMAP password (`imap-password`) in keyring.  To do so, simply omit `imap-password` and you will initially be prompted for the password associated with your IMAP account.  Then, on subsequent uses of your IMAP account, you will not have to specify your password.
 
-If `mfa-method` is soft-token then you must also pass your `mfa-token`. The `mfa-token` can be obtained by going to [your mint.com settings](https://mint.intuit.com/settings.event?filter=all) and clicking on 'Intuit Account'. From there go to *Sign In & Security* -> *Two-step verification*. From there, enable the top option however you wish (either text or email is fine). After that, start the process to enable the *Authenticator app* option and when you get the part where you see the QR code, **copy the manual setup code** that appears next to it. Careful where you store this as it allows anyone to generate TOTP codes. This is the token that you will pass to `mfa-token` in either the python api or from the command line.
+If `mfa-type` is soft-token then you must also pass your `mfa-token`. The `mfa-token` can be obtained by going to [your mint.com settings](https://mint.intuit.com/settings.event?filter=all) and clicking on 'Intuit Account'. From there go to *Sign In & Security* -> *Two-step verification*. From there, enable the top option however you wish (either text or email is fine). After that, start the process to enable the *Authenticator app* option and when you get the part where you see the QR code, **copy the manual setup code** that appears next to it. Careful where you store this as it allows anyone to generate TOTP codes. This is the token that you will pass to `mfa-token` in either the python api or from the command line.
 
 While Mint supports authentication via Voice, `mintapi` does not currently support this option.  Compatability with this method will be added in a later version.
 
@@ -135,17 +135,17 @@ make calls to retrieve account/budget information.  We recommend using the
     'your_email@web.com',  # Email used to log in to Mint
     'password',  # Your password used to log in to mint
     # Optional parameters
-    mfa_method='sms',  # See MFA Methods section
+    mfa_type='sms',  # See MFA Types section
                        # Can be 'sms' (default), 'email', or 'soft-token'.
                        # if mintapi detects an MFA request, it will trigger the requested method
                        # and prompt on the command line.
-    mfa_input_callback=None,  # see MFA Methods section
-                              # can be used with any mfa_method
+    mfa_input_callback=None,  # see MFA Types section
+                              # can be used with any mfa_type
                               # A callback accepting a single argument (the prompt)
                               # which returns the user-inputted 2FA code. By default
                               # the default Python `input` function is used.
-    mfa_token=None,   # see MFA Methods section
-                      # used with mfa_method='soft-token'
+    mfa_token=None,   # see MFA Types section
+                      # used with mfa_type='soft-token'
                       # the token that is used to generate the totp
     intuit_account=None, # account name when multiple accounts are registered with this email.
     headless=False,  # Whether the chromedriver should work without opening a
@@ -207,7 +207,7 @@ make calls to retrieve account/budget information.  We recommend using the
   mint = mintapi.Mint()
   mint.driver = Firefox()
   mint.status_message, mint.token = mintapi.sign_in(
-    email, password, mint.driver, mfa_method=None, mfa_token=None,
+    email, password, mint.driver, mfa_type=None, mfa_token=None,
     mfa_input_callback=None, intuit_account=None, wait_for_sync=True,
     wait_for_sync_timeout=5 * 60,
     imap_account=None, imap_password=None,
@@ -229,7 +229,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                    [--start-date [START_DATE]] [--end-date [END_DATE]]
                    [--limit] [--include-investment] [--show-pending]
                    [--format] [--filename FILENAME] [--keyring] [--headless]
-                   [--mfa-method {sms,email,soft-token}]
+                   [--mfa-type {sms,email,soft-token}]
                    [--categories] [--attention]
                    email [password]
 
@@ -277,8 +277,8 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
 	  --use-chromedriver-on-path
 	  						Whether to use the chromedriver on PATH, instead of
               			  	downloading a local copy.
-      --mfa-method {sms,email,soft-token}
-                            The MFA method to automate.
+      --mfa-type {sms,email,soft-token}
+                            The MFA type to automate.
       --mfa-token      The base32 encoded MFA token.
       --imap-account IMAP_ACCOUNT
       --imap-password IMAP_PASSWORD

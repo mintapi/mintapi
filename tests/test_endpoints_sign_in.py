@@ -22,7 +22,7 @@ USE_CHROMEDRIVER_ON_PATH = not os.environ.get(
     "false",
 ]  # convert to boolean, defaults to false
 SESSION_PATH = os.environ.get("MINTAPI_SESSION", None)
-MFA_METHOD = os.environ.get("MINTAPI_MFA_METHOD", None)
+MFA_TYPE = os.environ.get("MINTAPI_MFA_TYPE", None)
 MFA_TOKEN = os.environ.get("MINTAPI_MFA_TOKEN", None)
 INTUIT_ACCOUNT = os.environ.get("MINTAPI_INTUIT_ACCOUNT", None)
 pytestmark = pytest.mark.skipif(
@@ -48,7 +48,7 @@ def do_sign_in(get_mint_driver: mintapi.Mint) -> mintapi.Mint:
         USERNAME,
         PASSWORD,
         get_mint_driver.driver,
-        MFA_METHOD,
+        MFA_TYPE,
         MFA_TOKEN,
         INTUIT_ACCOUNT,
     )
@@ -60,7 +60,7 @@ def test_sign_in(get_mint_driver: mintapi.Mint):
         USERNAME,
         PASSWORD,
         get_mint_driver.driver,
-        MFA_METHOD,
+        MFA_TYPE,
         MFA_TOKEN,
         INTUIT_ACCOUNT,
     )
