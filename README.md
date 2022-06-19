@@ -269,7 +269,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       --limit               Number of records to include from the API.  Default is 5000.
       --show-pending        Retrieve pending transactions.
                             Used with --transactions
-      --fail-if-stale       At login, Mint attempts to refresh your data.  If you wish to exit when the fail syncs, use this option.
+      --fail-if-stale       At login, Mint attempts to refresh your data.  If you wish to exit when the sync fails, use this option.
       --filename FILENAME, -f FILENAME
                             write results to file. If no file is specified, then data is written to stdout.  Do not specify the file extension as it is determined based on the selection of `--format`.
       --format              Determines the output format of the data, either `csv` or         `json`.  The default value is `json`.  If no `filename` is specified, then this determines the `stdout` format.  Otherwise, if a `filename` is specified, then this determines the file extension.
