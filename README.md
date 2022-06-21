@@ -58,10 +58,12 @@ When running this inside of a cron job or other long-term automation scripts, it
 
 #### Unix Environment
 
-If I wanted to make sure that mintapi used the chromium executable in my /usr/bin directory when executing a cron job, I could write the following cron line:
+If you wanted to make sure that mintapi used the chromium executable in my /usr/bin directory when executing a cron job, you could write the following cron line:
+
 ```cron
 0 7 * * FRI PATH=/usr/bin:$PATH mintapi --headless john@example.com my_password
 ```
+
 where prepending the /usr/bin path to path will make those binaries found first. This will only affect the cron job and will not change the environment for any other process.
 
 #### Windows Environment
@@ -161,6 +163,7 @@ make calls to retrieve account/budget information.  We recommend using the
     imap_folder='INBOX',  # IMAP folder that receives MFA email
     wait_for_sync=False,  # do not wait for accounts to sync
     wait_for_sync_timeout=300,  # number of seconds to wait for sync
+    fail_if_stale=True, # True will raise an exception if Mint is unable to refresh your data.
 	use_chromedriver_on_path=False,  # True will use a system provided chromedriver binary that
 	                                 # is on the PATH (instead of downloading the latest version)
     driver=None        # pre-configured driver. If None, Mint will initialize the WebDriver.
@@ -268,6 +271,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       --limit               Number of records to include from the API.  Default is 5000.
       --show-pending        Retrieve pending transactions.
                             Used with --transactions
+      --fail-if-stale       At login, Mint attempts to refresh your data.  If you wish to exit when the sync fails, use this option.
       --filename FILENAME, -f FILENAME
                             write results to file. If no file is specified, then data is written to stdout.  Do not specify the file extension as it is determined based on the selection of `--format`.
       --format              Determines the output format of the data, either `csv` or         `json`.  The default value is `json`.  If no `filename` is specified, then this determines the `stdout` format.  Otherwise, if a `filename` is specified, then this determines the file extension.
@@ -304,3 +308,9 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       ...
     ]
 ```
+
+### Special Considerations
+
+#### Email\Account Access
+
+Because of the inter-connected nature of Intuit's products, when signing in to Mint for one account, you may see accounts associated with Intuit products other than Mint.  If you do have multiple Intuit accounts, you should be aware that if one email is associated with two different usernames (and multiple Intuit products, such as TurboTax or Quickbooks), you may receive a prompt for Multifactor Authentication, even with a saved session.  One possible solution is separating the two accounts to use two different emails.  For many email clients, you can route different email addresses to the same account by using a suffix.  For example, you could have email addresses "myaccount+mint@gmail.com" and "myaccount+quickbooks@gmail.com" and receive emails for both in the "myaccount@gmail.com" inbox.
