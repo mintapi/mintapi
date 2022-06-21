@@ -163,6 +163,7 @@ make calls to retrieve account/budget information.  We recommend using the
     imap_folder='INBOX',  # IMAP folder that receives MFA email
     wait_for_sync=False,  # do not wait for accounts to sync
     wait_for_sync_timeout=300,  # number of seconds to wait for sync
+    fail_if_stale=True, # True will raise an exception if Mint is unable to refresh your data.
 	use_chromedriver_on_path=False,  # True will use a system provided chromedriver binary that
 	                                 # is on the PATH (instead of downloading the latest version)
     driver=None        # pre-configured driver. If None, Mint will initialize the WebDriver.
@@ -270,6 +271,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       --limit               Number of records to include from the API.  Default is 5000.
       --show-pending        Retrieve pending transactions.
                             Used with --transactions
+      --fail-if-stale       At login, Mint attempts to refresh your data.  If you wish to exit when the sync fails, use this option.
       --filename FILENAME, -f FILENAME
                             write results to file. If no file is specified, then data is written to stdout.  Do not specify the file extension as it is determined based on the selection of `--format`.
       --format              Determines the output format of the data, either `csv` or         `json`.  The default value is `json`.  If no `filename` is specified, then this determines the `stdout` format.  Otherwise, if a `filename` is specified, then this determines the file extension.
