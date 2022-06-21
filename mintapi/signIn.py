@@ -1,5 +1,5 @@
 from datetime import datetime
-from mintapi import constants
+from mintapi import constants, exceptions
 import email
 import email.header
 import imaplib
@@ -318,6 +318,7 @@ def sign_in(
     intuit_account=None,
     wait_for_sync=True,
     wait_for_sync_timeout=5 * 60,
+    fail_if_stale=False,
     imap_account=None,
     imap_password=None,
     imap_server=None,
@@ -408,7 +409,9 @@ def sign_in(
     # Wait until the overview page has actually loaded, and if wait_for_sync==True, sync has completed.
     status_message = None
     if wait_for_sync:
-        status_message = handle_wait_for_sync(driver, wait_for_sync_timeout)
+        status_message = handle_wait_for_sync(
+            driver, wait_for_sync_timeout, fail_if_stale
+        )
     return status_message
 
 
@@ -682,7 +685,7 @@ def password_page(driver, password):
         logger.info("Not on Secondary MFA Password Screen")
 
 
-def handle_wait_for_sync(driver, wait_for_sync_timeout):
+def handle_wait_for_sync(driver, wait_for_sync_timeout, fail_if_stale):
     try:
         # Status message might not be present straight away. Seems to be due
         # to dynamic content (client side rendering).
@@ -697,7 +700,8 @@ def handle_wait_for_sync(driver, wait_for_sync_timeout):
         )
         return status_web_element.text
     except (TimeoutException, StaleElementReferenceException):
-        logger.warning(
-            "Mint sync apparently incomplete after timeout. "
-            "Data retrieved may not be current."
-        )
+        logger.warning(exceptions.STALE_DATA_ERROR_MESSAGE)
+        if fail_if_stale:
+            raise exceptions.StaleDataException
+    except (exceptions.StaleDataException):
+        sys.exit(1)
