@@ -658,7 +658,14 @@ def account_selection_page(driver, intuit_account):
                 )
             )
             account_input.click()
-
+        WebDriverWait(driver, 2).until(
+            expected_conditions.presence_of_element_located(
+                (
+                    By.CSS_SELECTOR,
+                    "[data-testid='SelectAccountContinueButton']",
+                )
+            )
+        )
         mfa_code_submit = driver.find_element_by_css_selector(
             '#ius-sign-in-mfa-select-account-continue-btn, [data-testid="SelectAccountContinueButton"]'
         )
