@@ -336,6 +336,7 @@ def sign_in(
     driver.get(url)
     if not beta:
         element = driver.find_element_by_link_text("Sign in")
+        time.sleep(1)
         element.click()
 
     WebDriverWait(driver, 20).until(
