@@ -335,11 +335,12 @@ def sign_in(
     driver.implicitly_wait(20)  # seconds
     driver.get(url)
     if not beta:
-        element = WebDriverWait(driver, 20).until(
+        WebDriverWait(driver, 20).until(
             expected_conditions.presence_of_element_located(
                 (By.LINK_TEXT, "Sign in")
             )
         )
+        element = driver.find_element_by_link_text("Sign in")
         element.click()
 
     WebDriverWait(driver, 20).until(
