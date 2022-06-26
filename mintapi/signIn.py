@@ -338,7 +338,7 @@ def sign_in(
         # Add 1 second delay otherwise an issue occurs when trying to click the sign in button on home page
         time.sleep(1)
         home_page(driver)
-        
+
     WebDriverWait(driver, 20).until(
         expected_conditions.presence_of_element_located(
             (
@@ -415,9 +415,11 @@ def sign_in(
         )
     return status_message
 
+
 def home_page(driver):
     element = driver.find_element_by_link_text("Sign in")
     element.click()
+
 
 def user_selection_page(driver):
     # click "Use a different user ID" if needed
