@@ -335,11 +335,6 @@ def sign_in(
     driver.implicitly_wait(20)  # seconds
     driver.get(url)
     if not beta:
-        WebDriverWait(driver, 20).until(
-            expected_conditions.presence_of_element_located(
-                (By.LINK_TEXT, "Sign in")
-            )
-        )
         # Add 1 second delay otherwise an issue occurs when trying to click the sign in button on home page
         time.sleep(1)
         home_page(driver)
