@@ -440,20 +440,26 @@ def handle_same_page_username_password(driver, email, password):
     email_input.clear()  # clear email and user specified email
     email_input.send_keys(email)
     driver.find_element(By.ID, "ius-password").send_keys(password)
-    driver.find_element(By.CSS_SELECTOR,
-        '#ius-sign-in-submit-btn, [data-testid="IdentifierFirstSubmitButton"]'
+    driver.find_element(
+        By.CSS_SELECTOR,
+        '#ius-sign-in-submit-btn, [data-testid="IdentifierFirstSubmitButton"]',
     ).submit()
 
 
 def handle_different_page_username_password(driver, email):
     try:
-        email_input = find_element(By.CSS_SELECTOR,
-            '#ius-identifier, [data-testid="IdentifierFirstIdentifierInput"]')
+        email_input = find_element(
+            By.CSS_SELECTOR,
+            '#ius-identifier, [data-testid="IdentifierFirstIdentifierInput"]',
+        )
         if not email_input.is_displayed():
             raise ElementNotVisibleException()
         email_input.clear()  # clear email and use specified email
         email_input.send_keys(email)
-        driver.find_element(By.CSS_SELECTOR, '#ius-identifier-first-submit-btn, [data-testid="IdentifierFirstSubmitButton"]').click()
+        driver.find_element(
+            By.CSS_SELECTOR,
+            '#ius-identifier-first-submit-btn, [data-testid="IdentifierFirstSubmitButton"]',
+        ).click()
 
     # click on username if on the saved usernames page
     except (ElementNotInteractableException, ElementNotVisibleException):
@@ -468,7 +474,9 @@ def bypass_verified_user_page(driver):
     # bypass "Let's add your current mobile number" interstitial page
     # returns True is page is bypassed
     try:
-        skip_for_now = driver.find_element(By.ID, "ius-verified-user-update-btn-skip").click()
+        skip_for_now = driver.find_element(
+            By.ID, "ius-verified-user-update-btn-skip"
+        ).click()
         return True
     except (
         NoSuchElementException,
@@ -482,8 +490,8 @@ def bypass_verified_user_page(driver):
 def mfa_selection_page(driver, mfa_method):
     try:
         driver.find_element(By.ID, "ius-mfa-options-form")
-        mfa_method_option = driver.find_element(By.ID,
-            "ius-mfa-option-{}".format(mfa_method)
+        mfa_method_option = driver.find_element(
+            By.ID, "ius-mfa-option-{}".format(mfa_method)
         )
         mfa_method_option.click()
         mfa_method_submit = driver.find_element(By.ID, "ius-mfa-options-submit-btn")
@@ -555,15 +563,15 @@ def search_mfa_method(driver):
     for method in MFA_METHODS:
         mfa_token_input = mfa_token_button = mfa_method = span_text = result = None
         try:
-            mfa_token_input = driver.find_element(By.CSS_SELECTOR,
-                method[INPUT_CSS_SELECTORS_LABEL]
+            mfa_token_input = driver.find_element(
+                By.CSS_SELECTOR, method[INPUT_CSS_SELECTORS_LABEL]
             )
-            mfa_token_button = driver.find_element(By.CSS_SELECTOR,
-                method[BUTTON_CSS_SELECTORS_LABEL]
+            mfa_token_button = driver.find_element(
+                By.CSS_SELECTOR, method[BUTTON_CSS_SELECTORS_LABEL]
             )
             mfa_method = method[constants.MFA_METHOD_LABEL]
-            span_text = driver.find_element(By.CSS_SELECTOR,
-                method[SPAN_CSS_SELECTORS_LABEL]
+            span_text = driver.find_element(
+                By.CSS_SELECTOR, method[SPAN_CSS_SELECTORS_LABEL]
             ).text.lower()
             if span_text is not None:
                 result = mfa_method in span_text
@@ -581,14 +589,14 @@ def set_mfa_method(driver, mfa_method):
     )
     mfa_result = list(mfa)[0]
     try:
-        mfa_token_select = driver.find_element(By.CSS_SELECTOR,
-            mfa_result[SELECT_CSS_SELECTORS_LABEL]
+        mfa_token_select = driver.find_element(
+            By.CSS_SELECTOR, mfa_result[SELECT_CSS_SELECTORS_LABEL]
         ).click()
-        mfa_token_input = driver.find_element(By.CSS_SELECTOR,
-            mfa_result[INPUT_CSS_SELECTORS_LABEL]
+        mfa_token_input = driver.find_element(
+            By.CSS_SELECTOR, mfa_result[INPUT_CSS_SELECTORS_LABEL]
         )
-        mfa_token_button = driver.find_element(By.CSS_SELECTOR,
-            mfa_result[BUTTON_CSS_SELECTORS_LABEL]
+        mfa_token_button = driver.find_element(
+            By.CSS_SELECTOR, mfa_result[BUTTON_CSS_SELECTORS_LABEL]
         )
         mfa_method = mfa_result[constants.MFA_METHOD_LABEL]
     except (NoSuchElementException, ElementNotInteractableException) as e:
@@ -651,10 +659,11 @@ def account_selection_page(driver, intuit_account):
     try:
         select_account = driver.find_element(By.ID, "ius-mfa-select-account-section")
         if intuit_account is not None:
-            account_input = select_account.find_element(By.XPATH,
+            account_input = select_account.find_element(
+                By.XPATH,
                 "//label/span[text()='{}']/../preceding-sibling::input".format(
                     intuit_account
-                )
+                ),
             )
 
             account_input.click()
@@ -666,8 +675,9 @@ def account_selection_page(driver, intuit_account):
                 )
             )
         )
-        mfa_code_submit = driver.find_element(By.CSS_SELECTOR,
-            '#ius-sign-in-mfa-select-account-continue-btn, [data-testid="SelectAccountContinueButton"]'
+        mfa_code_submit = driver.find_element(
+            By.CSS_SELECTOR,
+            '#ius-sign-in-mfa-select-account-continue-btn, [data-testid="SelectAccountContinueButton"]',
         ).click()
     except NoSuchElementException:
         logger.info("Not on Account Selection Screen")
@@ -676,11 +686,11 @@ def account_selection_page(driver, intuit_account):
 def password_page(driver, password):
     # password only sometimes after mfa
     try:
-        driver.find_element(By.ID,
-            "ius-sign-in-mfa-password-collection-current-password"
+        driver.find_element(
+            By.ID, "ius-sign-in-mfa-password-collection-current-password"
         ).send_keys(password)
-        driver.find_element(By.ID,
-            "ius-sign-in-mfa-password-collection-continue-btn"
+        driver.find_element(
+            By.ID, "ius-sign-in-mfa-password-collection-continue-btn"
         ).submit()
     except (
         NoSuchElementException,
