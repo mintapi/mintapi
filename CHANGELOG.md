@@ -2,13 +2,17 @@
     New feature work occurs in the 2.x release series and only supports the new Mint UI / endpoints.
     Please see the README for more information.
 
+2.3
+---
+- fix for "no attribute 'find_element[s]_by*'" (#498)
+
 2.2
 ---
-- Add a delay before clicking sign in button (#493) 
-- Add WebDriverWait for Account Selection Selectors (#490) 
+- Add a delay before clicking sign in button (#493)
+- Add WebDriverWait for Account Selection Selectors (#490)
 - Add an option to raise an exception if the data refresh fails (#488)
-- Update README with content about the email nuance (#487) 
-- Support optional MFA if remember my device is enabled (#476) 
+- Update README with content about the email nuance (#487)
+- Support optional MFA if remember my device is enabled (#476)
 - Documentation updates (#477)
 
 2.1
