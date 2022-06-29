@@ -23,7 +23,7 @@ setuptools.setup(
         "oathtool",
         "pandas>=1.0",
         "requests",
-        "selenium<5.0.0",
+        "selenium>=4.3.0,<5.0.0",
         "selenium-requests>=1.3.3",
         "xmltodict",
         "keyring",
