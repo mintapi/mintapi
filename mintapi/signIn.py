@@ -448,7 +448,7 @@ def handle_same_page_username_password(driver, email, password):
 
 def handle_different_page_username_password(driver, email):
     try:
-        email_input = find_element(
+        email_input = driver.find_element(
             By.CSS_SELECTOR,
             '#ius-identifier, [data-testid="IdentifierFirstIdentifierInput"]',
         )
