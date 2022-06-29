@@ -2,6 +2,10 @@
     New feature work occurs in the 2.x release series and only supports the new Mint UI / endpoints.
     Please see the README for more information.
 
+2.4
+---
+- further fix for Selenium find_element issue (#502)
+
 2.3
 ---
 - fix for "no attribute 'find_element[s]_by*'" (#498)
