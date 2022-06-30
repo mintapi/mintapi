@@ -58,6 +58,15 @@ def parse_arguments(args):
             },
         ),
         (
+            ("--bills",),
+            {
+                "action": "store_true",
+                "dest": "bills",
+                "default": False,
+                "help": "Retrieve bills",
+            },
+        ),        
+        (
             ("--budgets",),
             {
                 "action": "store_true",
@@ -387,6 +396,7 @@ def main():
     if not any(
         [
             options.accounts,
+            options.bills,
             options.budgets,
             options.transactions,
             options.net_worth,
@@ -442,6 +452,10 @@ def main():
     if options.accounts:
         data = mint.get_account_data(limit=options.limit)
         output_data(options, data, constants.ACCOUNT_KEY, attention_msg)
+        
+    if options.bills:
+        data = mint.get_bills(limit=options.limit)
+        output_data(options, data, constants.ACCOUNT_KEY, attention_msg)        
 
     if options.budgets:
         data = mint.get_budget_data(limit=options.limit)
