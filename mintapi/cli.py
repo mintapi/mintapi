@@ -455,7 +455,7 @@ def main():
         
     if options.bills:
         data = mint.get_bills()
-        output_data(options, data, constants.ACCOUNT_KEY, attention_msg)        
+        output_data(options, data, constants.BILL_KEY, attention_msg)        
 
     if options.budgets:
         data = mint.get_budget_data(limit=options.limit)
