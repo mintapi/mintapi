@@ -39,7 +39,10 @@ def parse_arguments(args):
                 "action": "store_true",
                 "dest": "accounts",
                 "default": False,
-                "help": "Retrieve account information (default if nothing else is specified)",
+                "help": (
+                    "Retrieve account information (default if nothing else is"
+                    " specified)"
+                ),
             },
         ),
         (
@@ -65,7 +68,7 @@ def parse_arguments(args):
                 "default": False,
                 "help": "Retrieve bills",
             },
-        ),        
+        ),
         (
             ("--budgets",),
             {
@@ -130,7 +133,10 @@ def parse_arguments(args):
             {
                 "nargs": "?",
                 "default": None,
-                "help": "Latest date for transactions to be retrieved from. Used with --transactions. Format: mm/dd/yy",
+                "help": (
+                    "Latest date for transactions to be retrieved from. Used with"
+                    " --transactions. Format: mm/dd/yy"
+                ),
             },
         ),
         (
@@ -138,7 +144,10 @@ def parse_arguments(args):
             {
                 "action": "store_true",
                 "default": False,
-                "help": "When accessing credit report details, exclude data related to credit accounts.  Used with --credit-report.",
+                "help": (
+                    "When accessing credit report details, exclude data related to"
+                    " credit accounts.  Used with --credit-report."
+                ),
             },
         ),
         (
@@ -146,7 +155,10 @@ def parse_arguments(args):
             {
                 "action": "store_true",
                 "default": False,
-                "help": "When accessing credit report details, exclude data related to credit inquiries.  Used with --credit-report.",
+                "help": (
+                    "When accessing credit report details, exclude data related to"
+                    " credit inquiries.  Used with --credit-report."
+                ),
             },
         ),
         (
@@ -154,7 +166,10 @@ def parse_arguments(args):
             {
                 "action": "store_true",
                 "default": False,
-                "help": "When accessing credit report details, exclude data related to credit utilization.  Used with --credit-report.",
+                "help": (
+                    "When accessing credit report details, exclude data related to"
+                    " credit utilization.  Used with --credit-report."
+                ),
             },
         ),
         (
@@ -162,13 +177,19 @@ def parse_arguments(args):
             {
                 "action": "store_true",
                 "default": False,
-                "help": "At login, Mint attempts to refresh your data.  If you wish to exit when the sync fails, use this option.",
+                "help": (
+                    "At login, Mint attempts to refresh your data.  If you wish to exit"
+                    " when the sync fails, use this option."
+                ),
             },
         ),
         (
             ("--filename", "-f"),
             {
-                "help": "write results to file. can be {csv,json} format. default is to write to stdout."
+                "help": (
+                    "write results to file. can be {csv,json} format. default is to"
+                    " write to stdout."
+                )
             },
         ),
         (
@@ -199,7 +220,10 @@ def parse_arguments(args):
             {
                 "action": "store_true",
                 "default": False,
-                "help": "Retrieve data related to your investments, whether they be retirement or personal stock purchases",
+                "help": (
+                    "Retrieve data related to your investments, whether they be"
+                    " retirement or personal stock purchases"
+                ),
             },
         ),
         (
@@ -255,7 +279,11 @@ def parse_arguments(args):
             {
                 "action": "store_true",
                 "default": False,
-                "help": "By default, mint api will wait for accounts to sync with the backing financial institutions. If this flag is present, do not wait for them to sync.",
+                "help": (
+                    "By default, mint api will wait for accounts to sync with the"
+                    " backing financial institutions. If this flag is present, do not"
+                    " wait for them to sync."
+                ),
             },
         ),
         (
@@ -263,7 +291,11 @@ def parse_arguments(args):
             {
                 "nargs": "?",
                 "default": os.path.join(os.path.expanduser("~"), ".mintapi", "session"),
-                "help": "Directory to save browser session, including cookies. Used to prevent repeated MFA prompts. Defaults to $HOME/.mintapi/session.  Set to None to use a temporary profile.",
+                "help": (
+                    "Directory to save browser session, including cookies. Used to"
+                    " prevent repeated MFA prompts. Defaults to $HOME/.mintapi/session."
+                    "  Set to None to use a temporary profile."
+                ),
             },
         ),
         # Displayed to the user as a postive switch, but processed back here as a negative
@@ -280,7 +312,10 @@ def parse_arguments(args):
             {
                 "nargs": "?",
                 "default": None,
-                "help": "Earliest date for transactions to be retrieved from. Used with --transactions. Format: mm/dd/yy",
+                "help": (
+                    "Earliest date for transactions to be retrieved from. Used with"
+                    " --transactions. Format: mm/dd/yy"
+                ),
             },
         ),
         (
@@ -291,7 +326,10 @@ def parse_arguments(args):
             ("--use-chromedriver-on-path",),
             {
                 "action": "store_true",
-                "help": "Whether to use the chromedriver on PATH, instead of downloading a local copy.",
+                "help": (
+                    "Whether to use the chromedriver on PATH, instead of downloading a"
+                    " local copy."
+                ),
             },
         ),
         (
@@ -452,10 +490,10 @@ def main():
     if options.accounts:
         data = mint.get_account_data(limit=options.limit)
         output_data(options, data, constants.ACCOUNT_KEY, attention_msg)
-        
+
     if options.bills:
         data = mint.get_bills()
-        output_data(options, data, constants.BILL_KEY, attention_msg)        
+        output_data(options, data, constants.BILL_KEY, attention_msg)
 
     if options.budgets:
         data = mint.get_budget_data(limit=options.limit)
