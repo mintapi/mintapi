@@ -65,7 +65,7 @@ def parse_arguments(args):
                 "default": False,
                 "help": "Retrieve bills",
             },
-        ),         
+        ),
         (
             ("--budgets",),
             {
@@ -452,7 +452,7 @@ def main():
     if options.accounts:
         data = mint.get_account_data(limit=options.limit)
         output_data(options, data, constants.ACCOUNT_KEY, attention_msg)
-        
+
     if options.bills:
         data = mint.get_bills()
         output_data(options, data, constants.BILL_KEY, attention_msg)
