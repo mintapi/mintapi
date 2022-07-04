@@ -65,7 +65,7 @@ def parse_arguments(args):
                 "default": False,
                 "help": "Retrieve bills",
             },
-        ),        
+        ),         
         (
             ("--budgets",),
             {
