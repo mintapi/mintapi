@@ -664,7 +664,7 @@ def account_selection_page(driver, intuit_account):
                 )
             )
             account_input.click()
-        WebDriverWait(driver, 2).until(
+        WebDriverWait(driver, 20).until(
             expected_conditions.presence_of_element_located(
                 (
                     By.CSS_SELECTOR,
