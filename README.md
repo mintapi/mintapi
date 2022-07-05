@@ -116,6 +116,7 @@ As of v2.0, mintapi supports returning multiple types of data in one call, such 
 | Option       | Suffix       |
 | -----------  | -----------  |
 | accounts     | account      |
+| bills        | bills        |
 | budgets      | budget       |
 | transactions | transaction  |
 | categories   | category     |
