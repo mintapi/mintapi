@@ -55,7 +55,13 @@ ENDPOINTS = {
         "endingDate": "toDate",
         "includeCreatedDate": False,
     },
-    constants.TRENDS_KEY: {"apiVersion": "pfm/v1", "endpoint": "trends"},
+    constants.TRENDS_KEY: {
+        "apiVersion": "pfm/v1",
+        "endpoint": "trends",
+        "beginningDate": "fromDate",
+        "endingDate": "toDate",
+        "includeCreatedDate": False,
+    },
 }
 
 
@@ -219,7 +225,7 @@ class Mint(object):
 
     def get_data(self, name, limit, id=None, start_date=None, end_date=None):
         endpoint = self.__find_endpoint(name)
-        data = self.__call_mint_endpoint(endpoint, limit, id, start_date, end_date)
+        data = self.__get_mint_endpoint(endpoint, limit, id, start_date, end_date)
         if name in data.keys():
             for i in data[name]:
                 if endpoint["includeCreatedDate"]:
@@ -446,7 +452,7 @@ class Mint(object):
     def __find_endpoint(self, name):
         return ENDPOINTS[name]
 
-    def __call_mint_endpoint(
+    def __get_mint_endpoint(
         self, endpoint, limit, id=None, start_date=None, end_date=None
     ):
         url = "{}/{}/{}?limit={}&".format(
@@ -464,6 +470,15 @@ class Mint(object):
         )
         return response.json()
 
+    def __post_mint_endpoint(self, endpoint, payload):
+        url = "{}/{}/{}".format(
+            constants.MINT_ROOT_URL, endpoint["apiVersion"], endpoint["endpoint"]
+        )
+        response = self.post(
+            url, json=payload.to_dict(), headers=self._get_api_key_header()
+        )
+        return response.json()
+
     def __first_of_this_month(self):
         return date.today().replace(day=1)
 
@@ -474,15 +489,15 @@ class Mint(object):
 
     def get_trend_data(
         self,
-        report_type: ReportView.Options,
-        date_filter: DateFilter.Options,
+        report_type: ReportView.Options = ReportView.Options.SPENDING_TIME,
+        date_filter: DateFilter.Options = DateFilter.Options.THIS_MONTH,
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
         category_ids: List[str] = None,
         tag_ids: List[str] = None,
         descriptions: List[str] = None,
         match_all_filters: bool = True,
-        limit: int = 1000,
+        limit: int = 5000,
         offset: int = 0,
     ) -> List[Dict]:
         """
@@ -508,7 +523,7 @@ class Mint(object):
         match_all_filters : bool, optional
             whether to match all (True) supplied filters or any (False), by default True
         limit : int, optional
-            page size, by default 1000
+            page size, by default 5000
         offset : int, optional
             offset pagination for next pages, by default 0
 
@@ -517,22 +532,52 @@ class Mint(object):
         List[Dict]
             returns a list of trend results (each dict)
         """
+        name = constants.TRENDS_KEY
+        search_clauses = self.__build_trends_search_clauses(
+            category_ids, tag_ids, descriptions
+        )
+        payload = self.__build_trends_payload(
+            report_type,
+            date_filter,
+            start_date,
+            end_date,
+            match_all_filters,
+            limit,
+            offset,
+            search_clauses,
+        )
+        endpoint = self.__find_endpoint(name)
+        data = self.__post_mint_endpoint(endpoint, payload)
+        if name not in data.keys():
+            raise MintException(
+                "Data from the {} endpoint did not containt the expected {} key.".format(
+                    endpoint["endpoint"], name
+                )
+            )
+        return data[name]
+
+    def __build_trends_search_clauses(self, category_ids, tag_ids, descriptions):
         search_clauses = []
         if category_ids:
-            for category_id in category_ids:
-                search_clauses.append(
-                    CategoryMatchFilter(
-                        category_id=category_id, include_child_categories=True
-                    )
-                )
+            search_clauses = self.__append_category_ids(search_clauses, category_ids)
         if tag_ids:
-            for tag_id in tag_ids:
-                search_clauses.append(TagMatchFilter(tag_id=tag_id))
+            search_clauses = self.__append_tag_ids(search_clauses, tag_ids)
         if descriptions:
-            for description in descriptions:
-                search_clauses.append(DescriptionMatchFilter(description=description))
+            search_clauses = self.__append_descriptions(search_clauses, descriptions)
+        return search_clauses
 
-        payload = TrendRequest(
+    def __build_trends_payload(
+        self,
+        report_type,
+        date_filter,
+        start_date,
+        end_date,
+        match_all_filters,
+        limit,
+        offset,
+        search_clauses,
+    ):
+        return TrendRequest(
             report_view=ReportView(report_type=report_type),
             date_filter=DateFilter(
                 date_filter=date_filter, start_date=start_date, end_date=end_date
@@ -544,14 +589,25 @@ class Mint(object):
             limit=limit,
             offset=offset,
         )
-        return self._get_trend_data(payload=payload)
 
-    def _get_trend_data(self, payload: TrendRequest):
-        endpoint_info = self.__find_endpoint(constants.TRENDS_KEY)
-        url = "{root}/{apiVersion}/{endpoint}".format(
-            root=constants.MINT_ROOT_URL, **endpoint_info
-        )
-        return self.post(url, json=payload.to_dict())
+    def __append_category_ids(self, search_clauses, category_ids):
+        for category_id in category_ids:
+            search_clauses.append(
+                CategoryMatchFilter(
+                    category_id=category_id, include_child_categories=True
+                )
+            )
+        return search_clauses
+
+    def __append_tag_ids(self, search_clauses, tag_ids):
+        for tag_id in tag_ids:
+            search_clauses.append(TagMatchFilter(tag_id=tag_id))
+        return search_clauses
+
+    def __append_descriptions(self, search_clauses, descriptions):
+        for description in descriptions:
+            search_clauses.append(DescriptionMatchFilter(description=description))
+        return search_clauses
 
 
 def get_accounts(email, password, get_detail=False):

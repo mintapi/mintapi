@@ -179,7 +179,7 @@ class TrendRequest:
     report_view: ReportView
     date_filter: DateFilter
     search_filters: SearchFilter
-    limit: int = 1000
+    limit: int = 5000
     offset: int = 0
 
     def to_dict(self):

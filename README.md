@@ -116,12 +116,72 @@ As of v2.0, mintapi supports returning multiple types of data in one call, such 
 | accounts     | account      |
 | budgets      | budget       |
 | transactions | transaction  |
+| trends       | trends       |
 | categories   | category     |
 | investments  | investment   |
 | net-worth    | net_worth    |
 | credit-score | credit_score |
 | credit-report| credit_report|
 
+### Financial Data Trends
+
+Mint supports providing some analysis of your financial data based on different types of "trends".  Mint's requirements for accessing this data using mintapi is a bit more complex than the other endpoints.
+
+| Parameter         | Data Type          | Description  |
+| ----------------  | ------------------ | -----------  |
+| report_type       | ReportView.Options | The type of report to generate. |
+| date_filter       | DateFilter.Options | The date window to analyze your trends. |
+| start_date        | Optional[str]      | An optional beginning date to your trend analysis. |
+| end_date          | Optional[str]      | An optional ending date to your trend analysis. |
+| category_ids      | List[str]          | An optional list of category IDs to include in your trend analysis. |
+| tag_ids           | List[str]          | An optional list of tag IDs to include in your trend analysis. |
+| descriptions      | List[str]          | An optional list of descriptions to include in your trend analysis. |
+| match_all_filters | boolean            | Whether to match all supplied filters (True) or at least one (False) |
+| limit             | int                | The page size of results. |
+| offset            | int                | The starting record of your results. |
+
+#### Report Type
+
+As mentioned above, the Report Type is the type of report for which to generate trend analysis.  The supplied value must be one of the following enum values:
+
+| Enum Value | Description |
+| ---------- | ----------- |
+| 1          | Spending Over Time |
+| 2          | Spending by Category |
+| 3          | Spending by Merchant |
+| 4          | Spending by Tag |
+| 5          | Income Over Time |
+| 6          | Income by Category |
+| 7          | Income by Merchant |
+| 8          | Income by Tag |
+| 9          | Assets by Type |
+| 10         | Assets Over Time |
+| 11         | Assets by Account |
+| 12         | Debts Over Time |
+| 13         | Debts by Type |
+| 14         | Debts by Account |
+| 15         | Net Worth Over Time |
+| 16         | Net Income Over Time |
+
+#### Date Filter
+
+As mentioned above, the Date Filter is the date window for which to generate your trend analysis.  The supplied value must be one of the following enum values:
+
+| Enum Value | Description |
+| ---------- | ----------- |
+| 1          | Last 7 Days |
+| 2          | Last 14 Days |
+| 3          | This Month   |
+| 4          | Last Month   |
+| 5          | Last 3 Months |
+| 6          | Last 6 Months |
+| 7          | Last 7 Months |
+| 8          | This Year     |
+| 9          | Last Year     |
+| 10         | All Time      |
+| 11         | Custom        |
+
+If you select a Custom Date Filter, then `start_date` and `end_date` are required fields.
 
 ### From Python
 
@@ -224,7 +284,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
 ```shell
     usage: mintapi [-h] [--session-path [SESSION_PATH]] [--accounts] [--investments]
                    [--beta] [--budgets | --budget_hist] [--net-worth]
-                   [--transactions] [--credit-score] [--credit-report]
+                   [--transactions] [--trends] [--credit-score] [--credit-report]
                    [--exclude-inquiries] [--exclude-accounts] [--exclude-utilization]
                    [--start-date [START_DATE]] [--end-date [END_DATE]]
                    [--limit] [--include-investment] [--show-pending]
@@ -257,6 +317,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       --exclude-utilization Used in conjunction with --credit-report, ignores credit utilization data.
       --net-worth           Retrieve net worth information
       --transactions, -t    Retrieve transactions
+      --trends              Retrieve trend data related to your financial information
       --start-date [START_DATE]
                             Earliest date for which to retrieve transactions.
                             Used with --transactions. Format: mm/dd/yy
