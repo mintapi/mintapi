@@ -295,6 +295,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                    [--format] [--filename FILENAME] [--keyring] [--headless]
                    [--mfa-method {sms,email,soft-token}]
                    [--categories] [--attention]
+                   [--trend-report-type] [--trend-date-filter]
                    email [password]
 
     positional arguments:
@@ -322,6 +323,8 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       --net-worth           Retrieve net worth information
       --transactions, -t    Retrieve transactions
       --trends              Retrieve trend data related to your financial information
+      --trend-report-type   The type of report for which to generate trend analysis.  Default is Spending Over Time.
+      --trend-date-filter   The date window for which to generate your trend analysis.  Default is This Month.
       --start-date [START_DATE]
                             Earliest date for which to retrieve transactions.
                             Used with --transactions. Format: mm/dd/yy

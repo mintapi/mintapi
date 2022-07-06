@@ -403,6 +403,8 @@ def main():
     imap_account = options.imap_account
     imap_password = options.imap_password
     mfa_method = options.mfa_method
+    report_type = ReportView.Options(options.trend_report_type)
+    date_filter = DateFilter.Options(options.trend_date_filter)
 
     if not email:
         # If the user did not provide an e-mail, prompt for it
@@ -480,8 +482,8 @@ def main():
 
     if options.trends:
         data = mint.get_trend_data(
-            report_type=ReportView.Options(options.trend_report_type),
-            date_filter=DateFilter.Options(options.trend_date_filter),
+            report_type=report_type,
+            date_filter=date_filter,
             start_date=options.start_date,
             end_date=options.end_date,
             category_ids=None,
