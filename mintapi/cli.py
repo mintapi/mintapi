@@ -59,6 +59,15 @@ def parse_arguments(args):
             },
         ),
         (
+            ("--bills",),
+            {
+                "action": "store_true",
+                "dest": "bills",
+                "default": False,
+                "help": "Retrieve bills",
+            },
+        ),
+        (
             ("--budgets",),
             {
                 "action": "store_true",
@@ -147,6 +156,14 @@ def parse_arguments(args):
                 "action": "store_true",
                 "default": False,
                 "help": "When accessing credit report details, exclude data related to credit utilization.  Used with --credit-report.",
+            },
+        ),
+        (
+            ("--fail-if-stale",),
+            {
+                "action": "store_true",
+                "default": False,
+                "help": "At login, Mint attempts to refresh your data.  If you wish to exit when the sync fails, use this option.",
             },
         ),
         (
@@ -407,6 +424,7 @@ def main():
     if not any(
         [
             options.accounts,
+            options.bills,
             options.budgets,
             options.transactions,
             options.trends,
@@ -438,6 +456,7 @@ def main():
         imap_folder=options.imap_folder,
         wait_for_sync=not options.no_wait_for_sync,
         wait_for_sync_timeout=options.wait_for_sync_timeout,
+        fail_if_stale=options.fail_if_stale,
         use_chromedriver_on_path=options.use_chromedriver_on_path,
         chromedriver_download_path=options.chromedriver_download_path,
         beta=options.beta,
@@ -477,6 +496,10 @@ def main():
     if options.accounts:
         data = mint.get_account_data(limit=options.limit)
         output_data(options, data, constants.ACCOUNT_KEY, attention_msg)
+
+    if options.bills:
+        data = mint.get_bills()
+        output_data(options, data, constants.BILL_KEY, attention_msg)
 
     if options.budgets:
         data = mint.get_budget_data(limit=options.limit)
