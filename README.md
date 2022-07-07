@@ -7,14 +7,14 @@
 
 An unofficial screen-scraping API for Mint.com.
 
-## IMPORTANT: mintapi 2.0 vs 1.x
+## IMPORTANT: mintapi 2.0 vs 1.x and breaking changes
 
 We recently released 2.0, which supports (and only supports) the new Mint UI:
 
  * If your account has the new UI with the nav on the *left*, you'll need to install at least 2.0: `pip install mintapi>=2.0`
  * If your account still has the original UI with the nav on *top*, to use 2.0, you will need to specify `--beta` in your command-line options or submit `beta=True` when initializing the class.  Otherwise, please install the latest 1.x release: `pip install mintapi<2.0`
 
-Please note that due to data changes on the Mint.com side as well as various new features and changes on the mintapi side, there are several breaking changes in 2.0. Please see [the CHANGELOG](https://github.com/mintapi/mintapi/blob/main/CHANGELOG.md) for details.
+**Please note** that due to data changes on the Mint.com side as well as various new features and changes on the mintapi side, *there are several breaking changes in 2.0*. Please see [the CHANGELOG](https://github.com/mintapi/mintapi/blob/main/CHANGELOG.md#20) for details.
 
 ## Community
 
