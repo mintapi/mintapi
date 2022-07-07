@@ -7,6 +7,7 @@ import getpass
 from mintapi import constants
 import keyring
 import configargparse
+from mintapi.trends import DateFilter, ReportView
 
 from mintapi.api import Mint
 from mintapi.signIn import get_email_code
@@ -288,6 +289,33 @@ def parse_arguments(args):
             {"action": "store_true", "default": False, "help": "Retrieve transactions"},
         ),
         (
+            ("--trends",),
+            {
+                "action": "store_true",
+                "dest": "trends",
+                "default": False,
+                "help": "Retrieve trend data related to your financial information",
+            },
+        ),
+        (
+            ("--trend-report-type",),
+            {
+                "type": int,
+                "default": ReportView.Options.SPENDING_TIME,
+                "dest": "trend_report_type",
+                "help": "The type of report for which to generate trend analysis.  Default is Spending Over Time.",
+            },
+        ),
+        (
+            ("--trend-date-filter",),
+            {
+                "type": int,
+                "default": DateFilter.Options.THIS_MONTH,
+                "dest": "trend_date_filter",
+                "help": "The date window for which to generate your trend analysis.  Default is This Month.",
+            },
+        ),
+        (
             ("--use-chromedriver-on-path",),
             {
                 "action": "store_true",
@@ -375,6 +403,8 @@ def main():
     imap_account = options.imap_account
     imap_password = options.imap_password
     mfa_method = options.mfa_method
+    report_type = ReportView.Options(options.trend_report_type)
+    date_filter = DateFilter.Options(options.trend_date_filter)
 
     if not email:
         # If the user did not provide an e-mail, prompt for it
@@ -399,6 +429,7 @@ def main():
             options.bills,
             options.budgets,
             options.transactions,
+            options.trends,
             options.net_worth,
             options.credit_score,
             options.credit_report,
@@ -448,6 +479,21 @@ def main():
     attention_msg = None
     if options.attention:
         attention_msg = mint.get_attention()
+
+    if options.trends:
+        data = mint.get_trend_data(
+            report_type=report_type,
+            date_filter=date_filter,
+            start_date=options.start_date,
+            end_date=options.end_date,
+            category_ids=None,
+            tag_ids=None,
+            descriptions=None,
+            match_all_filters=True,
+            limit=options.limit,
+            offset=0,
+        )
+        output_data(options, data, constants.TRENDS_KEY, attention_msg)
 
     if options.accounts:
         data = mint.get_account_data(limit=options.limit)
