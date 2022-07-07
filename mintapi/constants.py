@@ -10,6 +10,7 @@ TRANSACTION_KEY = "Transaction"
 NET_WORTH_KEY = "Net_Worth"
 CREDIT_SCORE_KEY = "Credit_Score"
 CREDIT_REPORT_KEY = "Credit_Report"
+TRENDS_KEY = "Trend"
 
 MINT_ROOT_URL = "https://mint.intuit.com"
 MINT_BETA_ROOT_URL = "https://beta.mint.intuit.com"
