@@ -2,6 +2,10 @@
     New feature work occurs in the 2.x release series and only supports the new Mint UI / endpoints.
     Please see the README for more information.
 
+2.5
+---
+- increase wait for account selection to fix login issues (#508)
+
 2.4
 ---
 - further fix for Selenium find_element issue (#502)
