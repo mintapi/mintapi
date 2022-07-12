@@ -8,13 +8,16 @@ from dateutil.relativedelta import relativedelta
 from mintapi import constants
 from mintapi.signIn import _create_web_driver_at_mint_com, sign_in
 from mintapi.trends import (
-    CategoryMatchFilter,
-    DateFilter,
-    DescriptionMatchFilter,
+    DateFilter as TrendDateFilter,
     ReportView,
-    SearchFilter,
-    TagMatchFilter,
     TrendRequest,
+)
+
+from mintapi.filters import (
+    CategoryIdFilter,
+    DescriptionNameFilter,
+    SearchFilter,
+    TagIdFilter,
 )
 
 logger = logging.getLogger("mintapi")
@@ -494,7 +497,7 @@ class Mint(object):
     def get_trend_data(
         self,
         report_type: ReportView.Options = ReportView.Options.SPENDING_TIME,
-        date_filter: DateFilter.Options = DateFilter.Options.THIS_MONTH,
+        date_filter: TrendDateFilter.Options = TrendDateFilter.Options.THIS_MONTH,
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
         category_ids: List[str] = None,
@@ -537,7 +540,7 @@ class Mint(object):
             returns a list of trend results (each dict)
         """
         name = constants.TRENDS_KEY
-        search_clauses = self.__build_trends_search_clauses(
+        search_clauses = self.__build_search_clauses(
             category_ids, tag_ids, descriptions
         )
         payload = self.__build_trends_payload(
@@ -560,14 +563,19 @@ class Mint(object):
             )
         return data[name]
 
-    def __build_trends_search_clauses(self, category_ids, tag_ids, descriptions):
+    def __build_search_clauses(self, category_ids, tag_ids, descriptions):
         search_clauses = []
+        include_child_categories = True
         if category_ids:
-            search_clauses = self.__append_category_ids(search_clauses, category_ids)
+            search_clauses = self.__append_filter(
+                CategoryIdFilter, search_clauses, tag_ids, include_child_categories
+            )
         if tag_ids:
-            search_clauses = self.__append_tag_ids(search_clauses, tag_ids)
+            search_clauses = self.__append_filter(TagIdFilter, search_clauses, tag_ids)
         if descriptions:
-            search_clauses = self.__append_descriptions(search_clauses, descriptions)
+            search_clauses = self.__append_filter(
+                DescriptionNameFilter, search_clauses, descriptions
+            )
         return search_clauses
 
     def __build_trends_payload(
@@ -583,7 +591,7 @@ class Mint(object):
     ):
         return TrendRequest(
             report_view=ReportView(report_type=report_type),
-            date_filter=DateFilter(
+            date_filter=TrendDateFilter(
                 date_filter=date_filter, start_date=start_date, end_date=end_date
             ),
             search_filters=SearchFilter(
@@ -594,23 +602,9 @@ class Mint(object):
             offset=offset,
         )
 
-    def __append_category_ids(self, search_clauses, category_ids):
-        for category_id in category_ids:
-            search_clauses.append(
-                CategoryMatchFilter(
-                    category_id=category_id, include_child_categories=True
-                )
-            )
-        return search_clauses
-
-    def __append_tag_ids(self, search_clauses, tag_ids):
-        for tag_id in tag_ids:
-            search_clauses.append(TagMatchFilter(tag_id=tag_id))
-        return search_clauses
-
-    def __append_descriptions(self, search_clauses, descriptions):
-        for description in descriptions:
-            search_clauses.append(DescriptionMatchFilter(description=description))
+    def __append_filter(self, filter, search_clauses, values, **kwargs):
+        for value in values:
+            search_clauses.append(filter(value=value, **kwargs))
         return search_clauses
 
 
