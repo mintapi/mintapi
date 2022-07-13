@@ -116,6 +116,13 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, delete
 
             msg = email.message_from_bytes(data[0][1])
 
+            x = email.header.make_header(email.header.decode_header(msg["From"]))
+            frm = str(x)
+            logger.debug("DEBUG: FROM:", frm)
+
+            if not re.search("do_not_reply@intuit.com", frm, re.IGNORECASE):
+                continue
+
             x = email.header.make_header(email.header.decode_header(msg["Subject"]))
             subject = str(x)
             logger.debug("DEBUG: SUBJECT:", subject)
@@ -376,8 +383,6 @@ def sign_in(
             bypass_passwordless_login_page(driver)
             if mfa_method is not None:
                 mfa_selection_page(driver, mfa_method)
-            else:
-                check_mfa_method(driver)
             mfa_page(
                 driver,
                 mfa_method,
@@ -580,23 +585,6 @@ def search_mfa_method(driver):
         except (NoSuchElementException, ElementNotInteractableException):
             logger.info("{} MFA Method Not Found".format(constants.MFA_METHOD_LABEL))
     return mfa_token_input, mfa_token_button, mfa_method
-
-
-def check_mfa_method(driver):
-    for method in MFA_METHODS:
-        try:
-            mfa_token_select = driver.find_element(
-                By.CSS_SELECTOR, method[SELECT_CSS_SELECTORS_LABEL]
-            )
-        except (NoSuchElementException, ElementNotInteractableException):
-            continue
-        mfa_token_select.click()
-        driver.implicitly_wait(20)  # seconds
-        mfa_token_input = driver.find_element(
-            By.CSS_SELECTOR, method[INPUT_CSS_SELECTORS_LABEL]
-        )
-        driver.implicitly_wait(1)  # seconds
-        break
 
 
 def set_mfa_method(driver, mfa_method):
