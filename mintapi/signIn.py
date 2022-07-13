@@ -705,11 +705,11 @@ def password_page(driver, password):
     try:
         driver.find_element(
             By.CSS_SELECTOR,
-            '#iux-password-confirmation-password, #ius-sign-in-mfa-password-collection-current-password'
+            "#iux-password-confirmation-password, #ius-sign-in-mfa-password-collection-current-password",
         ).send_keys(password)
         driver.find_element(
             By.CSS_SELECTOR,
-            '#ius-sign-in-mfa-password-collection-continue-btn, [data-testid="passwordVerificationContinueButton"]'
+            '#ius-sign-in-mfa-password-collection-continue-btn, [data-testid="passwordVerificationContinueButton"]',
         ).submit()
     except (
         NoSuchElementException,
