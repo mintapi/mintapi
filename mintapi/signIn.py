@@ -116,16 +116,17 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, delete
 
             msg = email.message_from_bytes(data[0][1])
 
+            x = email.header.make_header(email.header.decode_header(msg["Subject"]))
+
+            subject = str(x)
+            logger.debug("DEBUG: SUBJECT:", subject)
+
             x = email.header.make_header(email.header.decode_header(msg["From"]))
             frm = str(x)
             logger.debug("DEBUG: FROM:", frm)
 
             if not re.search("do_not_reply@intuit.com", frm, re.IGNORECASE):
                 continue
-
-            x = email.header.make_header(email.header.decode_header(msg["Subject"]))
-            subject = str(x)
-            logger.debug("DEBUG: SUBJECT:", subject)
 
             if not re.search("Your Mint Account", subject, re.IGNORECASE):
                 continue
