@@ -704,10 +704,12 @@ def password_page(driver, password):
     # password only sometimes after mfa
     try:
         driver.find_element(
-            By.CSS_SELECTOR, '#iux-password-confirmation-password, #ius-sign-in-mfa-password-collection-current-password'
+            By.CSS_SELECTOR,
+            '#iux-password-confirmation-password, #ius-sign-in-mfa-password-collection-current-password'
         ).send_keys(password)
         driver.find_element(
-            By.CSS_SELECTOR, '#ius-sign-in-mfa-password-collection-continue-btn, [data-testid="passwordVerificationContinueButton"]'
+            By.CSS_SELECTOR,
+            '#ius-sign-in-mfa-password-collection-continue-btn, [data-testid="passwordVerificationContinueButton"]'
         ).submit()
     except (
         NoSuchElementException,
