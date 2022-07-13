@@ -2,10 +2,10 @@
 Trends helper classes
 """
 
-from abc import ABCMeta, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional, Union
+from typing import Optional, Union
+from mintapi.filters import SearchFilter
 
 
 @dataclass
@@ -96,73 +96,6 @@ class DateFilter:
             filter_clause["dateFilter"]["startDate"] = self.start_date
             filter_clause["dateFilter"]["endDate"] = self.end_date
         return filter_clause
-
-
-@dataclass
-class MatchFilter(metaclass=ABCMeta):
-    @abstractmethod
-    def to_dict(self):
-        pass
-
-
-@dataclass
-class CategoryMatchFilter(MatchFilter):
-    category_id: str
-    include_child_categories: bool
-
-    def to_dict(self):
-        return {
-            "type": "CategoryIdFilter",
-            "categoryId": self.category_id,
-            "includeChildCategories": self.include_child_categories,
-        }
-
-
-@dataclass
-class DescriptionMatchFilter(MatchFilter):
-    description: str
-
-    def to_dict(self):
-        return {"type": "DescriptionNameFilter", "description": self.description}
-
-
-@dataclass
-class TagMatchFilter(MatchFilter):
-    tag_id: str
-
-    def to_dict(self):
-        return {"type": "TagIdFilter", "tagId": self.tag_id}
-
-
-@dataclass
-class SearchFilter:
-    """
-    Search filters are composites of match any or match all clauses
-    param: matchAll -> true or false
-    """
-
-    match_all_filters: List[MatchFilter] = field(default_factory=list)
-    match_any_filters: List[MatchFilter] = field(default_factory=list)
-
-    def to_dict(self):
-        return {
-            "searchFilters": [
-                {
-                    "matchAll": True,
-                    "filters": [
-                        match_filter.to_dict()
-                        for match_filter in self.match_all_filters
-                    ],
-                },
-                {
-                    "matchAll": False,
-                    "filters": [
-                        match_filter.to_dict()
-                        for match_filter in self.match_any_filters
-                    ],
-                },
-            ]
-        }
 
 
 @dataclass
