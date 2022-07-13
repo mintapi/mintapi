@@ -12,6 +12,7 @@ import subprocess
 import sys
 import time
 import zipfile
+import itertools
 
 from selenium.common.exceptions import (
     ElementNotInteractableException,
@@ -19,6 +20,7 @@ from selenium.common.exceptions import (
     NoSuchElementException,
     StaleElementReferenceException,
     TimeoutException,
+    WebDriverException,
 )
 from selenium.webdriver import ChromeOptions
 from selenium.webdriver.common.by import By
@@ -57,16 +59,16 @@ MFA_METHODS = [
     },
     {
         constants.MFA_METHOD_LABEL: constants.MFA_VIA_EMAIL,
-        SELECT_CSS_SELECTORS_LABEL: "#ius-label-mfa-email-otp, #ius-mfa-email-otp-card-challenge, #ius-sublabel-mfa-email-otp",
+        SELECT_CSS_SELECTORS_LABEL: '#ius-label-mfa-email-otp, #ius-mfa-email-otp-card-challenge, #ius-sublabel-mfa-email-otp, [data-testid="challengePickerOption_EMAIL_OTP"]',
         INPUT_CSS_SELECTORS_LABEL: "#ius-mfa-confirm-code",
-        SPAN_CSS_SELECTORS_LABEL: '[data-testid="VerifyOtpHeaderText"]',
+        SPAN_CSS_SELECTORS_LABEL: '[data-testid="VerifyOtpHeaderText"], #VerifyOtpHeader',
         BUTTON_CSS_SELECTORS_LABEL: '#ius-mfa-otp-submit-btn, [data-testid="VerifyOtpSubmitButton"]',
     },
     {
         constants.MFA_METHOD_LABEL: constants.MFA_VIA_SMS,
         SELECT_CSS_SELECTORS_LABEL: "#ius-mfa-sms-otp-card-challenge",
         INPUT_CSS_SELECTORS_LABEL: "#ius-mfa-confirm-code",
-        SPAN_CSS_SELECTORS_LABEL: '[data-testid="VerifyOtpHeaderText"]',
+        SPAN_CSS_SELECTORS_LABEL: '[data-testid="VerifyOtpHeaderText"], #VerifyOtpHeader',
         BUTTON_CSS_SELECTORS_LABEL: '#ius-mfa-otp-submit-btn, [data-testid="VerifyOtpSubmitButton"]',
     },
 ]
@@ -118,13 +120,6 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, delete
             subject = str(x)
             logger.debug("DEBUG: SUBJECT:", subject)
 
-            x = email.header.make_header(email.header.decode_header(msg["From"]))
-            frm = str(x)
-            logger.debug("DEBUG: FROM:", frm)
-
-            if not re.search("do_not_reply@intuit.com", frm, re.IGNORECASE):
-                continue
-
             if not re.search("Your Mint Account", subject, re.IGNORECASE):
                 continue
 
@@ -143,9 +138,9 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, delete
 
             logger.debug("DEBUG: EMAIL HEADER OK")
 
-            body = str(msg)
+            body = next(msg.walk()).get_payload(None, True).decode()
 
-            p = re.search(r"Verification code:<.*?(\d\d\d\d\d\d)$", body, re.S | re.M)
+            p = re.search(r"Verification code:<.*?(\d\d\d\d\d\d)\b", body, re.S | re.M)
             if p:
                 code = p.group(1)
             else:
@@ -381,6 +376,8 @@ def sign_in(
             bypass_passwordless_login_page(driver)
             if mfa_method is not None:
                 mfa_selection_page(driver, mfa_method)
+            else:
+                check_mfa_method(driver)
             mfa_page(
                 driver,
                 mfa_method,
@@ -417,7 +414,10 @@ def sign_in(
 
 
 def home_page(driver):
-    element = driver.find_element(By.LINK_TEXT, "Sign in").click()
+    try:
+        element = driver.find_element(By.LINK_TEXT, "Sign in").click()
+    except WebDriverException:
+        logger.info("WebDriverException when clicking Sign In")
 
 
 def user_selection_page(driver):
@@ -582,6 +582,23 @@ def search_mfa_method(driver):
     return mfa_token_input, mfa_token_button, mfa_method
 
 
+def check_mfa_method(driver):
+    for method in MFA_METHODS:
+        try:
+            mfa_token_select = driver.find_element(
+                By.CSS_SELECTOR, method[SELECT_CSS_SELECTORS_LABEL]
+            )
+        except (NoSuchElementException, ElementNotInteractableException):
+            continue
+        mfa_token_select.click()
+        driver.implicitly_wait(20)  # seconds
+        mfa_token_input = driver.find_element(
+            By.CSS_SELECTOR, method[INPUT_CSS_SELECTORS_LABEL]
+        )
+        driver.implicitly_wait(1)  # seconds
+        break
+
+
 def set_mfa_method(driver, mfa_method):
     mfa = filter(
         lambda method: method[constants.MFA_METHOD_LABEL] == mfa_method,
@@ -636,7 +653,7 @@ def handle_email_by_imap(
         if mfa_code is None:
             mfa_code = (mfa_input_callback or input)(DEFAULT_MFA_INPUT_PROMPT)
         submit_mfa_code(mfa_token_input, mfa_token_button, mfa_code)
-    except (NoSuchElementException, ElementNotInteractableException):
+    except (NoSuchElementException, ElementNotInteractableException, EOFError):
         logger.info("Not on Email MFA Screen")
 
 
@@ -644,7 +661,7 @@ def handle_other_mfa(mfa_token_input, mfa_token_button, mfa_input_callback):
     try:
         mfa_code = (mfa_input_callback or input)(DEFAULT_MFA_INPUT_PROMPT)
         submit_mfa_code(mfa_token_input, mfa_token_button, mfa_code)
-    except (NoSuchElementException, ElementNotInteractableException):
+    except (NoSuchElementException, ElementNotInteractableException, EOFError):
         logger.info("Not on SMS or Authenticator MFA Screen")
 
 
@@ -687,10 +704,10 @@ def password_page(driver, password):
     # password only sometimes after mfa
     try:
         driver.find_element(
-            By.ID, "ius-sign-in-mfa-password-collection-current-password"
+            By.CSS_SELECTOR, '#iux-password-confirmation-password, #ius-sign-in-mfa-password-collection-current-password'
         ).send_keys(password)
         driver.find_element(
-            By.ID, "ius-sign-in-mfa-password-collection-continue-btn"
+            By.CSS_SELECTOR, '#ius-sign-in-mfa-password-collection-continue-btn, [data-testid="passwordVerificationContinueButton"]'
         ).submit()
     except (
         NoSuchElementException,
