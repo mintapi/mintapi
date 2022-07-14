@@ -117,7 +117,6 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, delete
             msg = email.message_from_bytes(data[0][1])
 
             x = email.header.make_header(email.header.decode_header(msg["Subject"]))
-
             subject = str(x)
             logger.debug("DEBUG: SUBJECT:", subject)
 
