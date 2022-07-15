@@ -378,6 +378,7 @@ def sign_in(
 
         # Wait until logged in, just in case we need to deal with MFA.
 
+        handle_login_failures(driver)
         if not bypass_verified_user_page(driver):
             # if bypass_verified_user_page was present, then MFA already done
             bypass_passwordless_login_page(driver)
@@ -473,6 +474,49 @@ def handle_different_page_username_password(driver, email):
             if username_element.text == email:
                 username_element.click()
                 break
+
+
+def handle_login_failures(driver):
+    try:
+        WebDriverWait(driver, 0).until(
+            expected_conditions.presence_of_element_located(
+                (
+                    By.XPATH,
+                    '//div[contains(text(), "We can\'t find anyone with ")][@id="ius-identifier-first-error"]',
+                )
+            )
+        )
+        raise RuntimeError(
+            "Login to Mint failed: Mint does not recognize your login email"
+        )
+    except TimeoutException:
+        pass
+
+    try:
+        WebDriverWait(driver, 0).until(
+            expected_conditions.presence_of_element_located(
+                (
+                    By.XPATH,
+                    "//div[contains(text(), 'The password you entered is incorrect.')]",
+                )
+            )
+        )
+        raise RuntimeError("Login to Mint failed: incorrect password")
+    except TimeoutException:
+        pass
+
+    try:
+        WebDriverWait(driver, 0).until(
+            expected_conditions.presence_of_element_located(
+                (
+                    By.ID,
+                    "RecaptchaHeader",
+                )
+            )
+        )
+        raise RuntimeError("Login to Mint failed: Captcha presented")
+    except TimeoutException:
+        pass
 
 
 def bypass_verified_user_page(driver):
