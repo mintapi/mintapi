@@ -478,11 +478,11 @@ def handle_different_page_username_password(driver, email):
 
 def handle_login_failures(driver):
     try:
-        WebDriverWait(driver,0).until(
+        WebDriverWait(driver, 0).until(
             expected_conditions.presence_of_element_located(
                 (
                     By.XPATH,
-                    "//div[contains(text(), \"We can't find anyone with \")][@id=\"ius-identifier-first-error\"]",
+                    '//div[contains(text(), "We can\'t find anyone with ")][@id="ius-identifier-first-error"]',
                 )
             )
         )
@@ -493,7 +493,7 @@ def handle_login_failures(driver):
         pass
 
     try:
-        WebDriverWait(driver,0).until(
+        WebDriverWait(driver, 0).until(
             expected_conditions.presence_of_element_located(
                 (
                     By.XPATH,
@@ -501,14 +501,12 @@ def handle_login_failures(driver):
                 )
             )
         )
-        raise RuntimeError(
-            "Login to Mint failed: incorrect password"
-        )
+        raise RuntimeError("Login to Mint failed: incorrect password")
     except TimeoutException:
         pass
 
     try:
-        WebDriverWait(driver,0).until(
+        WebDriverWait(driver, 0).until(
             expected_conditions.presence_of_element_located(
                 (
                     By.ID,
@@ -516,9 +514,7 @@ def handle_login_failures(driver):
                 )
             )
         )
-        raise RuntimeError(
-            "Login to Mint failed: Captcha presented"
-        )
+        raise RuntimeError("Login to Mint failed: Captcha presented")
     except TimeoutException:
         pass
 
