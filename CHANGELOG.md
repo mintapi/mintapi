@@ -2,6 +2,12 @@
     New feature work occurs in the 2.x release series and only supports the new Mint UI / endpoints.
     Please see the README for more information.
 
+2.6
+---
+- add support for accessing the Trend API endpoint (#480)
+- bump selenium-requests dependency version to resolve issues (#521)
+- attempt to show the reason for a login failure (#523)
+
 2.5
 ---
 - increase wait for account selection to fix login issues (#508)
