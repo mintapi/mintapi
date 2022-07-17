@@ -4,7 +4,6 @@ Shared Endpoint module to keep definitions independent of implementation
 """
 
 
-import json
 import logging
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
@@ -14,16 +13,14 @@ import pandas as pd
 from requests import Response
 
 from mintapi.constants import MINT_CREDIT_URL, MINT_ROOT_URL
-from mintapi.trends import (
-    AccountMatchFilter,
-    CategoryMatchFilter,
-    DateFilter,
-    DescriptionMatchFilter,
-    ReportView,
+from mintapi.filters import (
+    AccountIdFilter,
+    CategoryIdFilter,
+    DescriptionNameFilter,
     SearchFilter,
-    TagMatchFilter,
-    TrendRequest,
+    TagIdFilter,
 )
+from mintapi.trends import DateFilter, ReportView, TrendRequest
 
 LOGGER = logging.getLogger(__name__)
 
@@ -607,20 +604,18 @@ class MintEndpoints(object, metaclass=ABCMeta):
         search_clauses = []
         if account_ids:
             for account_id in account_ids:
-                search_clauses.append(AccountMatchFilter(account_id=account_id))
+                search_clauses.append(AccountIdFilter(value=account_id))
         if category_ids:
             for category_id in category_ids:
                 search_clauses.append(
-                    CategoryMatchFilter(
-                        category_id=category_id, include_child_categories=True
-                    )
+                    CategoryIdFilter(value=category_id, include_child_categories=True)
                 )
         if tag_ids:
             for tag_id in tag_ids:
-                search_clauses.append(TagMatchFilter(tag_id=tag_id))
+                search_clauses.append(TagIdFilter(value=tag_id))
         if descriptions:
             for description in descriptions:
-                search_clauses.append(DescriptionMatchFilter(description=description))
+                search_clauses.append(DescriptionNameFilter(value=description))
 
         payload = TrendRequest(
             report_view=ReportView(report_type=report_type),
