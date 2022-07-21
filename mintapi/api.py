@@ -14,6 +14,7 @@ from mintapi.trends import (
 )
 
 from mintapi.filters import (
+    AccountIdFilter,
     CategoryIdFilter,
     DescriptionNameFilter,
     SearchFilter,
@@ -503,6 +504,7 @@ class Mint(object):
         category_ids: List[str] = None,
         tag_ids: List[str] = None,
         descriptions: List[str] = None,
+        account_ids: List[str] = None,
         match_all_filters: bool = True,
         limit: int = 5000,
         offset: int = 0,
@@ -527,6 +529,8 @@ class Mint(object):
             optional list of tag ids to filter by, by default None
         descriptions : List[str], optional
             optional list of descriptions (ui labeled merchants) to filter by, by default None
+        account_ids : List[str], optional
+            optional list of account ids to filter by, default None
         match_all_filters : bool, optional
             whether to match all (True) supplied filters or any (False), by default True
         limit : int, optional
@@ -541,7 +545,7 @@ class Mint(object):
         """
         name = constants.TRENDS_KEY
         search_clauses = self.__build_search_clauses(
-            category_ids, tag_ids, descriptions
+            category_ids, tag_ids, descriptions, account_ids
         )
         payload = self.__build_trends_payload(
             report_type,
@@ -563,7 +567,7 @@ class Mint(object):
             )
         return data[name]
 
-    def __build_search_clauses(self, category_ids, tag_ids, descriptions):
+    def __build_search_clauses(self, category_ids, tag_ids, descriptions, account_ids):
         search_clauses = []
         include_child_categories = True
         if category_ids:
@@ -575,6 +579,10 @@ class Mint(object):
         if descriptions:
             search_clauses = self.__append_filter(
                 DescriptionNameFilter, search_clauses, descriptions
+            )
+        if account_ids:
+            search_clauses = self.__append_filter(
+                AccountIdFilter, search_clauses, account_ids
             )
         return search_clauses
 
