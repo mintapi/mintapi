@@ -489,6 +489,7 @@ def main():
             category_ids=None,
             tag_ids=None,
             descriptions=None,
+            account_ids=None,
             match_all_filters=True,
             limit=options.limit,
             offset=0,

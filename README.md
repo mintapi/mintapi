@@ -139,6 +139,7 @@ Mint supports providing some analysis of your financial data based on different 
 | category_ids      | List[str]          | An optional list of category IDs to include in your trend analysis. |
 | tag_ids           | List[str]          | An optional list of tag IDs to include in your trend analysis. |
 | descriptions      | List[str]          | An optional list of descriptions to include in your trend analysis. |
+| account_ids       | List[str]          | An optional list of account IDs to include in your trend analysis. |
 | match_all_filters | boolean            | Whether to match all supplied filters (True) or at least one (False) |
 | limit             | int                | The page size of results. |
 | offset            | int                | The starting record of your results. |
