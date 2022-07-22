@@ -196,6 +196,13 @@ def parse_arguments(args):
             {"action": "store_true", "help": "Test imap login and retrieval."},
         ),
         (
+            ("--intuit-account",),
+            {
+                "default": None,
+                "help": "Specify an override of the default intuit account for accessing Mint",
+            },
+        ),
+        (
             ("--investments",),
             {
                 "action": "store_true",
@@ -456,6 +463,7 @@ def main():
         imap_password=imap_password,
         imap_server=options.imap_server,
         imap_folder=options.imap_folder,
+        intuit_account=options.intuit_account,
         wait_for_sync=not options.no_wait_for_sync,
         wait_for_sync_timeout=options.wait_for_sync_timeout,
         fail_if_stale=options.fail_if_stale,
