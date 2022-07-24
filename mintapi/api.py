@@ -2,20 +2,17 @@ import logging
 import os
 from datetime import date, datetime
 from typing import Dict, List, Optional
-
 from dateutil.relativedelta import relativedelta
 
 from mintapi import constants
 from mintapi.signIn import _create_web_driver_at_mint_com, sign_in
-from mintapi.trends import (
-    DateFilter as TrendDateFilter,
-    ReportView,
-    TrendRequest,
-)
+from mintapi.transactions import TransactionRequest
+from mintapi.trends import ReportView, TrendRequest
 
 from mintapi.filters import (
     AccountIdFilter,
     CategoryIdFilter,
+    DateFilter,
     DescriptionNameFilter,
     SearchFilter,
     TagIdFilter,
@@ -30,6 +27,7 @@ ENDPOINTS = {
         "beginningDate": None,
         "endingDate": None,
         "includeCreatedDate": True,
+        "includeUpdatedDate": True,
     },
     constants.BUDGET_KEY: {
         "apiVersion": "pfm/v1",
@@ -37,6 +35,7 @@ ENDPOINTS = {
         "beginningDate": "startDate",
         "endingDate": "endDate",
         "includeCreatedDate": True,
+        "includeUpdatedDate": True,
     },
     constants.CATEGORY_KEY: {
         "apiVersion": "pfm/v1",
@@ -44,6 +43,7 @@ ENDPOINTS = {
         "beginningDate": None,
         "endingDate": None,
         "includeCreatedDate": False,
+        "includeUpdatedDate": True,
     },
     constants.INVESTMENT_KEY: {
         "apiVersion": "pfm/v1",
@@ -51,13 +51,15 @@ ENDPOINTS = {
         "beginningDate": None,
         "endingDate": None,
         "includeCreatedDate": False,
+        "includeUpdatedDate": True,
     },
     constants.TRANSACTION_KEY: {
         "apiVersion": "pfm/v1",
-        "endpoint": "transactions",
+        "endpoint": "transactions/search",
         "beginningDate": "fromDate",
         "endingDate": "toDate",
         "includeCreatedDate": False,
+        "includeUpdatedDate": True,
     },
     constants.TRENDS_KEY: {
         "apiVersion": "pfm/v1",
@@ -65,6 +67,7 @@ ENDPOINTS = {
         "beginningDate": "fromDate",
         "endingDate": "toDate",
         "includeCreatedDate": False,
+        "includeUpdatedDate": False,
     },
 }
 
@@ -231,14 +234,18 @@ class Mint(object):
             headers=self._get_api_key_header(),
         ).json()["bills"]
 
-    def get_data(self, name, limit, id=None, start_date=None, end_date=None):
+    def get_data(self, method, name, payload=None, **kwargs):
         endpoint = self.__find_endpoint(name)
-        data = self.__get_mint_endpoint(endpoint, limit, id, start_date, end_date)
+        if method == "POST":
+            data = self.__post_mint_endpoint(endpoint, payload)
+        else:
+            data = self.__get_mint_endpoint(endpoint, **kwargs)
         if name in data.keys():
             for i in data[name]:
                 if endpoint["includeCreatedDate"]:
                     i["createdDate"] = i["metaData"]["createdDate"]
-                i["lastUpdatedDate"] = i["metaData"]["lastUpdatedDate"]
+                if endpoint["includeUpdatedDate"]:
+                    i["lastUpdatedDate"] = i["metaData"]["lastUpdatedDate"]
                 i.pop("metaData", None)
         else:
             raise MintException(
@@ -252,22 +259,28 @@ class Mint(object):
         self,
         limit=5000,
     ):
-        return self.get_data(constants.ACCOUNT_KEY, limit)
+        return self.get_data(
+            method=constants.GET_METHOD, name=constants.ACCOUNT_KEY, limit=limit
+        )
 
     def get_category_data(
         self,
         limit=5000,
     ):
-        return self.get_data(constants.CATEGORY_KEY, limit)
+        return self.get_data(
+            method=constants.GET_METHOD, name=constants.CATEGORY_KEY, limit=limit
+        )
 
     def get_budget_data(
         self,
         limit=5000,
     ):
         return self.get_data(
-            constants.BUDGET_KEY,
-            limit,
-            None,
+            method=constants.GET_METHOD,
+            name=constants.BUDGET_KEY,
+            payload=None,
+            limit=limit,
+            id=None,
             start_date=self.__x_months_ago(11),
             end_date=self.__first_of_this_month(),
         )
@@ -277,49 +290,10 @@ class Mint(object):
         limit=5000,
     ):
         return self.get_data(
-            constants.INVESTMENT_KEY,
-            limit,
+            method=constants.GET_METHOD,
+            name=constants.INVESTMENT_KEY,
+            limit=limit,
         )
-
-    def get_transaction_data(
-        self,
-        limit=5000,
-        include_investment=False,
-        start_date=None,
-        end_date=None,
-        remove_pending=True,
-        id=0,
-    ):
-        """
-        Note: start_date and end_date must be in format mm/dd/yy.
-        If pulls take too long, consider a narrower range of start and end
-        date. See json explanation of include_investment.
-
-        Also note: Mint includes pending transactions, however these sometimes
-        change dates/amounts after the transactions post. They have been
-        removed by default in this pull, but can be included by changing
-        remove_pending to False
-        """
-
-        try:
-            if include_investment:
-                id = 0
-            data = self.get_data(
-                constants.TRANSACTION_KEY,
-                limit,
-                id,
-                convert_mmddyy_to_datetime(start_date),
-                convert_mmddyy_to_datetime(end_date),
-            )
-            if remove_pending:
-                filtered = filter(
-                    lambda transaction: transaction["isPending"] == False,
-                    data,
-                )
-                data = list(filtered)
-        except Exception:
-            raise Exception
-        return data
 
     def get_net_worth_data(self, account_data=None):
         if account_data is None:
@@ -461,7 +435,7 @@ class Mint(object):
         return ENDPOINTS[name]
 
     def __get_mint_endpoint(
-        self, endpoint, limit, id=None, start_date=None, end_date=None
+        self, endpoint, limit=5000, id=None, start_date=None, end_date=None
     ):
         url = "{}/{}/{}?limit={}&".format(
             constants.MINT_ROOT_URL, endpoint["apiVersion"], endpoint["endpoint"], limit
@@ -498,7 +472,7 @@ class Mint(object):
     def get_trend_data(
         self,
         report_type: ReportView.Options = ReportView.Options.SPENDING_TIME,
-        date_filter: TrendDateFilter.Options = TrendDateFilter.Options.THIS_MONTH,
+        date_filter: DateFilter.Options = DateFilter.Options.THIS_MONTH,
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
         category_ids: List[str] = None,
@@ -520,9 +494,9 @@ class Mint(object):
         date_filter : DateFilter.Options
             date window. must use predefined enum windows or pass a start and end date with CUSTOM enum
         start_date : Optional[str], optional
-            optional start date (YYYY-mm-dd) if using enum CUSTOM, by default None
+            optional start date (mm-dd-yy) if using enum CUSTOM, by default None
         end_date : Optional[str], optional
-            optional end date (YYYY-mm-dd) if using enum CUSTOM, by default None
+            optional end date (mm-dd-yy) if using enum CUSTOM, by default None
         category_ids : List[str], optional
             optional list of category ids to filter by, by default None
         tag_ids : List[str], optional
@@ -543,29 +517,103 @@ class Mint(object):
         List[Dict]
             returns a list of trend results (each dict)
         """
-        name = constants.TRENDS_KEY
         search_clauses = self.__build_search_clauses(
             category_ids, tag_ids, descriptions, account_ids
         )
-        payload = self.__build_trends_payload(
-            report_type,
-            date_filter,
-            start_date,
-            end_date,
-            match_all_filters,
-            limit,
-            offset,
-            search_clauses,
+        payload = self.__build_payload(
+            request=TrendRequest,
+            report_type=report_type,
+            date_filter=date_filter,
+            start_date=start_date,
+            end_date=end_date,
+            match_all_filters=match_all_filters,
+            limit=limit,
+            offset=offset,
+            search_clauses=search_clauses,
         )
-        endpoint = self.__find_endpoint(name)
-        data = self.__post_mint_endpoint(endpoint, payload)
-        if name not in data.keys():
-            raise MintException(
-                "Data from the {} endpoint did not containt the expected {} key.".format(
-                    endpoint["endpoint"], name
-                )
+        data = self.get_data(constants.POST_METHOD, constants.TRENDS_KEY, payload)
+        return data
+
+    def get_transaction_data(
+        self,
+        date_filter: DateFilter.Options = DateFilter.Options.ALL_TIME,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        category_ids: List[str] = None,
+        tag_ids: List[str] = None,
+        descriptions: List[str] = None,
+        account_ids: List[str] = None,
+        match_all_filters: bool = True,
+        include_investment: bool = False,
+        remove_pending: bool = True,
+        limit: int = 5000,
+        offset: int = 0,
+    ) -> List[Dict]:
+        """
+        Public accessor for transaction data. Internally constructs a transaction/search api payload
+
+
+        Parameters
+        ----------
+        date_filter : DateFilter.Options
+            date window. must use predefined enum windows or pass a start and end date with CUSTOM enum
+        start_date : Optional[str], optional
+            optional start date (mm-dd-yy) if using enum CUSTOM, by default None
+        end_date : Optional[str], optional
+            optional end date (mm-dd-yy) if using enum CUSTOM, by default None
+        category_ids : List[str], optional
+            optional list of category ids to filter by, by default None
+        tag_ids : List[str], optional
+            optional list of tag ids to filter by, by default None
+        descriptions : List[str], optional
+            optional list of descriptions (ui labeled merchants) to filter by, by default None
+        account_ids : List[str], optional
+            optional list of account ids to filter by, default None
+        match_all_filters : bool, optional
+            whether to match all (True) supplied filters or any (False), by default True
+        include_investment : bool, optional
+            whether to include transactions of type InvestmentTransaction; by default, this is False
+        remove_pending : bool, optional
+            whether to include transactions that are still Pending; by default, this is True
+        limit : int, optional
+            page size, by default 5000
+        offset : int, optional
+            offset pagination for next pages, by default 0
+
+        Returns
+        -------
+        List[Dict]
+            returns a list of transaction results (each dict)
+        """
+        search_clauses = self.__build_search_clauses(
+            category_ids, tag_ids, descriptions, account_ids
+        )
+
+        payload = self.__build_payload(
+            request=TransactionRequest,
+            report_type=None,
+            date_filter=date_filter,
+            start_date=start_date,
+            end_date=end_date,
+            match_all_filters=match_all_filters,
+            limit=limit,
+            offset=offset,
+            search_clauses=search_clauses,
+        )
+        data = self.get_data(constants.POST_METHOD, constants.TRANSACTION_KEY, payload)
+        if remove_pending:
+            filtered = filter(
+                lambda transaction: transaction["isPending"] == False,
+                data,
             )
-        return data[name]
+            data = list(filtered)
+        if not include_investment:
+            filtered = filter(
+                lambda transaction: transaction["type"] != "InvestmentTransaction",
+                data,
+            )
+            data = list(filtered)
+        return data
 
     def __build_search_clauses(self, category_ids, tag_ids, descriptions, account_ids):
         search_clauses = []
@@ -586,8 +634,9 @@ class Mint(object):
             )
         return search_clauses
 
-    def __build_trends_payload(
+    def __build_payload(
         self,
+        request,
         report_type,
         date_filter,
         start_date,
@@ -597,15 +646,19 @@ class Mint(object):
         offset,
         search_clauses,
     ):
-        return TrendRequest(
-            report_view=ReportView(report_type=report_type),
-            date_filter=TrendDateFilter(
-                date_filter=date_filter, start_date=start_date, end_date=end_date
+        return request(
+            date_filter=DateFilter(
+                date_filter=date_filter,
+                start_date=convert_mmddyy_to_datetime(start_date),
+                end_date=convert_mmddyy_to_datetime(end_date),
             ),
             search_filters=SearchFilter(
                 match_all_filters=search_clauses if match_all_filters else [],
                 match_any_filters=search_clauses if not match_all_filters else [],
             ),
+            report_view=ReportView(report_type=report_type)
+            if report_type is not None
+            else None,
             limit=limit,
             offset=offset,
         )

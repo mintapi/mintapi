@@ -167,9 +167,28 @@ As mentioned above, the Report Type is the type of report for which to generate 
 | 15         | Net Worth Over Time |
 | 16         | Net Income Over Time |
 
-#### Date Filter
+### Financial Data Transactions
 
-As mentioned above, the Date Filter is the date window for which to generate your trend analysis.  The supplied value must be one of the following enum values:
+If you want to provide a more granular filtering of your financial data transactions, you can select from a variety of search filters that are sent to Mint. 
+
+| Parameter         | Data Type          | Description  |
+| ----------------  | ------------------ | -----------  |
+| date_filter       | DateFilter.Options | The date window for which to filter your transactions. |
+| start_date        | Optional[str]      | An optional beginning date to your transaction filtering. |
+| end_date          | Optional[str]      | An optional ending date to your transaction filtering. |
+| category_ids      | List[str]          | An optional list of category IDs of transactions to include. |
+| tag_ids           | List[str]          | An optional list of tag IDs of transactions to include. |
+| descriptions      | List[str]          | An optional list of descriptions of transactions to include. |
+| account_ids       | List[str]          | An optional list of account IDs of transactions to include. |
+| match_all_filters | boolean            | Whether to match all supplied filters (True) or at least one (False) |
+| include_investment | boolean           | Whether to include those transactions that are associated with an Investment Account. |
+| remove_pending    | boolean            | Whether to remove those transactions that are still Pending. | 
+| limit             | int                | The page size of results. |
+| offset            | int                | The starting record of your results. |
+
+### Date Filters
+
+As mentioned above, the Date Filter is the date window for which to generate your trend analysis or for which to search transactions.  The supplied value must be one of the following enum values:
 
 | Enum Value | Description |
 | ---------- | ----------- |
@@ -185,7 +204,7 @@ As mentioned above, the Date Filter is the date window for which to generate you
 | 10         | All Time      |
 | 11         | Custom        |
 
-If you select a Custom Date Filter, then `start_date` and `end_date` are required fields.
+If you select a Custom Date Filter, then `start_date` and `end_date` are required fields.  Similarly, if you wish to use `start_date` and `end_date`, Custom Date Filter must be used.
 
 ### From Python
 
@@ -289,14 +308,15 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
 ```shell
     usage: mintapi [-h] [--session-path [SESSION_PATH]] [--accounts] [--investments]
                    [--beta] [--budgets | --budget_hist] [--net-worth]
-                   [--transactions] [--trends] [--credit-score] [--credit-report]
+                   [--credit-score] [--credit-report]
                    [--exclude-inquiries] [--exclude-accounts] [--exclude-utilization]
                    [--start-date [START_DATE]] [--end-date [END_DATE]]
                    [--limit] [--include-investment] [--show-pending]
                    [--format] [--filename FILENAME] [--keyring] [--headless]
                    [--mfa-method {sms,email,soft-token}]
                    [--categories] [--attention]
-                   [--trend-report-type] [--trend-date-filter]
+                   [--transactions] [--transaction-date-filter]
+                   [--trends] [--trend-report-type] [--trend-date-filter]
                    email [password]
 
     positional arguments:
@@ -323,6 +343,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       --exclude-utilization Used in conjunction with --credit-report, ignores credit utilization data.
       --net-worth           Retrieve net worth information
       --transactions, -t    Retrieve transactions
+      --transaction-date-filter The date window for which to filter your transactions.  Default is All Time.
       --trends              Retrieve trend data related to your financial information
       --trend-report-type   The type of report for which to generate trend analysis.  Default is Spending Over Time.
       --trend-date-filter   The date window for which to generate your trend analysis.  Default is This Month.
