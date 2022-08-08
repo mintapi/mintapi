@@ -134,8 +134,8 @@ Mint supports providing some analysis of your financial data based on different 
 | ----------------  | ------------------ | -----------  |
 | report_type       | ReportView.Options | The type of report to generate. |
 | date_filter       | DateFilter.Options | The date window to analyze your trends. |
-| start_date        | Optional[str]      | An optional beginning date to your trend analysis. |
-| end_date          | Optional[str]      | An optional ending date to your trend analysis. |
+| start_date        | Optional[str]      | An optional beginning date (mm-dd-yy) to your trend analysis. |
+| end_date          | Optional[str]      | An optional ending date (mm-dd-yy) to your trend analysis. |
 | category_ids      | List[str]          | An optional list of category IDs to include in your trend analysis. |
 | tag_ids           | List[str]          | An optional list of tag IDs to include in your trend analysis. |
 | descriptions      | List[str]          | An optional list of descriptions to include in your trend analysis. |
@@ -174,8 +174,8 @@ If you want to provide a more granular filtering of your financial data transact
 | Parameter         | Data Type          | Description  |
 | ----------------  | ------------------ | -----------  |
 | date_filter       | DateFilter.Options | The date window for which to filter your transactions. |
-| start_date        | Optional[str]      | An optional beginning date to your transaction filtering. |
-| end_date          | Optional[str]      | An optional ending date to your transaction filtering. |
+| start_date        | Optional[str]      | An optional beginning date (mm-dd-yy) to your transaction filtering. |
+| end_date          | Optional[str]      | An optional ending date (mm-dd-yy) to your transaction filtering. |
 | category_ids      | List[str]          | An optional list of category IDs of transactions to include. |
 | tag_ids           | List[str]          | An optional list of tag IDs of transactions to include. |
 | descriptions      | List[str]          | An optional list of descriptions of transactions to include. |
