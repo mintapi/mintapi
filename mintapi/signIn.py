@@ -152,7 +152,6 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, delete
 
             if code == "":
                 body = next(msg.walk()).get_payload(None, True).decode()
-    
                 p = re.search(
                     r"Verification code:<.*?(\d\d\d\d\d\d)\b", body, re.S | re.M
                 )
