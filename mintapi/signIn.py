@@ -124,7 +124,7 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, delete
             frm = str(x)
             logger.debug("DEBUG: FROM:", frm)
 
-            if False and not re.search("do_not_reply@intuit.com", frm, re.IGNORECASE):
+            if not re.search("do_not_reply@intuit.com", frm, re.IGNORECASE):
                 continue
 
             p = re.search(r"(\d\d\d\d\d\d) Mint code", subject)
