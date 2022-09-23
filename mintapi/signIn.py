@@ -124,7 +124,7 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, delete
             frm = str(x)
             logger.debug("DEBUG: FROM:", frm)
 
-            if not re.search("do_not_reply@intuit.com", frm, re.IGNORECASE):
+            if False and not re.search("do_not_reply@intuit.com", frm, re.IGNORECASE):
                 continue
 
             p = re.search(r"(\d\d\d\d\d\d) Mint code", subject)
@@ -133,7 +133,7 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, delete
             elif not re.search("Your Mint Account", subject, re.IGNORECASE):
                 continue
             else:
-                code = ''
+                code = ""
 
             date_tuple = email.utils.parsedate_tz(msg["Date"])
             if date_tuple:
@@ -150,10 +150,12 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, delete
 
             logger.debug("DEBUG: EMAIL HEADER OK")
 
-            if code == '':
+            if code == "":
                 body = next(msg.walk()).get_payload(None, True).decode()
     
-                p = re.search(r"Verification code:<.*?(\d\d\d\d\d\d)\b", body, re.S | re.M)
+                p = re.search(
+                    r"Verification code:<.*?(\d\d\d\d\d\d)\b", body, re.S | re.M
+                )
                 if p:
                     code = p.group(1)
                 else:
