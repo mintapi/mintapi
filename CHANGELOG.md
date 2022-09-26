@@ -1,6 +1,11 @@
 --> NOTE! The 1.x release series only supports and contain fixes for the previous Mint UI.
     New feature work occurs in the 2.x release series and only supports the new Mint UI / endpoints.
     Please see the README for more information.
+    
+2.8
+---
+- handle new MFA email format w/ code in subject (#538)
+- update for new SMS MFA UI (#536)
 
 2.7
 ---
