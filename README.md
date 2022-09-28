@@ -89,7 +89,7 @@ docker run --rm --shm-size=2g ghcr.io/mintapi/mintapi mintapi john@example.com m
 
 #### AWS Lambda Environment
 
-AWS Lambda may need a [specific chrome driver with specific options](https://robertorocha.info/setting-up-a-selenium-web-scraper-on-aws-lambda-with-python/). You can initialize Mint with the pre-configured headless serverless chrome through the constructor:
+AWS Lambda may need a [specific chrome driver with specific options](https://robertorocha.info/setting-up-a-selenium-web-scraper-on-aws-lambda-with-python/). You can initialize Mint with your own pre-configured headless serverless chrome through a constructor:
 
 
 ```python
