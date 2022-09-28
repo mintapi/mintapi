@@ -6,6 +6,7 @@
 ---
 - handle new MFA email format w/ code in subject (#538)
 - update for new SMS MFA UI (#536)
+- improve README for creating and passing in your own driver (#542)
 
 2.7
 ---
