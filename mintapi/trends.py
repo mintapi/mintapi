@@ -4,8 +4,8 @@ Trends helper classes
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Union
-from mintapi.filters import SearchFilter
+from typing import Union
+from mintapi.filters import SearchFilter, DateFilter
 
 
 @dataclass
@@ -53,52 +53,6 @@ class ReportView:
 
 
 @dataclass
-class DateFilter:
-    class Options(Enum):
-        """
-        Date options were inspected from the UI by clicking through all the available views
-        """
-
-        LAST_7_DAYS = 1
-        LAST_14_DAYS = 2
-        THIS_MONTH = 3
-        LAST_MONTH = 4
-        LAST_3_MONTHS = 5
-        LAST_6_MONTHS = 6
-        LAST_12_MONTHS = 7
-        THIS_YEAR = 8
-        LAST_YEAR = 9
-        ALL_TIME = 10
-        CUSTOM = 11
-
-    date_filter: Union[Options, str]
-    start_date: Optional[str] = None
-    end_date: Optional[str] = None
-
-    def __post_init__(self):
-        if isinstance(self.date_filter, str):
-            assert hasattr(self.Options, self.date_filter)
-        elif isinstance(self.date_filter, self.Options):
-            self.date_filter = self.date_filter.name
-        else:
-            raise ValueError(
-                "Date Filter must be one of allowed values in enum `DateFilter.Options"
-            )
-
-        if self.date_filter == self.Options.CUSTOM.name:
-            # validate required start and end dates
-            assert self.start_date is not None
-            assert self.end_date is not None
-
-    def to_dict(self):
-        filter_clause = {"dateFilter": {"type": self.date_filter}}
-        if self.date_filter == self.Options.CUSTOM.name:
-            filter_clause["dateFilter"]["startDate"] = self.start_date
-            filter_clause["dateFilter"]["endDate"] = self.end_date
-        return filter_clause
-
-
-@dataclass
 class TrendRequest:
     """
     Helper class to construct a trend request payload
@@ -109,9 +63,9 @@ class TrendRequest:
         _description_
     """
 
-    report_view: ReportView
     date_filter: DateFilter
     search_filters: SearchFilter
+    report_view: ReportView
     limit: int = 5000
     offset: int = 0
 

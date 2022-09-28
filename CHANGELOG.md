@@ -2,6 +2,11 @@
     New feature work occurs in the 2.x release series and only supports the new Mint UI / endpoints.
     Please see the README for more information.
 
+2.7
+---
+- fix for Intuit account selection login bug (#530)
+- Add AccountIdFilter to Endpoint Filters (#526)
+
 2.6
 ---
 - add support for accessing the Trend API endpoint (#480)

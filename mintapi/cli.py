@@ -7,8 +7,8 @@ import getpass
 from mintapi import constants
 import keyring
 import configargparse
-from mintapi.trends import DateFilter, ReportView
-
+from mintapi.trends import ReportView
+from mintapi.filters import DateFilter
 from mintapi.api import Mint
 from mintapi.signIn import get_email_code
 from pandas import json_normalize
@@ -196,6 +196,13 @@ def parse_arguments(args):
             {"action": "store_true", "help": "Test imap login and retrieval."},
         ),
         (
+            ("--intuit-account",),
+            {
+                "default": None,
+                "help": "Specify an override of the default intuit account for accessing Mint",
+            },
+        ),
+        (
             ("--investments",),
             {
                 "action": "store_true",
@@ -282,6 +289,15 @@ def parse_arguments(args):
                 "nargs": "?",
                 "default": None,
                 "help": "Earliest date for transactions to be retrieved from. Used with --transactions. Format: mm/dd/yy",
+            },
+        ),
+        (
+            ("--transaction-date-filter",),
+            {
+                "type": int,
+                "default": DateFilter.Options.ALL_TIME,
+                "dest": "transaction_date_filter",
+                "help": "The date window for which to generate your transaction search.  Default is All Time.",
             },
         ),
         (
@@ -404,7 +420,8 @@ def main():
     imap_password = options.imap_password
     mfa_method = options.mfa_method
     report_type = ReportView.Options(options.trend_report_type)
-    date_filter = DateFilter.Options(options.trend_date_filter)
+    trend_date_filter = DateFilter.Options(options.trend_date_filter)
+    transaction_date_filter = DateFilter.Options(options.transaction_date_filter)
 
     if not email:
         # If the user did not provide an e-mail, prompt for it
@@ -456,6 +473,7 @@ def main():
         imap_password=imap_password,
         imap_server=options.imap_server,
         imap_folder=options.imap_folder,
+        intuit_account=options.intuit_account,
         wait_for_sync=not options.no_wait_for_sync,
         wait_for_sync_timeout=options.wait_for_sync_timeout,
         fail_if_stale=options.fail_if_stale,
@@ -483,7 +501,7 @@ def main():
     if options.trends:
         data = mint.get_trend_data(
             report_type=report_type,
-            date_filter=date_filter,
+            date_filter=trend_date_filter,
             start_date=options.start_date,
             end_date=options.end_date,
             category_ids=None,
@@ -513,11 +531,18 @@ def main():
 
     if options.transactions:
         data = mint.get_transaction_data(
-            limit=options.limit,
+            date_filter=transaction_date_filter,
             start_date=options.start_date,
             end_date=options.end_date,
+            category_ids=None,
+            tag_ids=None,
+            descriptions=None,
+            account_ids=None,
+            match_all_filters=True,
             include_investment=options.include_investment,
             remove_pending=options.show_pending,
+            limit=options.limit,
+            offset=0,
         )
         output_data(options, data, constants.TRANSACTION_KEY, attention_msg)
 
