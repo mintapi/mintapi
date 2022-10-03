@@ -328,7 +328,7 @@ class MintApiTests(unittest.TestCase):
         self.assertTrue("createdDate" in account_data)
         self.assertTrue("lastUpdatedDate" in account_data)
 
-    @patch.object(mintapi.Mint, "_Mint__get_mint_endpoint")
+    @patch.object(mintapi.Mint, "_Mint__post_mint_endpoint")
     def test_get_transaction_data(self, mock_call_transactions_endpoint):
         mock_call_transactions_endpoint.return_value = transactions_example
         transaction_data = mintapi.Mint().get_transaction_data()[0]
