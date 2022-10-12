@@ -66,7 +66,7 @@ MFA_METHODS = [
     },
     {
         constants.MFA_METHOD_LABEL: constants.MFA_VIA_SMS,
-        SELECT_CSS_SELECTORS_LABEL: "#ius-mfa-sms-otp-card-challenge",
+        SELECT_CSS_SELECTORS_LABEL: '#ius-mfa-sms-otp-card-challenge, [data-testid="challengePickerOption_SMS_OTP"]',
         INPUT_CSS_SELECTORS_LABEL: "#ius-mfa-confirm-code",
         SPAN_CSS_SELECTORS_LABEL: '[data-testid="VerifyOtpHeaderText"], #VerifyOtpHeader',
         BUTTON_CSS_SELECTORS_LABEL: '#ius-mfa-otp-submit-btn, [data-testid="VerifyOtpSubmitButton"]',
@@ -127,8 +127,13 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, delete
             if not re.search("do_not_reply@intuit.com", frm, re.IGNORECASE):
                 continue
 
-            if not re.search("Your Mint Account", subject, re.IGNORECASE):
+            p = re.search(r"(\d\d\d\d\d\d) Mint code", subject)
+            if p:
+                code = p.group(1)
+            elif not re.search("Your Mint Account", subject, re.IGNORECASE):
                 continue
+            else:
+                code = ""
 
             date_tuple = email.utils.parsedate_tz(msg["Date"])
             if date_tuple:
@@ -145,13 +150,15 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, delete
 
             logger.debug("DEBUG: EMAIL HEADER OK")
 
-            body = next(msg.walk()).get_payload(None, True).decode()
-
-            p = re.search(r"Verification code:<.*?(\d\d\d\d\d\d)\b", body, re.S | re.M)
-            if p:
-                code = p.group(1)
-            else:
-                logger.error("FAIL1")
+            if code == "":
+                body = next(msg.walk()).get_payload(None, True).decode()
+                p = re.search(
+                    r"Verification code:<.*?(\d\d\d\d\d\d)\b", body, re.S | re.M
+                )
+                if p:
+                    code = p.group(1)
+                else:
+                    logger.error("FAIL1")
 
             logger.debug("DEBUG: CODE FROM EMAIL:", code)
 
@@ -706,29 +713,41 @@ def submit_mfa_code(mfa_token_input, mfa_token_button, mfa_code):
 def account_selection_page(driver, intuit_account):
     # account selection screen -- if there are multiple accounts, select one
     try:
-        select_account = driver.find_element(By.ID, "ius-mfa-select-account-section")
-        if intuit_account is not None:
-            account_input = select_account.find_element(
-                By.XPATH,
-                "//label/span[text()='{}']/../preceding-sibling::input".format(
-                    intuit_account
-                ),
-            )
-
-            account_input.click()
         WebDriverWait(driver, 20).until(
             expected_conditions.presence_of_element_located(
                 (
                     By.CSS_SELECTOR,
-                    "[data-testid='SelectAccountContinueButton']",
+                    '[data-testid="SelectAccountForm"]',
                 )
             )
         )
-        mfa_code_submit = driver.find_element(
+        select_account = driver.find_element(
+            By.CSS_SELECTOR, '[data-testid="SelectAccountForm"]'
+        )
+        if intuit_account is not None:
+            account_input = select_account.find_element(
+                By.XPATH,
+                "//*/span[text()='{}']/../../../preceding-sibling::input".format(
+                    intuit_account
+                ),
+            )
+            # NOTE: We need to execute a script because simply using account_input.click()
+            #       results in ElementClickInterceptedException.
+            driver.execute_script("arguments[0].click()", account_input)
+
+        WebDriverWait(driver, 20).until(
+            expected_conditions.presence_of_element_located(
+                (
+                    By.CSS_SELECTOR,
+                    "#ius-sign-in-mfa-select-account-continue-btn, [data-testid='SelectAccountContinueButton']",
+                )
+            )
+        )
+        driver.find_element(
             By.CSS_SELECTOR,
             '#ius-sign-in-mfa-select-account-continue-btn, [data-testid="SelectAccountContinueButton"]',
         ).click()
-    except NoSuchElementException:
+    except (TimeoutException, NoSuchElementException):
         logger.info("Not on Account Selection Screen")
 
 
