@@ -7,14 +7,14 @@
 
 An unofficial screen-scraping API for Mint.com.
 
-## IMPORTANT: mintapi 2.0 vs 1.x
+## IMPORTANT: mintapi 2.0 vs 1.x and breaking changes
 
 We recently released 2.0, which supports (and only supports) the new Mint UI:
 
  * If your account has the new UI with the nav on the *left*, you'll need to install at least 2.0: `pip install mintapi>=2.0`
  * If your account still has the original UI with the nav on *top*, to use 2.0, you will need to specify `--beta` in your command-line options or submit `beta=True` when initializing the class.  Otherwise, please install the latest 1.x release: `pip install mintapi<2.0`
 
-Please note that due to data changes on the Mint.com side as well as various new features and changes on the mintapi side, there are several breaking changes in 2.0. Please see [the CHANGELOG](https://github.com/mintapi/mintapi/blob/main/CHANGELOG.md) for details.
+**Please note** that due to data changes on the Mint.com side as well as various new features and changes on the mintapi side, *there are several breaking changes in 2.0*. Please see [the CHANGELOG](https://github.com/mintapi/mintapi/blob/main/CHANGELOG.md#20) for details.
 
 ## Community
 
@@ -58,10 +58,12 @@ When running this inside of a cron job or other long-term automation scripts, it
 
 #### Unix Environment
 
-If I wanted to make sure that mintapi used the chromium executable in my /usr/bin directory when executing a cron job, I could write the following cron line:
+If you wanted to make sure that mintapi used the chromium executable in my /usr/bin directory when executing a cron job, you could write the following cron line:
+
 ```cron
 0 7 * * FRI PATH=/usr/bin:$PATH mintapi --headless john@example.com my_password
 ```
+
 where prepending the /usr/bin path to path will make those binaries found first. This will only affect the cron job and will not change the environment for any other process.
 
 #### Windows Environment
@@ -87,7 +89,7 @@ docker run --rm --shm-size=2g ghcr.io/mintapi/mintapi mintapi john@example.com m
 
 #### AWS Lambda Environment
 
-AWS Lambda may need a [specific chrome driver with specific options](https://robertorocha.info/setting-up-a-selenium-web-scraper-on-aws-lambda-with-python/). You can initialize Mint with the pre-configured headless serverless chrome through the constructor:
+AWS Lambda may need a [specific chrome driver with specific options](https://robertorocha.info/setting-up-a-selenium-web-scraper-on-aws-lambda-with-python/). You can initialize Mint with your own pre-configured headless serverless chrome through a constructor:
 
 
 ```python
@@ -114,14 +116,95 @@ As of v2.0, mintapi supports returning multiple types of data in one call, such 
 | Option       | Suffix       |
 | -----------  | -----------  |
 | accounts     | account      |
+| bills        | bills        |
 | budgets      | budget       |
 | transactions | transaction  |
+| trends       | trends       |
 | categories   | category     |
 | investments  | investment   |
 | net-worth    | net_worth    |
 | credit-score | credit_score |
 | credit-report| credit_report|
 
+### Financial Data Trends
+
+Mint supports providing some analysis of your financial data based on different types of "trends".  Mint's requirements for accessing this data using mintapi is a bit more complex than the other endpoints.
+
+| Parameter         | Data Type          | Description  |
+| ----------------  | ------------------ | -----------  |
+| report_type       | ReportView.Options | The type of report to generate. |
+| date_filter       | DateFilter.Options | The date window to analyze your trends. |
+| start_date        | Optional[str]      | An optional beginning date (mm-dd-yy) to your trend analysis. |
+| end_date          | Optional[str]      | An optional ending date (mm-dd-yy) to your trend analysis. |
+| category_ids      | List[str]          | An optional list of category IDs to include in your trend analysis. |
+| tag_ids           | List[str]          | An optional list of tag IDs to include in your trend analysis. |
+| descriptions      | List[str]          | An optional list of descriptions to include in your trend analysis. |
+| account_ids       | List[str]          | An optional list of account IDs to include in your trend analysis. |
+| match_all_filters | boolean            | Whether to match all supplied filters (True) or at least one (False) |
+| limit             | int                | The page size of results. |
+| offset            | int                | The starting record of your results. |
+
+#### Report Type
+
+As mentioned above, the Report Type is the type of report for which to generate trend analysis.  The supplied value must be one of the following enum values:
+
+| Enum Value | Description |
+| ---------- | ----------- |
+| 1          | Spending Over Time |
+| 2          | Spending by Category |
+| 3          | Spending by Merchant |
+| 4          | Spending by Tag |
+| 5          | Income Over Time |
+| 6          | Income by Category |
+| 7          | Income by Merchant |
+| 8          | Income by Tag |
+| 9          | Assets by Type |
+| 10         | Assets Over Time |
+| 11         | Assets by Account |
+| 12         | Debts Over Time |
+| 13         | Debts by Type |
+| 14         | Debts by Account |
+| 15         | Net Worth Over Time |
+| 16         | Net Income Over Time |
+
+### Financial Data Transactions
+
+If you want to provide a more granular filtering of your financial data transactions, you can select from a variety of search filters that are sent to Mint. 
+
+| Parameter         | Data Type          | Description  |
+| ----------------  | ------------------ | -----------  |
+| date_filter       | DateFilter.Options | The date window for which to filter your transactions. |
+| start_date        | Optional[str]      | An optional beginning date (mm-dd-yy) to your transaction filtering. |
+| end_date          | Optional[str]      | An optional ending date (mm-dd-yy) to your transaction filtering. |
+| category_ids      | List[str]          | An optional list of category IDs of transactions to include. |
+| tag_ids           | List[str]          | An optional list of tag IDs of transactions to include. |
+| descriptions      | List[str]          | An optional list of descriptions of transactions to include. |
+| account_ids       | List[str]          | An optional list of account IDs of transactions to include. |
+| match_all_filters | boolean            | Whether to match all supplied filters (True) or at least one (False) |
+| include_investment | boolean           | Whether to include those transactions that are associated with an Investment Account. |
+| remove_pending    | boolean            | Whether to remove those transactions that are still Pending. | 
+| limit             | int                | The page size of results. |
+| offset            | int                | The starting record of your results. |
+
+### Date Filters
+
+As mentioned above, the Date Filter is the date window for which to generate your trend analysis or for which to search transactions.  The supplied value must be one of the following enum values:
+
+| Enum Value | Description |
+| ---------- | ----------- |
+| 1          | Last 7 Days |
+| 2          | Last 14 Days |
+| 3          | This Month   |
+| 4          | Last Month   |
+| 5          | Last 3 Months |
+| 6          | Last 6 Months |
+| 7          | Last 7 Months |
+| 8          | This Year     |
+| 9          | Last Year     |
+| 10         | All Time      |
+| 11         | Custom        |
+
+If you select a Custom Date Filter, then `start_date` and `end_date` are required fields.  Similarly, if you wish to use `start_date` and `end_date`, Custom Date Filter must be used.
 
 ### From Python
 
@@ -161,6 +244,7 @@ make calls to retrieve account/budget information.  We recommend using the
     imap_folder='INBOX',  # IMAP folder that receives MFA email
     wait_for_sync=False,  # do not wait for accounts to sync
     wait_for_sync_timeout=300,  # number of seconds to wait for sync
+    fail_if_stale=True, # True will raise an exception if Mint is unable to refresh your data.
 	use_chromedriver_on_path=False,  # True will use a system provided chromedriver binary that
 	                                 # is on the PATH (instead of downloading the latest version)
     driver=None        # pre-configured driver. If None, Mint will initialize the WebDriver.
@@ -224,13 +308,15 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
 ```shell
     usage: mintapi [-h] [--session-path [SESSION_PATH]] [--accounts] [--investments]
                    [--beta] [--budgets | --budget_hist] [--net-worth]
-                   [--transactions] [--credit-score] [--credit-report]
+                   [--credit-score] [--credit-report]
                    [--exclude-inquiries] [--exclude-accounts] [--exclude-utilization]
                    [--start-date [START_DATE]] [--end-date [END_DATE]]
                    [--limit] [--include-investment] [--show-pending]
                    [--format] [--filename FILENAME] [--keyring] [--headless]
                    [--mfa-method {sms,email,soft-token}]
                    [--categories] [--attention]
+                   [--transactions] [--transaction-date-filter]
+                   [--trends] [--trend-report-type] [--trend-date-filter]
                    email [password]
 
     positional arguments:
@@ -257,6 +343,10 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       --exclude-utilization Used in conjunction with --credit-report, ignores credit utilization data.
       --net-worth           Retrieve net worth information
       --transactions, -t    Retrieve transactions
+      --transaction-date-filter The date window for which to filter your transactions.  Default is All Time.
+      --trends              Retrieve trend data related to your financial information
+      --trend-report-type   The type of report for which to generate trend analysis.  Default is Spending Over Time.
+      --trend-date-filter   The date window for which to generate your trend analysis.  Default is This Month.
       --start-date [START_DATE]
                             Earliest date for which to retrieve transactions.
                             Used with --transactions. Format: mm/dd/yy
@@ -268,6 +358,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       --limit               Number of records to include from the API.  Default is 5000.
       --show-pending        Retrieve pending transactions.
                             Used with --transactions
+      --fail-if-stale       At login, Mint attempts to refresh your data.  If you wish to exit when the sync fails, use this option.
       --filename FILENAME, -f FILENAME
                             write results to file. If no file is specified, then data is written to stdout.  Do not specify the file extension as it is determined based on the selection of `--format`.
       --format              Determines the output format of the data, either `csv` or         `json`.  The default value is `json`.  If no `filename` is specified, then this determines the `stdout` format.  Otherwise, if a `filename` is specified, then this determines the file extension.
@@ -304,3 +395,9 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
       ...
     ]
 ```
+
+### Special Considerations
+
+#### Email\Account Access
+
+Because of the inter-connected nature of Intuit's products, when signing in to Mint for one account, you may see accounts associated with Intuit products other than Mint.  If you do have multiple Intuit accounts, you should be aware that if one email is associated with two different usernames (and multiple Intuit products, such as TurboTax or Quickbooks), you may receive a prompt for Multifactor Authentication, even with a saved session.  One possible solution is separating the two accounts to use two different emails.  For many email clients, you can route different email addresses to the same account by using a suffix.  For example, you could have email addresses "myaccount+mint@gmail.com" and "myaccount+quickbooks@gmail.com" and receive emails for both in the "myaccount@gmail.com" inbox.
