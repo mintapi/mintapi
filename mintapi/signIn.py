@@ -352,7 +352,7 @@ def sign_in(
         expected_conditions.presence_of_element_located(
             (
                 By.CSS_SELECTOR,
-                "#ius-link-use-a-different-id-known-device, #ius-userid, #ius-identifier, #ius-option-username",
+                "ius-hosted-ui-main-container",
             )
         )
     )
