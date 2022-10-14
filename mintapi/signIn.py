@@ -352,10 +352,11 @@ def sign_in(
         expected_conditions.presence_of_element_located(
             (
                 By.CSS_SELECTOR,
-                "ius-hosted-ui-main-container",
+                ".ius-hosted-ui-main-container, #ius-link-use-a-different-id-known-device, #ius-userid, #ius-identifier, #ius-option-username",
             )
         )
     )
+
     driver.implicitly_wait(0)  # seconds
 
     user_selection_page(driver)
