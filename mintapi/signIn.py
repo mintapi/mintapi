@@ -438,7 +438,10 @@ def home_page(driver):
 def user_selection_page(driver):
     # click "Use a different user ID" if needed
     try:
-        driver.find_element(By.ID, "ius-link-use-a-different-id-known-device").click()
+        driver.find_element(
+            By.CSS_SELECTOR,
+            "[data-testid='AccountChoicesUseDifferentId'], #ius-link-use-a-different-id-known-device",
+        ).click()
         WebDriverWait(driver, 20).until(
             expected_conditions.presence_of_element_located(
                 (
