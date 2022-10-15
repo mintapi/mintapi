@@ -471,8 +471,10 @@ def handle_different_page_username_password(driver, email):
     try:
         email_input = WebDriverWait(driver, 20).until(
             expected_conditions.element_to_be_clickable(
-                (By.CSS_SELECTOR,
-            '#ius-identifier, [data-testid="IdentifierFirstIdentifierInput"]',)
+                (
+                    By.CSS_SELECTOR,
+                    '#ius-identifier, [data-testid="IdentifierFirstIdentifierInput"]',
+                )
             )
         )
         if not email_input.is_displayed():
