@@ -578,7 +578,8 @@ def bypass_passwordless_login_page(driver):
     # bypass "Let's make sure you're you" if password login is allowed
     try:
         skip_for_now = driver.find_element(
-            By.CSS_SELECTOR, '[data-testid="challengePickerOption_PASSWORD"]',
+            By.CSS_SELECTOR,
+            '[data-testid="challengePickerOption_PASSWORD"]',
         ).click()
     except (
         NoSuchElementException,
