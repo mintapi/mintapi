@@ -729,7 +729,7 @@ def account_selection_page(driver, intuit_account):
         )
         select_account = driver.find_element(
             By.CSS_SELECTOR,
-            '[data-testid="SelectAccountForm"], [data-testid="IdFirstKnownContainer"]'
+            '[data-testid="SelectAccountForm"], [data-testid="IdFirstKnownContainer"]',
         )
         if intuit_account is not None:
             account_input = select_account.find_element(
