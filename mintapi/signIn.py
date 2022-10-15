@@ -469,17 +469,16 @@ def handle_same_page_username_password(driver, email, password):
 
 def handle_different_page_username_password(driver, email):
     try:
-        email_input = driver.find_element(
-            By.CSS_SELECTOR,
-            '#ius-identifier, [data-testid="IdentifierFirstIdentifierInput"]',
+        email_input = WebDriverWait(driver, 20).until(
+            expected_conditions.element_to_be_clickable(
+                (By.CSS_SELECTOR,
+            '#ius-identifier, [data-testid="IdentifierFirstIdentifierInput"]',)
+            )
         )
         if not email_input.is_displayed():
             raise ElementNotVisibleException()
 
-        # clear email and use specified email
-        for _i in range(len(email_input.get_attribute("value"))):
-            email_input.send_keys(Keys.BACKSPACE)
-        email_input.send_keys(email)
+        email_input.clear()
 
         driver.find_element(
             By.CSS_SELECTOR,
