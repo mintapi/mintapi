@@ -22,7 +22,7 @@ from selenium.common.exceptions import (
     TimeoutException,
     WebDriverException,
 )
-from selenium.webdriver import ChromeOptions
+from selenium.webdriver import ChromeOptions, Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.ui import WebDriverWait
@@ -475,8 +475,12 @@ def handle_different_page_username_password(driver, email):
         )
         if not email_input.is_displayed():
             raise ElementNotVisibleException()
-        email_input.clear()  # clear email and use specified email
+
+        # clear email and use specified email
+        for _i in range(len(email_input.get_attribute("value"))):
+            email_input.send_keys(Keys.BACKSPACE)
         email_input.send_keys(email)
+
         driver.find_element(
             By.CSS_SELECTOR,
             '#ius-identifier-first-submit-btn, [data-testid="IdentifierFirstSubmitButton"]',
