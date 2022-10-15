@@ -565,7 +565,9 @@ def mfa_selection_page(driver, mfa_method):
 def bypass_passwordless_login_page(driver):
     # bypass "Sign in without a password next time" interstitial page
     try:
-        skip_for_now = driver.find_element(By.ID, "skipWebauthnRegistration").click()
+        skip_for_now = driver.find_element(
+            By.CSS_SELECTOR, "#skipWebauthnRegistration, #signInDifferentWay"
+        ).click()
     except (
         NoSuchElementException,
         StaleElementReferenceException,
