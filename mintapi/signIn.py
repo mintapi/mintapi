@@ -573,7 +573,22 @@ def mfa_selection_page(driver, mfa_method):
 def bypass_passwordless_login_page(driver):
     # bypass "Sign in without a password next time" interstitial page
     try:
-        skip_for_now = driver.find_element(By.ID, "skipWebauthnRegistration").click()
+        skip_for_now = driver.find_element(
+            By.CSS_SELECTOR, "#skipWebauthnRegistration, #signInDifferentWay"
+        ).click()
+    except (
+        NoSuchElementException,
+        StaleElementReferenceException,
+        ElementNotVisibleException,
+        ElementNotInteractableException,
+    ):
+        pass
+    # bypass "Let's make sure you're you" if password login is allowed
+    try:
+        skip_for_now = driver.find_element(
+            By.CSS_SELECTOR,
+            '[data-testid="challengePickerOption_PASSWORD"]',
+        ).click()
     except (
         NoSuchElementException,
         StaleElementReferenceException,
@@ -731,12 +746,13 @@ def account_selection_page(driver, intuit_account):
             expected_conditions.presence_of_element_located(
                 (
                     By.CSS_SELECTOR,
-                    '[data-testid="SelectAccountForm"]',
+                    '[data-testid="SelectAccountForm"], [data-testid="IdFirstKnownContainer"]',
                 )
             )
         )
         select_account = driver.find_element(
-            By.CSS_SELECTOR, '[data-testid="SelectAccountForm"]'
+            By.CSS_SELECTOR,
+            '[data-testid="SelectAccountForm"], [data-testid="IdFirstKnownContainer"]',
         )
         if intuit_account is not None:
             account_input = select_account.find_element(
@@ -753,13 +769,13 @@ def account_selection_page(driver, intuit_account):
             expected_conditions.presence_of_element_located(
                 (
                     By.CSS_SELECTOR,
-                    "#ius-sign-in-mfa-select-account-continue-btn, [data-testid='SelectAccountContinueButton']",
+                    "#ius-sign-in-mfa-select-account-continue-btn, [data-testid='SelectAccountContinueButton'], [data-testid='AccountChoiceUsage_0']",
                 )
             )
         )
         driver.find_element(
             By.CSS_SELECTOR,
-            '#ius-sign-in-mfa-select-account-continue-btn, [data-testid="SelectAccountContinueButton"]',
+            '#ius-sign-in-mfa-select-account-continue-btn, [data-testid="SelectAccountContinueButton"], [data-testid="AccountChoiceUsage_0"]',
         ).click()
     except (TimeoutException, NoSuchElementException):
         logger.info("Not on Account Selection Screen")
