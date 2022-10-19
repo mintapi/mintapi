@@ -74,7 +74,7 @@ ENDPOINTS = {
 
 def convert_mmddyy_to_datetime(date):
     try:
-        newdate = datetime.strptime(date, "%m/%d/%y")
+        newdate = datetime.strptime(date, "%m/%d/%y").strftime("%Y-%m-%d")
     except (TypeError, ValueError):
         newdate = None
     return newdate
