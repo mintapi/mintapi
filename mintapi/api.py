@@ -74,7 +74,7 @@ ENDPOINTS = {
 
 def convert_mmddyy_to_datetime(date):
     try:
-        newdate = datetime.strptime(date, "%m/%d/%y").strftime("%Y-%m-%d")
+        newdate = datetime.strptime(date, "%m/%d/%y")
     except (TypeError, ValueError):
         newdate = None
     return newdate
@@ -649,8 +649,8 @@ class Mint(object):
         return request(
             date_filter=DateFilter(
                 date_filter=date_filter,
-                start_date=convert_mmddyy_to_datetime(start_date),
-                end_date=convert_mmddyy_to_datetime(end_date),
+                start_date=convert_mmddyy_to_datetime(start_date).strftime("%Y-%m-%d"),
+                end_date=convert_mmddyy_to_datetime(end_date).strftime("%Y-%m-%d"),
             ),
             search_filters=SearchFilter(
                 match_all_filters=search_clauses if match_all_filters else [],
