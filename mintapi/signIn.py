@@ -184,7 +184,7 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, delete
 
 CHROME_DRIVER_BASE_URL = "https://chromedriver.storage.googleapis.com/"
 CHROME_DRIVER_DOWNLOAD_PATH = "{version}/chromedriver_{arch}.zip"
-CHROME_DRIVER_LATEST_RELEASE = "LATEST_RELEASE"
+CHROME_DRIVER_LATEST_RELEASE = "LATEST_RELEASE_105.0.5195"
 CHROME_ZIP_TYPES = {
     "linux": "linux64",
     "linux2": "linux64",
