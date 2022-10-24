@@ -1,5 +1,5 @@
 from datetime import datetime
-from mintapi import constants
+from mintapi import constants, exceptions
 import email
 import email.header
 import imaplib
@@ -12,6 +12,7 @@ import subprocess
 import sys
 import time
 import zipfile
+import itertools
 
 from selenium.common.exceptions import (
     ElementNotInteractableException,
@@ -19,6 +20,7 @@ from selenium.common.exceptions import (
     NoSuchElementException,
     StaleElementReferenceException,
     TimeoutException,
+    WebDriverException,
 )
 from selenium.webdriver import ChromeOptions
 from selenium.webdriver.common.by import By
@@ -29,6 +31,11 @@ from seleniumrequests import Chrome
 import oathtool
 
 logger = logging.getLogger("mintapi")
+
+
+class MFAMethodNotAvailableError(RuntimeError):
+    pass
+
 
 SELECT_CSS_SELECTORS_LABEL = "select_css_selectors"
 INPUT_CSS_SELECTORS_LABEL = "input_css_selectors"
@@ -52,16 +59,16 @@ MFA_METHODS = [
     },
     {
         constants.MFA_METHOD_LABEL: constants.MFA_VIA_EMAIL,
-        SELECT_CSS_SELECTORS_LABEL: "#ius-label-mfa-email-otp, #ius-mfa-email-otp-card-challenge, #ius-sublabel-mfa-email-otp",
+        SELECT_CSS_SELECTORS_LABEL: '#ius-label-mfa-email-otp, #ius-mfa-email-otp-card-challenge, #ius-sublabel-mfa-email-otp, [data-testid="challengePickerOption_EMAIL_OTP"]',
         INPUT_CSS_SELECTORS_LABEL: "#ius-mfa-confirm-code",
-        SPAN_CSS_SELECTORS_LABEL: '[data-testid="VerifyOtpHeaderText"]',
+        SPAN_CSS_SELECTORS_LABEL: '[data-testid="VerifyOtpHeaderText"], #VerifyOtpHeader',
         BUTTON_CSS_SELECTORS_LABEL: '#ius-mfa-otp-submit-btn, [data-testid="VerifyOtpSubmitButton"]',
     },
     {
         constants.MFA_METHOD_LABEL: constants.MFA_VIA_SMS,
-        SELECT_CSS_SELECTORS_LABEL: "#ius-mfa-sms-otp-card-challenge",
+        SELECT_CSS_SELECTORS_LABEL: '#ius-mfa-sms-otp-card-challenge, [data-testid="challengePickerOption_SMS_OTP"]',
         INPUT_CSS_SELECTORS_LABEL: "#ius-mfa-confirm-code",
-        SPAN_CSS_SELECTORS_LABEL: '[data-testid="VerifyOtpHeaderText"]',
+        SPAN_CSS_SELECTORS_LABEL: '[data-testid="VerifyOtpHeaderText"], #VerifyOtpHeader',
         BUTTON_CSS_SELECTORS_LABEL: '#ius-mfa-otp-submit-btn, [data-testid="VerifyOtpSubmitButton"]',
     },
 ]
@@ -120,8 +127,13 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, delete
             if not re.search("do_not_reply@intuit.com", frm, re.IGNORECASE):
                 continue
 
-            if not re.search("Your Mint Account", subject, re.IGNORECASE):
+            p = re.search(r"(\d\d\d\d\d\d) Mint code", subject)
+            if p:
+                code = p.group(1)
+            elif not re.search("Your Mint Account", subject, re.IGNORECASE):
                 continue
+            else:
+                code = ""
 
             date_tuple = email.utils.parsedate_tz(msg["Date"])
             if date_tuple:
@@ -138,13 +150,15 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, delete
 
             logger.debug("DEBUG: EMAIL HEADER OK")
 
-            body = str(msg)
-
-            p = re.search(r"Verification code:<.*?(\d\d\d\d\d\d)$", body, re.S | re.M)
-            if p:
-                code = p.group(1)
-            else:
-                logger.error("FAIL1")
+            if code == "":
+                body = next(msg.walk()).get_payload(None, True).decode()
+                p = re.search(
+                    r"Verification code:<.*?(\d\d\d\d\d\d)\b", body, re.S | re.M
+                )
+                if p:
+                    code = p.group(1)
+                else:
+                    logger.error("FAIL1")
 
             logger.debug("DEBUG: CODE FROM EMAIL:", code)
 
@@ -313,6 +327,7 @@ def sign_in(
     intuit_account=None,
     wait_for_sync=True,
     wait_for_sync_timeout=5 * 60,
+    fail_if_stale=False,
     imap_account=None,
     imap_password=None,
     imap_server=None,
@@ -329,17 +344,20 @@ def sign_in(
     driver.implicitly_wait(20)  # seconds
     driver.get(url)
     if not beta:
-        element = driver.find_element_by_link_text("Sign in")
-        element.click()
+        # Add 1 second delay otherwise an issue occurs when trying to click the sign in button on home page
+        time.sleep(1)
+        home_page(driver)
 
     WebDriverWait(driver, 20).until(
         expected_conditions.presence_of_element_located(
             (
                 By.CSS_SELECTOR,
-                "#ius-link-use-a-different-id-known-device, #ius-userid, #ius-identifier, #ius-option-username",
+                ".ius-hosted-ui-main-container, #ius-link-use-a-different-id-known-device, #ius-userid, "
+                '#ius-identifier, #ius-option-username, [data-testid="IdentifierFirstSubmitButton"]',
             )
         )
     )
+
     driver.implicitly_wait(0)  # seconds
 
     user_selection_page(driver)
@@ -369,6 +387,7 @@ def sign_in(
 
         # Wait until logged in, just in case we need to deal with MFA.
 
+        handle_login_failures(driver)
         if not bypass_verified_user_page(driver):
             # if bypass_verified_user_page was present, then MFA already done
             bypass_passwordless_login_page(driver)
@@ -403,17 +422,32 @@ def sign_in(
     # Wait until the overview page has actually loaded, and if wait_for_sync==True, sync has completed.
     status_message = None
     if wait_for_sync:
-        status_message = handle_wait_for_sync(driver, wait_for_sync_timeout)
+        status_message = handle_wait_for_sync(
+            driver, wait_for_sync_timeout, fail_if_stale
+        )
     return status_message
+
+
+def home_page(driver):
+    try:
+        element = driver.find_element(By.LINK_TEXT, "Sign in").click()
+    except WebDriverException:
+        logger.info("WebDriverException when clicking Sign In")
 
 
 def user_selection_page(driver):
     # click "Use a different user ID" if needed
     try:
-        driver.find_element_by_id("ius-link-use-a-different-id-known-device").click()
+        driver.find_element(
+            By.CSS_SELECTOR,
+            "[data-testid='AccountChoicesUseDifferentId'], #ius-link-use-a-different-id-known-device",
+        ).click()
         WebDriverWait(driver, 20).until(
             expected_conditions.presence_of_element_located(
-                (By.CSS_SELECTOR, "#ius-userid, #ius-identifier, #ius-option-username")
+                (
+                    By.CSS_SELECTOR,
+                    '#ius-userid, #ius-identifier, #ius-option-username, [data-testid="IdentifierFirstSubmitButton"]',
+                )
             )
         )
     except NoSuchElementException:
@@ -421,45 +455,98 @@ def user_selection_page(driver):
 
 
 def handle_same_page_username_password(driver, email, password):
-    email_input = driver.find_element_by_id("ius-userid")
+    email_input = driver.find_element(By.ID, "ius-userid")
     if not email_input.is_displayed():
         raise ElementNotVisibleException()
     email_input.clear()  # clear email and user specified email
     email_input.send_keys(email)
-    driver.find_element_by_id("ius-password").send_keys(password)
-    driver.find_element_by_css_selector(
-        '#ius-sign-in-submit-btn, [data-testid="IdentifierFirstSubmitButton"]'
+    driver.find_element(By.ID, "ius-password").send_keys(password)
+    driver.find_element(
+        By.CSS_SELECTOR,
+        '#ius-sign-in-submit-btn, [data-testid="IdentifierFirstSubmitButton"]',
     ).submit()
 
 
 def handle_different_page_username_password(driver, email):
     try:
-        email_input = driver.find_element_by_css_selector(
-            '#ius-identifier, [data-testid="IdentifierFirstIdentifierInput"]'
+        email_input = WebDriverWait(driver, 20).until(
+            expected_conditions.element_to_be_clickable(
+                (
+                    By.CSS_SELECTOR,
+                    '#ius-identifier, [data-testid="IdentifierFirstIdentifierInput"]',
+                )
+            )
         )
         if not email_input.is_displayed():
             raise ElementNotVisibleException()
-        email_input.clear()  # clear email and use specified email
-        email_input.send_keys(email)
-        driver.find_element_by_css_selector(
-            '#ius-identifier-first-submit-btn, [data-testid="IdentifierFirstSubmitButton"]'
+
+        email_input.clear()
+
+        driver.find_element(
+            By.CSS_SELECTOR,
+            '#ius-identifier-first-submit-btn, [data-testid="IdentifierFirstSubmitButton"]',
         ).click()
 
     # click on username if on the saved usernames page
     except (ElementNotInteractableException, ElementNotVisibleException):
-        username_elements = driver.find_elements_by_class_name("ius-option-username")
+        username_elements = driver.find_element(By.CLASS_NAME, "ius-option-username")
         for username_element in username_elements:
             if username_element.text == email:
                 username_element.click()
                 break
 
 
+def handle_login_failures(driver):
+    try:
+        WebDriverWait(driver, 0).until(
+            expected_conditions.presence_of_element_located(
+                (
+                    By.XPATH,
+                    '//div[contains(text(), "We can\'t find anyone with ")][@id="ius-identifier-first-error"]',
+                )
+            )
+        )
+        raise RuntimeError(
+            "Login to Mint failed: Mint does not recognize your login email"
+        )
+    except TimeoutException:
+        pass
+
+    try:
+        WebDriverWait(driver, 0).until(
+            expected_conditions.presence_of_element_located(
+                (
+                    By.XPATH,
+                    "//div[contains(text(), 'The password you entered is incorrect.')]",
+                )
+            )
+        )
+        raise RuntimeError("Login to Mint failed: incorrect password")
+    except TimeoutException:
+        pass
+
+    try:
+        WebDriverWait(driver, 0).until(
+            expected_conditions.presence_of_element_located(
+                (
+                    By.ID,
+                    "RecaptchaHeader",
+                )
+            )
+        )
+        raise RuntimeError("Login to Mint failed: Captcha presented")
+    except TimeoutException:
+        pass
+
+
 def bypass_verified_user_page(driver):
     # bypass "Let's add your current mobile number" interstitial page
     # returns True is page is bypassed
     try:
-        skip_for_now = driver.find_element_by_id("ius-verified-user-update-btn-skip")
-        skip_for_now.click()
+        skip_for_now = driver.find_element(
+            By.CSS_SELECTOR,
+            '#ius-verified-user-update-btn-skip, [data-testid="VUUSkipButton"]',
+        ).click()
         return True
     except (
         NoSuchElementException,
@@ -472,12 +559,12 @@ def bypass_verified_user_page(driver):
 
 def mfa_selection_page(driver, mfa_method):
     try:
-        driver.find_element_by_id("ius-mfa-options-form")
-        mfa_method_option = driver.find_element_by_id(
-            "ius-mfa-option-{}".format(mfa_method)
+        driver.find_element(By.ID, "ius-mfa-options-form")
+        mfa_method_option = driver.find_element(
+            By.ID, "ius-mfa-option-{}".format(mfa_method)
         )
         mfa_method_option.click()
-        mfa_method_submit = driver.find_element_by_id("ius-mfa-options-submit-btn")
+        mfa_method_submit = driver.find_element(By.ID, "ius-mfa-options-submit-btn")
         mfa_method_submit.click()
     except STANDARD_MISSING_EXCEPTIONS:
         pass
@@ -486,8 +573,22 @@ def mfa_selection_page(driver, mfa_method):
 def bypass_passwordless_login_page(driver):
     # bypass "Sign in without a password next time" interstitial page
     try:
-        skip_for_now = driver.find_element_by_id("skipWebauthnRegistration")
-        skip_for_now.click()
+        skip_for_now = driver.find_element(
+            By.CSS_SELECTOR, "#skipWebauthnRegistration, #signInDifferentWay"
+        ).click()
+    except (
+        NoSuchElementException,
+        StaleElementReferenceException,
+        ElementNotVisibleException,
+        ElementNotInteractableException,
+    ):
+        pass
+    # bypass "Let's make sure you're you" if password login is allowed
+    try:
+        skip_for_now = driver.find_element(
+            By.CSS_SELECTOR,
+            '[data-testid="challengePickerOption_PASSWORD"]',
+        ).click()
     except (
         NoSuchElementException,
         StaleElementReferenceException,
@@ -510,7 +611,12 @@ def mfa_page(
     if mfa_method is None:
         mfa_result = search_mfa_method(driver)
     else:
-        mfa_result = set_mfa_method(driver, mfa_method)
+        try:
+            mfa_result = set_mfa_method(driver, mfa_method)
+        except MFAMethodNotAvailableError as e:
+            # MFA is optional for devices that were registered to Mint by clicking on "Remember my device"
+            logger.info(str(e))
+            return
     mfa_token_input = mfa_result[0]
     mfa_token_button = mfa_result[1]
     mfa_method = mfa_result[2]
@@ -542,15 +648,15 @@ def search_mfa_method(driver):
     for method in MFA_METHODS:
         mfa_token_input = mfa_token_button = mfa_method = span_text = result = None
         try:
-            mfa_token_input = driver.find_element_by_css_selector(
-                method[INPUT_CSS_SELECTORS_LABEL]
+            mfa_token_input = driver.find_element(
+                By.CSS_SELECTOR, method[INPUT_CSS_SELECTORS_LABEL]
             )
-            mfa_token_button = driver.find_element_by_css_selector(
-                method[BUTTON_CSS_SELECTORS_LABEL]
+            mfa_token_button = driver.find_element(
+                By.CSS_SELECTOR, method[BUTTON_CSS_SELECTORS_LABEL]
             )
             mfa_method = method[constants.MFA_METHOD_LABEL]
-            span_text = driver.find_element_by_css_selector(
-                method[SPAN_CSS_SELECTORS_LABEL]
+            span_text = driver.find_element(
+                By.CSS_SELECTOR, method[SPAN_CSS_SELECTORS_LABEL]
             ).text.lower()
             if span_text is not None:
                 result = mfa_method in span_text
@@ -568,21 +674,20 @@ def set_mfa_method(driver, mfa_method):
     )
     mfa_result = list(mfa)[0]
     try:
-        mfa_token_select = driver.find_element_by_css_selector(
-            mfa_result[SELECT_CSS_SELECTORS_LABEL]
+        mfa_token_select = driver.find_element(
+            By.CSS_SELECTOR, mfa_result[SELECT_CSS_SELECTORS_LABEL]
+        ).click()
+        mfa_token_input = driver.find_element(
+            By.CSS_SELECTOR, mfa_result[INPUT_CSS_SELECTORS_LABEL]
         )
-        mfa_token_select.click()
-        mfa_token_input = driver.find_element_by_css_selector(
-            mfa_result[INPUT_CSS_SELECTORS_LABEL]
-        )
-        mfa_token_button = driver.find_element_by_css_selector(
-            mfa_result[BUTTON_CSS_SELECTORS_LABEL]
+        mfa_token_button = driver.find_element(
+            By.CSS_SELECTOR, mfa_result[BUTTON_CSS_SELECTORS_LABEL]
         )
         mfa_method = mfa_result[constants.MFA_METHOD_LABEL]
-    except (NoSuchElementException, ElementNotInteractableException):
-        raise RuntimeError(
+    except (NoSuchElementException, ElementNotInteractableException) as e:
+        raise MFAMethodNotAvailableError(
             "The Multifactor Method {} supplied is not available.".format(mfa_method)
-        )
+        ) from e
     return mfa_token_input, mfa_token_button, mfa_method
 
 
@@ -616,7 +721,7 @@ def handle_email_by_imap(
         if mfa_code is None:
             mfa_code = (mfa_input_callback or input)(DEFAULT_MFA_INPUT_PROMPT)
         submit_mfa_code(mfa_token_input, mfa_token_button, mfa_code)
-    except (NoSuchElementException, ElementNotInteractableException):
+    except (NoSuchElementException, ElementNotInteractableException, EOFError):
         logger.info("Not on Email MFA Screen")
 
 
@@ -624,7 +729,7 @@ def handle_other_mfa(mfa_token_input, mfa_token_button, mfa_input_callback):
     try:
         mfa_code = (mfa_input_callback or input)(DEFAULT_MFA_INPUT_PROMPT)
         submit_mfa_code(mfa_token_input, mfa_token_button, mfa_code)
-    except (NoSuchElementException, ElementNotInteractableException):
+    except (NoSuchElementException, ElementNotInteractableException, EOFError):
         logger.info("Not on SMS or Authenticator MFA Screen")
 
 
@@ -637,31 +742,55 @@ def submit_mfa_code(mfa_token_input, mfa_token_button, mfa_code):
 def account_selection_page(driver, intuit_account):
     # account selection screen -- if there are multiple accounts, select one
     try:
-        select_account = driver.find_element_by_id("ius-mfa-select-account-section")
-        if intuit_account is not None:
-            account_input = select_account.find_element_by_xpath(
-                "//label/span[text()='{}']/../preceding-sibling::input".format(
-                    intuit_account
+        WebDriverWait(driver, 20).until(
+            expected_conditions.presence_of_element_located(
+                (
+                    By.CSS_SELECTOR,
+                    '[data-testid="SelectAccountForm"], [data-testid="IdFirstKnownContainer"]',
                 )
             )
-            account_input.click()
-
-        mfa_code_submit = driver.find_element_by_css_selector(
-            '#ius-sign-in-mfa-select-account-continue-btn, [data-testid="SelectAccountContinueButton"]'
         )
-        mfa_code_submit.click()
-    except NoSuchElementException:
+        select_account = driver.find_element(
+            By.CSS_SELECTOR,
+            '[data-testid="SelectAccountForm"], [data-testid="IdFirstKnownContainer"]',
+        )
+        if intuit_account is not None:
+            account_input = select_account.find_element(
+                By.XPATH,
+                "//*/span[text()='{}']/../../../preceding-sibling::input".format(
+                    intuit_account
+                ),
+            )
+            # NOTE: We need to execute a script because simply using account_input.click()
+            #       results in ElementClickInterceptedException.
+            driver.execute_script("arguments[0].click()", account_input)
+
+        WebDriverWait(driver, 20).until(
+            expected_conditions.presence_of_element_located(
+                (
+                    By.CSS_SELECTOR,
+                    "#ius-sign-in-mfa-select-account-continue-btn, [data-testid='SelectAccountContinueButton'], [data-testid='AccountChoiceUsage_0']",
+                )
+            )
+        )
+        driver.find_element(
+            By.CSS_SELECTOR,
+            '#ius-sign-in-mfa-select-account-continue-btn, [data-testid="SelectAccountContinueButton"], [data-testid="AccountChoiceUsage_0"]',
+        ).click()
+    except (TimeoutException, NoSuchElementException):
         logger.info("Not on Account Selection Screen")
 
 
 def password_page(driver, password):
     # password only sometimes after mfa
     try:
-        driver.find_element_by_id(
-            "ius-sign-in-mfa-password-collection-current-password"
+        driver.find_element(
+            By.CSS_SELECTOR,
+            "#iux-password-confirmation-password, #ius-sign-in-mfa-password-collection-current-password",
         ).send_keys(password)
-        driver.find_element_by_id(
-            "ius-sign-in-mfa-password-collection-continue-btn"
+        driver.find_element(
+            By.CSS_SELECTOR,
+            '#ius-sign-in-mfa-password-collection-continue-btn, [data-testid="passwordVerificationContinueButton"]',
         ).submit()
     except (
         NoSuchElementException,
@@ -672,7 +801,7 @@ def password_page(driver, password):
         logger.info("Not on Secondary MFA Password Screen")
 
 
-def handle_wait_for_sync(driver, wait_for_sync_timeout):
+def handle_wait_for_sync(driver, wait_for_sync_timeout, fail_if_stale):
     try:
         # Status message might not be present straight away. Seems to be due
         # to dynamic content (client side rendering).
@@ -687,7 +816,8 @@ def handle_wait_for_sync(driver, wait_for_sync_timeout):
         )
         return status_web_element.text
     except (TimeoutException, StaleElementReferenceException):
-        logger.warning(
-            "Mint sync apparently incomplete after timeout. "
-            "Data retrieved may not be current."
-        )
+        logger.warning(exceptions.STALE_DATA_ERROR_MESSAGE)
+        if fail_if_stale:
+            raise exceptions.StaleDataException
+    except (exceptions.StaleDataException):
+        sys.exit(1)

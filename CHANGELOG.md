@@ -1,6 +1,48 @@
 --> NOTE! The 1.x release series only supports and contain fixes for the previous Mint UI.
     New feature work occurs in the 2.x release series and only supports the new Mint UI / endpoints.
     Please see the README for more information.
+    
+2.9
+---
+- various fixes to CSS selectors for login (#549, #552)
+
+2.8
+---
+- handle new MFA email format w/ code in subject (#538)
+- update for new SMS MFA UI (#536)
+- improve README for creating and passing in your own driver (#542)
+
+2.7
+---
+- fix for Intuit account selection login bug (#530)
+- Add AccountIdFilter to Endpoint Filters (#526)
+
+2.6
+---
+- add support for accessing the Trend API endpoint (#480)
+- bump selenium-requests dependency version to resolve issues (#521)
+- attempt to show the reason for a login failure (#523)
+
+2.5
+---
+- increase wait for account selection to fix login issues (#508)
+
+2.4
+---
+- further fix for Selenium find_element issue (#502)
+
+2.3
+---
+- fix for "no attribute 'find_element[s]_by*'" (#498)
+
+2.2
+---
+- Add a delay before clicking sign in button (#493)
+- Add WebDriverWait for Account Selection Selectors (#490)
+- Add an option to raise an exception if the data refresh fails (#488)
+- Update README with content about the email nuance (#487)
+- Support optional MFA if remember my device is enabled (#476)
+- Documentation updates (#477)
 
 2.1
 ---
