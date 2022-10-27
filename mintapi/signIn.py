@@ -349,14 +349,11 @@ def sign_in(
         home_page(driver)
 
     WebDriverWait(driver, 20).until(
-        expected_conditions.presence_of_element_located(
-            (
-                By.CSS_SELECTOR,
-                ".ius-hosted-ui-main-container, #ius-link-use-a-different-id-known-device, #ius-userid, "
-                '#ius-identifier, #ius-option-username, [data-testid="IdentifierFirstSubmitButton"]',
-            )
-        )
-    )
+        expected_conditions.presence_of_element_located((
+            By.CSS_SELECTOR,
+            ".ius-hosted-ui-main-container, #ius-link-use-a-different-id-known-device, "
+            '#ius-identifier, #ius-option-username, [data-testid="IdentifierFirstSubmitButton"]',
+        )))
 
     driver.implicitly_wait(0)  # seconds
 
@@ -481,6 +478,7 @@ def handle_different_page_username_password(driver, email):
             raise ElementNotVisibleException()
 
         email_input.clear()
+        email_input.send_keys(email)
 
         driver.find_element(
             By.CSS_SELECTOR,
