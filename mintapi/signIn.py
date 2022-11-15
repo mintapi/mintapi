@@ -110,7 +110,7 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, delete
             count = count + 1
             if count > 3:
                 break
-            rv, data = imap_client.fetch(num, "(RFC822)")
+            rv, data = imap_client.fetch(num, "(BODY.PEEK[])")
             if rv != "OK":
                 raise RuntimeError("Unable to complete due to error message: " + rv)
 
@@ -530,6 +530,18 @@ def handle_login_failures(driver):
     except TimeoutException:
         pass
 
+    try:
+        WebDriverWait(driver, 0).until(
+            expected_conditions.presence_of_element_located(
+                (
+                    By.XPATH,
+                    "//div[contains(text(), 'The feature you've requested is temporarily unavailable')]",
+                )
+            )
+        )
+        raise RuntimeError("Login to Mint failed: Mint reports that it's temporarily unavailable: you may be blocked.")
+    except TimeoutException:
+        pass
 
 def bypass_verified_user_page(driver):
     # bypass "Let's add your current mobile number" interstitial page
