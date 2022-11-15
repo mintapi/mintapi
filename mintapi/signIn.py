@@ -539,9 +539,12 @@ def handle_login_failures(driver):
                 )
             )
         )
-        raise RuntimeError("Login to Mint failed: Mint reports that it's temporarily unavailable: you may be blocked.")
+        raise RuntimeError(
+            "Login to Mint failed: Mint reports that it's temporarily unavailable: you may be blocked."
+        )
     except TimeoutException:
         pass
+
 
 def bypass_verified_user_page(driver):
     # bypass "Let's add your current mobile number" interstitial page
