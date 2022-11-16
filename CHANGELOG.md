@@ -2,6 +2,10 @@
     New feature work occurs in the 2.x release series and only supports the new Mint UI / endpoints.
     Please see the README for more information.
     
+2.10
+---
+- update selenium-requests dep to >=2.0.1 (#553, #564, #566)
+
 2.9
 ---
 - various fixes to CSS selectors for login (#549, #552)
