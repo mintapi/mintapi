@@ -535,7 +535,7 @@ def handle_login_failures(driver):
             expected_conditions.presence_of_element_located(
                 (
                     By.XPATH,
-                    '//div[contains(text(), "The feature you\'ve requested is temporarily unavailable")]',
+                    '//h2[contains(text(), "The feature you\'ve requested is temporarily unavailable")]',
                 )
             )
         )
