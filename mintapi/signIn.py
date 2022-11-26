@@ -130,7 +130,7 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, delete
             p = re.search(r"(\d\d\d\d\d\d) Mint code", subject)
             if p:
                 code = p.group(1)
-            elif not re.search("Your Mint Account", subject, re.IGNORECASE):
+            elif not re.search("Your Mint (code|Account)", subject, re.IGNORECASE):
                 continue
             else:
                 code = ""
