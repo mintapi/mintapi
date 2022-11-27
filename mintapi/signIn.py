@@ -110,7 +110,7 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, delete
             count = count + 1
             if count > 3:
                 break
-            rv, data = imap_client.fetch(num, "(RFC822)")
+            rv, data = imap_client.fetch(num, "(BODY.PEEK[])")
             if rv != "OK":
                 raise RuntimeError("Unable to complete due to error message: " + rv)
 
@@ -130,7 +130,7 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, delete
             p = re.search(r"(\d\d\d\d\d\d) Mint code", subject)
             if p:
                 code = p.group(1)
-            elif not re.search("Your Mint Account", subject, re.IGNORECASE):
+            elif not re.search("Your Mint (code|Account)", subject, re.IGNORECASE):
                 continue
             else:
                 code = ""
@@ -527,6 +527,21 @@ def handle_login_failures(driver):
             )
         )
         raise RuntimeError("Login to Mint failed: Captcha presented")
+    except TimeoutException:
+        pass
+
+    try:
+        WebDriverWait(driver, 0).until(
+            expected_conditions.presence_of_element_located(
+                (
+                    By.XPATH,
+                    '//h2[contains(text(), "The feature you\'ve requested is temporarily unavailable")]',
+                )
+            )
+        )
+        raise RuntimeError(
+            "Login to Mint failed: Mint reports that it's temporarily unavailable: you may be blocked."
+        )
     except TimeoutException:
         pass
 
