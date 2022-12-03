@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 set -ex
-rm -rf dist && python setup.py sdist
-python -m twine upload dist/*
+rm -rf dist && python3 setup.py sdist
+python3 -m twine upload dist/*
