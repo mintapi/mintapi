@@ -12,7 +12,7 @@ setuptools.setup(
     description="a screen-scraping API for Mint.com",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    version="2.10",
+    version="2.11",
     packages=["mintapi"],
     license="The MIT License",
     author="Michael Rooney",

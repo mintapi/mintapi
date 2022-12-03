@@ -2,6 +2,11 @@
     New feature work occurs in the 2.x release series and only supports the new Mint UI / endpoints.
     Please see the README for more information.
     
+2.11
+---
+- prevent email MFA check from marking messages as read (#568)
+- handle additional refresh sync status message (#575)
+
 2.10
 ---
 - update selenium-requests dep to >=2.0.1 (#553, #564, #566)
