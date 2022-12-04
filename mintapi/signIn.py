@@ -356,7 +356,6 @@ def sign_in(
             )
         )
     )
-
     driver.implicitly_wait(0)  # seconds
 
     user_selection_page(driver)
