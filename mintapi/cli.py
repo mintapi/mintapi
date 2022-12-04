@@ -9,11 +9,21 @@ import configargparse
 import keyring
 from mintapi.api import Mint
 from mintapi.constants import (
+    ACCOUNT_KEY,
+    BILL_KEY,
+    BUDGET_KEY,
+    CATEGORY_KEY,
+    CREDIT_REPORT_KEY,
+    CREDIT_SCORE_KEY,
     CSV_FORMAT,
+    INVESTMENT_KEY,
     JSON_FORMAT,
     MFA_VIA_EMAIL,
     MFA_VIA_SMS,
     MFA_VIA_SOFT_TOKEN,
+    NET_WORTH_KEY,
+    TRANSACTION_KEY,
+    TRENDS_KEY,
 )
 from mintapi.filters import DateFilter
 from mintapi.signIn import get_email_code
@@ -364,10 +374,10 @@ def parse_arguments(args):
     return cmdline.parse_args(args)
 
 
-def handle_password(type, prompt, email, password, use_keyring=False):
+def handle_password(name, prompt, email, password, use_keyring=False):
     if use_keyring and not password:
         # If we don't yet have a password, try prompting for it
-        password = keyring.get_password(type, email)
+        password = keyring.get_password(name, email)
 
     if not password:
         # If we still don't have a password, prompt for it
@@ -375,21 +385,21 @@ def handle_password(type, prompt, email, password, use_keyring=False):
 
     if use_keyring:
         # If keyring option is specified, save the password in the keyring
-        keyring.set_password(type, email, password)
+        keyring.set_password(name, email, password)
 
     return password
 
 
-def format_filename(options, type):
+def format_filename(options, name):
     if options.filename is None:
         filename = None
     else:
-        filename = "{}_{}.{}".format(options.filename, type.lower(), options.format)
+        filename = "{}_{}.{}".format(options.filename, name.lower(), options.format)
     return filename
 
 
-def output_data(options, data, attention_msg=None):
-    filename = format_filename(options, type)
+def output_data(options, data, name, attention_msg=None):
+    filename = format_filename(options, name)
     if filename is None:
         if options.format == CSV_FORMAT:
             print(json_normalize(data).to_csv(index=False))
@@ -519,22 +529,22 @@ def main():
             limit=options.limit,
             offset=0,
         )
-        output_data(options, data, attention_msg)
+        output_data(options, data, TRENDS_KEY, attention_msg)
 
     if options.accounts:
         data = mint.get_account_data(limit=options.limit)
-        output_data(options, data, attention_msg)
+        output_data(options, data, ACCOUNT_KEY, attention_msg)
 
     if options.bills:
         data = mint.get_bills()
-        output_data(options, data, attention_msg)
+        output_data(options, data, BILL_KEY, attention_msg)
 
     if options.budgets:
         data = mint.get_budget_data(limit=options.limit)
-        output_data(options, data, attention_msg)
+        output_data(options, data, BUDGET_KEY, attention_msg)
     elif options.budget_hist:
         data = mint.get_budget_data(limit=options.limit, hist=12)
-        output_data(options, data, attention_msg)
+        output_data(options, data, BUDGET_KEY, attention_msg)
 
     if options.transactions:
         data = mint.get_transaction_data(
@@ -551,29 +561,29 @@ def main():
             limit=options.limit,
             offset=0,
         )
-        output_data(options, data, attention_msg)
+        output_data(options, data, TRANSACTION_KEY, attention_msg)
 
     if options.categories:
         data = mint.get_category_data(
             limit=options.limit,
         )
-        output_data(options, data, attention_msg)
+        output_data(options, data, CATEGORY_KEY, attention_msg)
 
     if options.investments:
         data = mint.get_investment_data(
             limit=options.limit,
         )
-        output_data(options, data, attention_msg)
+        output_data(options, data, INVESTMENT_KEY, attention_msg)
 
     if options.net_worth:
         data = mint.get_net_worth_data()
         formatted_data = {"net_worth": data}
-        output_data(options, formatted_data, attention_msg)
+        output_data(options, formatted_data, NET_WORTH_KEY, attention_msg)
 
     if options.credit_score:
         data = mint.get_credit_score_data()
         formatted_data = {"credit_score": data}
-        output_data(options, formatted_data, attention_msg)
+        output_data(options, formatted_data, CREDIT_SCORE_KEY, attention_msg)
 
     if options.credit_report:
         data = mint.get_credit_report_data(
@@ -582,4 +592,4 @@ def main():
             exclude_accounts=options.exclude_accounts,
             exclude_utilization=options.exclude_utilization,
         )
-        output_data(options, data, attention_msg)
+        output_data(options, data, CREDIT_REPORT_KEY, attention_msg)
