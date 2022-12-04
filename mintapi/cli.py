@@ -1,16 +1,23 @@
 import atexit
+import getpass
+import json
 import logging
 import os
 import sys
-import json
-import getpass
-from mintapi import constants
-import keyring
+
 import configargparse
-from mintapi.trends import ReportView
-from mintapi.filters import DateFilter
+import keyring
 from mintapi.api import Mint
+from mintapi.constants import (
+    CSV_FORMAT,
+    JSON_FORMAT,
+    MFA_VIA_EMAIL,
+    MFA_VIA_SMS,
+    MFA_VIA_SOFT_TOKEN,
+)
+from mintapi.filters import DateFilter
 from mintapi.signIn import get_email_code
+from mintapi.trends import ReportView
 from pandas import json_normalize
 
 logger = logging.getLogger("mintapi")
@@ -175,8 +182,8 @@ def parse_arguments(args):
         (
             ("--format",),
             {
-                "choices": [constants.JSON_FORMAT, constants.CSV_FORMAT],
-                "default": constants.JSON_FORMAT,
+                "choices": [JSON_FORMAT, CSV_FORMAT],
+                "default": JSON_FORMAT,
                 "help": "The format used to return data.",
             },
         ),
@@ -237,9 +244,9 @@ def parse_arguments(args):
             ("--mfa-method",),
             {
                 "choices": [
-                    constants.MFA_VIA_SMS,
-                    constants.MFA_VIA_EMAIL,
-                    constants.MFA_VIA_SOFT_TOKEN,
+                    MFA_VIA_SMS,
+                    MFA_VIA_EMAIL,
+                    MFA_VIA_SOFT_TOKEN,
                 ],
                 "default": None,
                 "help": "The MFA method to automate.",
@@ -381,22 +388,22 @@ def format_filename(options, type):
     return filename
 
 
-def output_data(options, data, type, attention_msg=None):
+def output_data(options, data, attention_msg=None):
     filename = format_filename(options, type)
     if filename is None:
-        if options.format == constants.CSV_FORMAT:
+        if options.format == CSV_FORMAT:
             print(json_normalize(data).to_csv(index=False))
         else:
             print(json.dumps(data, indent=2))
         # NOTE: While this logic is here, unless validate_file_extensions
         #       allows for other data types to export to CSV, this will
         #       only include investment data.
-    elif options.format == constants.CSV_FORMAT:
+    elif options.format == CSV_FORMAT:
         # NOTE: Currently, investment_data, which is a flat JSON, is the only
         #       type of data that uses this section.  So, if we open this up to
         #       other non-flat JSON data, we will need to revisit this.
         json_normalize(data).to_csv(filename, index=False)
-    elif options.format == constants.JSON_FORMAT:
+    elif options.format == JSON_FORMAT:
         with open(filename, "w+") as f:
             json.dump(data, f, indent=2)
 
@@ -512,22 +519,22 @@ def main():
             limit=options.limit,
             offset=0,
         )
-        output_data(options, data, constants.TRENDS_KEY, attention_msg)
+        output_data(options, data, attention_msg)
 
     if options.accounts:
         data = mint.get_account_data(limit=options.limit)
-        output_data(options, data, constants.ACCOUNT_KEY, attention_msg)
+        output_data(options, data, attention_msg)
 
     if options.bills:
         data = mint.get_bills()
-        output_data(options, data, constants.BILL_KEY, attention_msg)
+        output_data(options, data, attention_msg)
 
     if options.budgets:
         data = mint.get_budget_data(limit=options.limit)
-        output_data(options, data, constants.BUDGET_KEY, attention_msg)
+        output_data(options, data, attention_msg)
     elif options.budget_hist:
         data = mint.get_budget_data(limit=options.limit, hist=12)
-        output_data(options, data, constants.BUDGET_KEY, attention_msg)
+        output_data(options, data, attention_msg)
 
     if options.transactions:
         data = mint.get_transaction_data(
@@ -544,29 +551,29 @@ def main():
             limit=options.limit,
             offset=0,
         )
-        output_data(options, data, constants.TRANSACTION_KEY, attention_msg)
+        output_data(options, data, attention_msg)
 
     if options.categories:
         data = mint.get_category_data(
             limit=options.limit,
         )
-        output_data(options, data, constants.CATEGORY_KEY, attention_msg)
+        output_data(options, data, attention_msg)
 
     if options.investments:
         data = mint.get_investment_data(
             limit=options.limit,
         )
-        output_data(options, data, constants.INVESTMENT_KEY, attention_msg)
+        output_data(options, data, attention_msg)
 
     if options.net_worth:
         data = mint.get_net_worth_data()
         formatted_data = {"net_worth": data}
-        output_data(options, formatted_data, constants.NET_WORTH_KEY, attention_msg)
+        output_data(options, formatted_data, attention_msg)
 
     if options.credit_score:
         data = mint.get_credit_score_data()
         formatted_data = {"credit_score": data}
-        output_data(options, formatted_data, constants.CREDIT_SCORE_KEY, attention_msg)
+        output_data(options, formatted_data, attention_msg)
 
     if options.credit_report:
         data = mint.get_credit_report_data(
@@ -575,4 +582,4 @@ def main():
             exclude_accounts=options.exclude_accounts,
             exclude_utilization=options.exclude_utilization,
         )
-        output_data(options, data, constants.CREDIT_REPORT_KEY, attention_msg)
+        output_data(options, data, attention_msg)
