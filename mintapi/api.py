@@ -52,30 +52,30 @@ class Mint(object):
 
 
 def get_accounts(email, password):
-    mint = Mint(email, password)
+    mint = Mint(email=email, password=password)
     return mint.get_account_data()
 
 
 def get_net_worth(email, password):
-    mint = Mint(email, password)
+    mint = Mint(email=email, password=password)
     return mint.get_net_worth_data()
 
 
 def get_budgets(email, password):
-    mint = Mint(email, password)
+    mint = Mint(email=email, password=password)
     return mint.get_budget_data()
 
 
 def get_credit_score(email, password):
-    mint = Mint(email, password)
+    mint = Mint(email=email, password=password)
     return mint.get_credit_score()
 
 
 def get_credit_report(email, password):
-    mint = Mint(email, password)
+    mint = Mint(email=email, password=password)
     return mint.get_credit_report()
 
 
 def initiate_account_refresh(email, password):
-    mint = Mint(email, password)
+    mint = Mint(email=email, password=password)
     return mint.initiate_account_refresh()

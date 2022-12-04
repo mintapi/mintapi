@@ -5,9 +5,10 @@ import logging
 import os
 from datetime import datetime
 
-from mintapi import constants
 from mintapi.endpoints import MintEndpoints
 from mintapi.signIn import _create_web_driver_at_mint_com, sign_in
+
+from mintapi import constants
 
 logger = logging.getLogger("mintapi")
 
@@ -43,6 +44,7 @@ class SeleniumBrowser(MintEndpoints):
         imap_folder="INBOX",
         wait_for_sync=True,
         wait_for_sync_timeout=5 * 60,
+        fail_if_stale=False,
         use_chromedriver_on_path=False,
         chromedriver_download_path=os.getcwd(),
         driver=None,
@@ -67,6 +69,7 @@ class SeleniumBrowser(MintEndpoints):
                 imap_folder=imap_folder,
                 wait_for_sync=wait_for_sync,
                 wait_for_sync_timeout=wait_for_sync_timeout,
+                fail_if_stale=fail_if_stale,
                 use_chromedriver_on_path=use_chromedriver_on_path,
                 chromedriver_download_path=chromedriver_download_path,
                 driver=driver,
@@ -101,6 +104,7 @@ class SeleniumBrowser(MintEndpoints):
         imap_folder=None,
         wait_for_sync=True,
         wait_for_sync_timeout=5 * 60,
+        fail_if_stale=False,
         use_chromedriver_on_path=False,
         chromedriver_download_path=os.getcwd(),
         driver=None,
@@ -122,6 +126,7 @@ class SeleniumBrowser(MintEndpoints):
                 intuit_account,
                 wait_for_sync,
                 wait_for_sync_timeout,
+                fail_if_stale,
                 imap_account,
                 imap_password,
                 imap_server,

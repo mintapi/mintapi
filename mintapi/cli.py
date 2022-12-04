@@ -463,8 +463,8 @@ def main():
         session_path = options.session_path
 
     mint = Mint(
-        email,
-        password,
+        email=email,
+        password=password,
         mfa_method=mfa_method,
         mfa_token=options.mfa_token,
         session_path=session_path,

@@ -148,3 +148,37 @@ class SearchFilter:
                 },
             ]
         }
+
+
+class SearchFilterBuilder(object):
+    @classmethod
+    def search_builder(
+        cls, match_all_filters: bool, **search_clause_kwargs
+    ) -> SearchFilter:
+        search_clauses = cls.search_clause_builder(**search_clause_kwargs)
+        return SearchFilter(
+            match_all_filters=search_clauses if match_all_filters else [],
+            match_any_filters=search_clauses if not match_all_filters else [],
+        )
+
+    @classmethod
+    def search_clause_builder(
+        cls, category_ids, tag_ids, descriptions, account_ids
+    ) -> List[MatchFilter]:
+        search_clauses = []
+        if account_ids:
+            for account_id in account_ids:
+                search_clauses.append(AccountIdFilter(value=account_id))
+        if category_ids:
+            for category_id in category_ids:
+                search_clauses.append(
+                    CategoryIdFilter(value=category_id, include_child_categories=True)
+                )
+        if tag_ids:
+            for tag_id in tag_ids:
+                search_clauses.append(TagIdFilter(value=tag_id))
+        if descriptions:
+            for description in descriptions:
+                search_clauses.append(DescriptionNameFilter(value=description))
+
+        return search_clauses
