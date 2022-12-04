@@ -32,6 +32,8 @@ class Mint(object):
             if self.browser.driver is not None:
                 self.transfer_auth()
             self.browser.close()
+        else:
+            self.browser = None
 
     def transfer_auth(self):
         api_key = self.browser._get_api_key_header()["authorization"]
@@ -45,37 +47,37 @@ class Mint(object):
         """
         if hasattr(self.rest_client, attr):
             return getattr(self.rest_client, attr)
-        elif hasattr(self.browser, attr):
+        elif self.browser is not None and hasattr(self.browser, attr):
             return getattr(self.browser, attr)
         else:
             raise NotImplementedError
 
 
-def get_accounts(email, password):
-    mint = Mint(email=email, password=password)
+def get_accounts(email, password, **kwargs):
+    mint = Mint(email=email, password=password, **kwargs)
     return mint.get_account_data()
 
 
-def get_net_worth(email, password):
-    mint = Mint(email=email, password=password)
+def get_net_worth(email, password, **kwargs):
+    mint = Mint(email=email, password=password, **kwargs)
     return mint.get_net_worth_data()
 
 
-def get_budgets(email, password):
-    mint = Mint(email=email, password=password)
+def get_budgets(email, password, **kwargs):
+    mint = Mint(email=email, password=password, **kwargs)
     return mint.get_budget_data()
 
 
-def get_credit_score(email, password):
-    mint = Mint(email=email, password=password)
+def get_credit_score(email, password, **kwargs):
+    mint = Mint(email=email, password=password, **kwargs)
     return mint.get_credit_score()
 
 
-def get_credit_report(email, password):
-    mint = Mint(email=email, password=password)
+def get_credit_report(email, password, **kwargs):
+    mint = Mint(email=email, password=password, **kwargs)
     return mint.get_credit_report()
 
 
-def initiate_account_refresh(email, password):
-    mint = Mint(email=email, password=password)
+def initiate_account_refresh(email, password, **kwargs):
+    mint = Mint(email=email, password=password, **kwargs)
     return mint.initiate_account_refresh()
