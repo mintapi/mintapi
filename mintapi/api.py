@@ -13,6 +13,7 @@ class Mint(object):
         self,
         api_key: Optional[str] = None,
         cookies: Optional[Union[str, List[Dict]]] = None,
+        use_rest_client: bool = False,
         **browser_params
     ):
         """
@@ -22,18 +23,27 @@ class Mint(object):
         OR pass in an api_key or cookie to auth directly with the rest client
 
         Browser is mainly used to generate auth (only necessary if not otherwise passed)
+
+        Backward compatibility flag defaults to not use new rest client
+        (behavior subject to change in future releases)
         """
-        self.rest_client = RESTClient(api_key=api_key, cookies=cookies)
-
-        # only use browser if not sufficiently authorized already
-        if not api_key or not cookies:
+        if not use_rest_client:
+            # legacy behavior
             self.browser = SeleniumBrowser(**browser_params)
+            self.rest_client = None
 
-            if self.browser.driver is not None:
-                self.transfer_auth()
-            self.browser.close()
         else:
-            self.browser = None
+            self.rest_client = RESTClient(api_key=api_key, cookies=cookies)
+
+            # only use browser if not sufficiently authorized already
+            if not api_key or not cookies:
+                self.browser = SeleniumBrowser(**browser_params)
+
+                if self.browser.driver is not None:
+                    self.transfer_auth()
+                self.browser.close()
+            else:
+                self.browser = None
 
     def transfer_auth(self):
         api_key = self.browser._get_api_key_header()["authorization"]
@@ -45,7 +55,7 @@ class Mint(object):
         Automatically handle routing to prefer the rest client but fallback to the browser for uinimplemented
         methods
         """
-        if hasattr(self.rest_client, attr):
+        if self.rest_client is not None and hasattr(self.rest_client, attr):
             return getattr(self.rest_client, attr)
         elif self.browser is not None and hasattr(self.browser, attr):
             return getattr(self.browser, attr)
