@@ -1,6 +1,4 @@
 from typing import Dict, List, Optional, Union
-from typing import Dict, List, Optional
-# from dateutil.relativedelta import relativedelta
 
 from mintapi.browser import SeleniumBrowser
 from mintapi.rest import RESTClient
