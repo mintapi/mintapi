@@ -3,12 +3,10 @@ Selenium Browser
 """
 import logging
 import os
-from datetime import datetime
 
+from mintapi.constants import JSON_HEADER, MINT_CREDIT_URL
 from mintapi.endpoints import MintEndpoints
 from mintapi.signIn import _create_web_driver_at_mint_com, sign_in
-
-from mintapi import constants
 
 logger = logging.getLogger("mintapi")
 
@@ -156,7 +154,7 @@ class SeleniumBrowser(MintEndpoints):
         # Because cookies are involved and you cannot add cookies for another
         # domain, we have to first load up the MINT_CREDIT_URL.  Once the new
         # domain has loaded, we can proceed with the pull of credit data.
-        return self.driver.get(constants.MINT_CREDIT_URL)
+        return self.driver.get(MINT_CREDIT_URL)
 
     """
     Accessor Methods
@@ -212,7 +210,7 @@ class SeleniumBrowser(MintEndpoints):
         auth = "Intuit_APIKey intuit_apikey=" + api_key
         auth += ", intuit_apikey_version=1.0"
         header = {"authorization": auth}
-        header.update(constants.JSON_HEADER)
+        header.update(JSON_HEADER)
         return header
 
     def _get_cookies(self):

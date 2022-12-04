@@ -11,15 +11,7 @@ from typing import List, Optional
 
 import pandas as pd
 from mintapi.constants import MINT_CREDIT_URL, MINT_ROOT_URL
-from mintapi.filters import (
-    AccountIdFilter,
-    CategoryIdFilter,
-    DateFilter,
-    DescriptionNameFilter,
-    SearchFilter,
-    SearchFilterBuilder,
-    TagIdFilter,
-)
+from mintapi.filters import DateFilter, SearchFilterBuilder
 from mintapi.transactions import TransactionRequest
 from mintapi.trends import ReportView, TrendRequest
 from requests import Response
