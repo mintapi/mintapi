@@ -352,8 +352,7 @@ def sign_in(
         expected_conditions.presence_of_element_located(
             (
                 By.CSS_SELECTOR,
-                ".ius-hosted-ui-main-container, #ius-link-use-a-different-id-known-device, #ius-userid, "
-                '#ius-identifier, #ius-option-username, [data-testid="IdentifierFirstSubmitButton"]',
+                "#ius-link-use-a-different-id-known-device, #ius-userid, #ius-identifier, #ius-option-username",
             )
         )
     )
@@ -441,10 +440,7 @@ def user_selection_page(driver):
         driver.find_element(By.ID, "ius-link-use-a-different-id-known-device").click()
         WebDriverWait(driver, 20).until(
             expected_conditions.presence_of_element_located(
-                (
-                    By.CSS_SELECTOR,
-                    '#ius-userid, #ius-identifier, #ius-option-username, [data-testid="IdentifierFirstSubmitButton"]',
-                )
+                (By.CSS_SELECTOR, "#ius-userid, #ius-identifier, #ius-option-username")
             )
         )
     except NoSuchElementException:
@@ -536,8 +532,7 @@ def bypass_verified_user_page(driver):
     # returns True is page is bypassed
     try:
         skip_for_now = driver.find_element(
-            By.CSS_SELECTOR,
-            '#ius-verified-user-update-btn-skip, [data-testid="VUUSkipButton"]',
+            By.ID, "ius-verified-user-update-btn-skip"
         ).click()
         return True
     except (
