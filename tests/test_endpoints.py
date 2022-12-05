@@ -161,6 +161,270 @@ class EndpointRequestTests(unittest.TestCase):
     parsing of mock responses returned
     """
 
+    @patch.object(
+        mintapi.endpoints.MintEndpoints, "__abstractmethods__", new_callable=set
+    )
+    @patch.object(mintapi.endpoints.MintEndpoints, "request")
+    def test_account_endpoint(self, mock_request, _):
+        """
+        Tests params are correctly passed to the request method
+        """
+        # Future TODO: mock full api response
+        mock_request.return_value = None
+        endpoints = MintEndpoints()
+        data = endpoints._get_account_data()
+        self.assertIsNone(data)
+
+        # assert pagination call
+        mock_request.assert_called_once_with(
+            data_key="Account",
+            metadata_key="metaData",
+            api_section="/pfm",
+            api_url="https://mint.intuit.com",
+            method="GET",
+            uri_path="/v1/accounts",
+        )
+
+    @patch.object(
+        mintapi.endpoints.MintEndpoints, "__abstractmethods__", new_callable=set
+    )
+    @patch.object(mintapi.endpoints.MintEndpoints, "request")
+    def test_budget_endpoint(self, mock_request, _):
+        """
+        Tests params are correctly passed to the request method
+        """
+        # Future TODO: mock full api response
+        mock_request.return_value = None
+        endpoints = MintEndpoints()
+        data = endpoints._get_budget_data()
+        self.assertIsNone(data)
+
+        # assert pagination call
+        mock_request.assert_called_once_with(
+            data_key="Budget",
+            metadata_key="metaData",
+            api_section="/pfm",
+            api_url="https://mint.intuit.com",
+            method="GET",
+            uri_path="/v1/budgets",
+        )
+
+    @patch.object(
+        mintapi.endpoints.MintEndpoints, "__abstractmethods__", new_callable=set
+    )
+    @patch.object(mintapi.endpoints.MintEndpoints, "request")
+    def test_bills_endpoint(self, mock_request, _):
+        """
+        Tests params are correctly passed to the request method
+        """
+        # Future TODO: mock full api response
+        mock_request.return_value = None
+        endpoints = MintEndpoints()
+        data = endpoints._get_bills_data()
+        self.assertIsNone(data)
+
+        # assert pagination call
+        mock_request.assert_called_once_with(
+            data_key="bills",
+            metadata_key="collectionMetaData",
+            api_section="/bps",
+            api_url="https://mint.intuit.com",
+            method="GET",
+            uri_path="/v2/payer/bills",
+        )
+
+    @patch.object(
+        mintapi.endpoints.MintEndpoints, "__abstractmethods__", new_callable=set
+    )
+    @patch.object(mintapi.endpoints.MintEndpoints, "request")
+    def test_category_endpoint(self, mock_request, _):
+        """
+        Tests params are correctly passed to the request method
+        """
+        # Future TODO: mock full api response
+        mock_request.return_value = None
+        endpoints = MintEndpoints()
+        data = endpoints._get_category_data()
+        self.assertIsNone(data)
+
+        # assert pagination call
+        mock_request.assert_called_once_with(
+            data_key="Category",
+            metadata_key="metaData",
+            api_section="/pfm",
+            api_url="https://mint.intuit.com",
+            method="GET",
+            uri_path="/v1/categories",
+        )
+
+    @patch.object(
+        mintapi.endpoints.MintEndpoints, "__abstractmethods__", new_callable=set
+    )
+    @patch.object(mintapi.endpoints.MintEndpoints, "request")
+    def test_credit_account_endpoint(self, mock_request, _):
+        """
+        Tests params are correctly passed to the request method
+        """
+        # Future TODO: mock full api response
+        mock_request.return_value = None
+        endpoints = MintEndpoints()
+        data = endpoints._get_credit_accounts()
+        self.assertIsNone(data)
+
+        # assert pagination call
+        mock_request.assert_called_once_with(
+            data_key=None,
+            metadata_key=None,
+            api_section="",
+            api_url="https://credit.finance.intuit.com",
+            method="GET",
+            uri_path="/v1/creditreports/0/tradelines",
+        )
+
+    @patch.object(
+        mintapi.endpoints.MintEndpoints, "__abstractmethods__", new_callable=set
+    )
+    @patch.object(mintapi.endpoints.MintEndpoints, "request")
+    def test_credit_inquiries_endpoint(self, mock_request, _):
+        """
+        Tests params are correctly passed to the request method
+        """
+        # Future TODO: mock full api response
+        mock_request.return_value = None
+        endpoints = MintEndpoints()
+        data = endpoints._get_credit_inquiries()
+        self.assertIsNone(data)
+
+        # assert pagination call
+        mock_request.assert_called_once_with(
+            data_key=None,
+            metadata_key=None,
+            api_section="",
+            api_url="https://credit.finance.intuit.com",
+            method="GET",
+            uri_path="/v1/creditreports/0/inquiries",
+        )
+
+    @patch.object(
+        mintapi.endpoints.MintEndpoints, "__abstractmethods__", new_callable=set
+    )
+    @patch.object(mintapi.endpoints.MintEndpoints, "request")
+    def test_credit_reports_endpoint(self, mock_request, _):
+        """
+        Tests params are correctly passed to the request method
+        """
+        # Future TODO: mock full api response
+        mock_request.return_value = None
+        endpoints = MintEndpoints()
+        data = endpoints._get_credit_reports()
+        self.assertIsNone(data)
+
+        # assert pagination call
+        mock_request.assert_called_once_with(
+            data_key=None,
+            metadata_key=None,
+            api_section="",
+            api_url="https://credit.finance.intuit.com",
+            method="GET",
+            uri_path="/v1/creditreports",
+        )
+
+    @patch.object(
+        mintapi.endpoints.MintEndpoints, "__abstractmethods__", new_callable=set
+    )
+    @patch.object(mintapi.endpoints.MintEndpoints, "request")
+    def test_credit_utilization_endpoint(self, mock_request, _):
+        """
+        Tests params are correctly passed to the request method
+        """
+        # Future TODO: mock full api response
+        mock_request.return_value = None
+        endpoints = MintEndpoints()
+        data = endpoints._get_credit_utilization()
+        self.assertIsNone(data)
+
+        # assert pagination call
+        mock_request.assert_called_once_with(
+            data_key=None,
+            metadata_key=None,
+            api_section="",
+            api_url="https://credit.finance.intuit.com",
+            method="GET",
+            uri_path="/v1/creditreports/creditutilizationhistory",
+        )
+
+    @patch.object(
+        mintapi.endpoints.MintEndpoints, "__abstractmethods__", new_callable=set
+    )
+    @patch.object(mintapi.endpoints.MintEndpoints, "request")
+    def test_investment_endpoint(self, mock_request, _):
+        """
+        Tests params are correctly passed to the request method
+        """
+        # Future TODO: mock full api response
+        mock_request.return_value = None
+        endpoints = MintEndpoints()
+        data = endpoints._get_investment_data()
+        self.assertIsNone(data)
+
+        # assert pagination call
+        mock_request.assert_called_once_with(
+            data_key="Investment",
+            metadata_key="metaData",
+            api_section="/pfm",
+            api_url="https://mint.intuit.com",
+            method="GET",
+            uri_path="/v1/investments",
+        )
+
+    @patch.object(
+        mintapi.endpoints.MintEndpoints, "__abstractmethods__", new_callable=set
+    )
+    @patch.object(mintapi.endpoints.MintEndpoints, "request")
+    def test_transaction_endpoint(self, mock_request, _):
+        """
+        Tests params are correctly passed to the request method
+        """
+        # Future TODO: mock full api response
+        mock_request.return_value = None
+        endpoints = MintEndpoints()
+        data = endpoints._get_transaction_data()
+        self.assertIsNone(data)
+
+        # assert pagination call
+        mock_request.assert_called_once_with(
+            data_key="Transaction",
+            metadata_key="metaData",
+            api_section="/pfm",
+            api_url="https://mint.intuit.com",
+            method="GET",
+            uri_path="/v1/transactions",
+        )
+
+    @patch.object(
+        mintapi.endpoints.MintEndpoints, "__abstractmethods__", new_callable=set
+    )
+    @patch.object(mintapi.endpoints.MintEndpoints, "request")
+    def test_trend_endpoint(self, mock_request, _):
+        """
+        Tests params are correctly passed to the request method
+        """
+        # Future TODO: mock full api response
+        mock_request.return_value = None
+        endpoints = MintEndpoints()
+        data = endpoints._get_trend_data()
+        self.assertIsNone(data)
+
+        # assert pagination call
+        mock_request.assert_called_once_with(
+            data_key="Trend",
+            metadata_key="metaData",
+            api_section="/pfm",
+            api_url="https://mint.intuit.com",
+            method="POST",
+            uri_path="/v1/trends",
+        )
+
 
 class UserMethodEndpointTests(unittest.TestCase):
     """
