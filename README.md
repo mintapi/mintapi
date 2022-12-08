@@ -245,9 +245,11 @@ make calls to retrieve account/budget information.  We recommend using the
     wait_for_sync=False,  # do not wait for accounts to sync
     wait_for_sync_timeout=300,  # number of seconds to wait for sync
     fail_if_stale=True, # True will raise an exception if Mint is unable to refresh your data.
-	use_chromedriver_on_path=False,  # True will use a system provided chromedriver binary that
+	  use_chromedriver_on_path=False,  # True will use a system provided chromedriver binary that
 	                                 # is on the PATH (instead of downloading the latest version)
-    driver=None        # pre-configured driver. If None, Mint will initialize the WebDriver.
+    driver=None,        # pre-configured driver. If None, Mint will initialize the WebDriver.
+    quit_driver_on_fail=True  # Quit from the browser and driver if an unexpected exception caught.
+                              # Could be useful to set it to False if the ownership of the driver should not be owned by Mint object.
   )
 
   # Get account information
