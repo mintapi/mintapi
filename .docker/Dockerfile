@@ -1,4 +1,4 @@
-FROM selenium/standalone-chrome
+FROM selenium/standalone-chrome:4.7.0
 
 # add mintapi to path
 ENV PATH=$HOME/.local/bin:$PATH
