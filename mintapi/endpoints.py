@@ -8,6 +8,7 @@ import logging
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
 from typing import List, Optional
+from urllib.parse import parse_qs, urlparse
 
 import pandas as pd
 from mintapi.constants import MINT_CREDIT_URL, MINT_ROOT_URL
@@ -88,10 +89,7 @@ class MintEndpoints(object, metaclass=ABCMeta):
                 LOGGER.warning("Metadata key not in response data, not iterating")
             return data
 
-        metadata = _ResponseMetadata(json_data[metadata_key])
-
-        # drop url params from propagating (href includes the full uri path already)
-        kwargs.pop("params", None)
+        metadata = _ResponseMetadata(json_data[metadata_key], **kwargs)
 
         while metadata.has_next:
             response = self.request(
@@ -99,11 +97,13 @@ class MintEndpoints(object, metaclass=ABCMeta):
                 data_key=data_key,
                 metadata_key=metadata_key,
                 paginate=False,
-                **kwargs,
+                **metadata.next_kwargs,
             )
             json_data = response.json()
             data.extend(json_data[data_key])
-            metadata = _ResponseMetadata(json_data[metadata_key])
+            metadata = _ResponseMetadata(
+                json_data[metadata_key], **metadata.next_kwargs
+            )
 
         return data
 
@@ -276,11 +276,11 @@ class MintEndpoints(object, metaclass=ABCMeta):
     def _get_transaction_data(self, **kwargs):
         api_url = MINT_ROOT_URL
         api_section = "/pfm"
-        uri_path = "/v1/transactions"
+        uri_path = "/v1/transactions/search"
         metadata_key = "metaData"
         data_key = "Transaction"
 
-        return self.get(
+        return self.post(
             api_url=api_url,
             api_section=api_section,
             uri_path=uri_path,
@@ -773,8 +773,9 @@ class _ResponseMetadata(object):
     Convenience wrapper for pagination
     """
 
-    def __init__(self, metadata):
+    def __init__(self, metadata, **kwargs):
         self.metadata = metadata
+        self.kwargs = kwargs
 
     @property
     def has_next(self):
@@ -786,3 +787,23 @@ class _ResponseMetadata(object):
     def next_uri_path(self):
         link = [i for i in self.metadata["link"] if i["rel"] == "next"][0]
         return link["href"]
+
+    @property
+    def next_kwargs(self):
+        """
+        manage param changes between requests - necessary for post requests
+        with fixed limits/offsets
+        """
+        # drop url params from propagating (href includes the full uri path already)
+        new_kwargs = {k: v for k, v in self.kwargs.items() if k != "params"}
+
+        if new_kwargs["method"] == "POST":
+            # api returns next uri but we have to match payload params
+            next_uri = self.next_uri_path
+            params = parse_qs(urlparse(next_uri).query)
+            if "offset" in params and "json" in new_kwargs:
+                new_kwargs["json"]["offset"] = params["offset"][0]
+            if "limit" in params and "json" in new_kwargs:
+                new_kwargs["json"]["limit"] = params["limit"][0]
+
+        return new_kwargs
