@@ -397,8 +397,8 @@ class EndpointRequestTests(unittest.TestCase):
             metadata_key="metaData",
             api_section="/pfm",
             api_url="https://mint.intuit.com",
-            method="GET",
-            uri_path="/v1/transactions",
+            method="POST",
+            uri_path="/v1/transactions/search",
         )
 
     @patch.object(
