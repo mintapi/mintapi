@@ -133,7 +133,7 @@ class PaginationTests(unittest.TestCase):
             data_key="Transaction",
             metadata_key="metaData",
             response=self.FakeNextResponse(),
-            method='POST',
+            method="POST",
         )
 
         # assert pagination call
@@ -142,7 +142,7 @@ class PaginationTests(unittest.TestCase):
             metadata_key="metaData",
             paginate=False,
             uri_path="/v1/transactions/search?offset=1&limit=1",
-            method='POST',
+            method="POST",
         )
 
         # assert data extracted
