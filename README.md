@@ -101,13 +101,48 @@ mint = mintapi.Mint(..., driver=driver)
 
 ### MFA Authentication Methods
 
-As of v2.0, `mfa_method` is only required if your login flow presents you with the option to select which Multifactor Authentication Method you wish to use, typically as a result of your account configured to accept different methods.  
+You can handle MFA in one of two ways: email or TOTP
+(**T**ime-based **O**ne-**T**ime **P**assword).
+TOTP is strongly recommended.
 
-If `mintapi` detects that your Mint account uses IMAP and your email host provides IMAP access, you can specify your IMAP login details.  This will automate the retrieval of the MFA code from your email and entering it into Mint.  If you use IMAP in conjunction with `keyring`, then you can store your IMAP password (`imap-password`) in keyring.  To do so, simply omit `imap-password` and you will initially be prompted for the password associated with your IMAP account.  Then, on subsequent uses of your IMAP account, you will not have to specify your password.
+While Mint supports authentication via Voice,
+`mintapi` does not.
+Compatability with this method will be added in a later version.
 
-If `mfa-method` is soft-token then you must also pass your `mfa-token`. The `mfa-token` can be obtained by going to [your mint.com settings](https://mint.intuit.com/settings.event?filter=all) and clicking on 'Intuit Account'. From there go to *Sign In & Security* -> *Two-step verification*. From there, enable the top option however you wish (either text or email is fine). After that, start the process to enable the *Authenticator app* option and when you get the part where you see the QR code, **copy the manual setup code** that appears next to it. Careful where you store this as it allows anyone to generate TOTP codes. This is the token that you will pass to `mfa-token` in either the python api or from the command line.
+While you may disable MFA altogether (with some caveats),
+doing is not recommended.
+Not only will it decrease your account security,
+but Mint will sometimes **still email you a second factor code**.
+So, for the least fragility, enable MFA.
 
-While Mint supports authentication via Voice, `mintapi` does not currently support this option.  Compatability with this method will be added in a later version.
+The `mfa_method` parameter is only required if your login flow presents you with the option
+to select which Multifactor Authentication Method you wish to use,
+typically as a result of your account configured to accept different methods.
+Prior to v2.0, `mfa_method` is always required.
+
+- #### TOTP
+Set `mfa_method` to `soft-token`.
+
+Set `mfa_token` as follows:
+go to
+[your Mint settings](https://mint.intuit.com/settings.event?filter=all),
+navigate through *Intuit Account* -> *Sign In & Security* -> *Two-step verification*.
+From there, enable the top option however you wish (either text or email is fine).
+After that, start the process to enable the *Authenticator app* option and when you get the part where you see the QR code,
+**copy the manual setup code** that appears next to it. 
+**BE CAREFUL WHERE YOU STORE THIS**, as anyone with it will be able to take over your Mint account.
+This is the token you pass to `mfa_token` in either the python api or from the command line.
+
+Note that if you already have TOTP enabled on your account,
+you will first have to disable and delete the old TOTP before setting up a new one.
+
+- #### Email
+In order for `mintapi` to automate the retrieval of the MFA code from your email,
+your email provider must provide IMAP access.
+If you use IMAP in conjunction with `keyring`,
+then you can store your IMAP password (`imap-password`) in keyring. To do so,
+simply omit `imap-password` and you will initially be prompted for the password associated with your IMAP account.
+Then, on subsequent uses of your IMAP account, you will not have to specify your password.
 
 ### Multi-Data Support
 
