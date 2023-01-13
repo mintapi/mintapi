@@ -24,7 +24,7 @@ setuptools.setup(
         "pandas>=1.0",
         "requests",
         "selenium>=4.3.0,<5.0.0",
-        "selenium-requests>=2.0.1",
+        "selenium-requests>=2.0.3",
         "xmltodict",
         "keyring",
     ],
