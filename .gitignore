@@ -3,10 +3,11 @@ build
 dist
 env
 chromedriver
+chromedriver*
+LICENSE.chromedriver
 __pycache__
 *.pyc
 *.egg-info
 /.idea
 .vscode/
-*chromedriver*
 .venv
