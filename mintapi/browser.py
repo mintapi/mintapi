@@ -47,9 +47,11 @@ class SeleniumBrowser(MintEndpoints):
         chromedriver_download_path=os.getcwd(),
         driver=None,
         beta=False,
+        quit_driver_on_fail=True,
     ):
         self.driver = None
         self.status_message = None
+        self.quit_driver_on_fail = quit_driver_on_fail
 
         if email and password:
             self.login_and_get_token(
@@ -134,8 +136,9 @@ class SeleniumBrowser(MintEndpoints):
         except Exception as e:
             msg = f"Could not sign in to Mint. Current page: {self.driver.current_url}"
             logger.exception(e)
-            self.driver.quit()
-            self.driver = None
+            if self.quit_driver_on_fail:
+                self.driver.quit()
+                self.driver = None
             raise Exception(msg) from e
 
     def get_attention(self):
