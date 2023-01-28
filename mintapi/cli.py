@@ -356,6 +356,13 @@ def parse_arguments(args):
             },
         ),
         (
+            ("--use-rest-client",),
+            {
+                "action": "store_true",
+                "help": "Prefer the REST client for API calls. This will be the default in a future release",
+            },
+        ),
+        (
             ("--wait_for_sync_timeout",),
             {
                 "type": int,
@@ -495,6 +502,7 @@ def main():
         wait_for_sync_timeout=options.wait_for_sync_timeout,
         fail_if_stale=options.fail_if_stale,
         use_chromedriver_on_path=options.use_chromedriver_on_path,
+        use_rest_client=options.use_rest_client,
         chromedriver_download_path=options.chromedriver_download_path,
         beta=options.beta,
     )

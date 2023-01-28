@@ -21,7 +21,6 @@ class Mint(object):
 
         Pass a driver or email + password to authenticate with the browser
         OR pass in an api_key or cookie to auth directly with the rest client
-
         Browser is mainly used to generate auth (only necessary if not otherwise passed)
 
         Backward compatibility flag defaults to not use new rest client
