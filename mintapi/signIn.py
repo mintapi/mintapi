@@ -821,8 +821,10 @@ def handle_wait_for_sync(driver, wait_for_sync_timeout, fail_if_stale):
         def refresh_complete(x):
             statusHtml = status_web_element.get_attribute("innerHTML")
 
-            return ("Account refresh complete" in statusHtml) or (
-                "We can't update your" in statusHtml
+            return (
+                ("Account refresh complete" in statusHtml)
+                or ("We can't update your" in statusHtml)
+                or ("need attention" in statusHtml)
             )
 
         WebDriverWait(driver, wait_for_sync_timeout).until(refresh_complete)
