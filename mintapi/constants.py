@@ -1,9 +1,6 @@
 JSON_FORMAT = "json"
 CSV_FORMAT = "csv"
 
-GET_METHOD = "GET"
-POST_METHOD = "POST"
-
 ACCOUNT_KEY = "Account"
 BILL_KEY = "Bill"
 BUDGET_KEY = "Budget"

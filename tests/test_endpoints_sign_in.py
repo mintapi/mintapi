@@ -1,13 +1,10 @@
 import os
+import sys
 
 import pytest
-
-import mintapi
-import mintapi.api
-import mintapi.signIn
-
-from tests.test_driver import category_example
-
+from mintapi.browser import SeleniumBrowser
+from mintapi.signIn import _create_web_driver_at_mint_com, sign_in
+from tests.sample_endpoint_payloads import category_example
 
 USERNAME = os.environ.get("MINTAPI_USERNAME", None)
 PASSWORD = os.environ.get("MINTAPI_PASSWORD", None)
@@ -31,20 +28,20 @@ pytestmark = pytest.mark.skipif(
 
 
 @pytest.fixture
-def get_mint_driver() -> mintapi.Mint:
-    mint = mintapi.Mint()
-    mint.driver = mintapi.signIn._create_web_driver_at_mint_com(
+def get_mint_driver() -> SeleniumBrowser:
+    browser = SeleniumBrowser()
+    browser.driver = _create_web_driver_at_mint_com(
         HEADLESS,
         SESSION_PATH,
         USE_CHROMEDRIVER_ON_PATH,
     )
-    yield mint
-    mint.close()
+    yield browser
+    browser.close()
 
 
 @pytest.fixture
-def do_sign_in(get_mint_driver: mintapi.Mint) -> mintapi.Mint:
-    mintapi.sign_in(
+def do_sign_in(get_mint_driver: SeleniumBrowser) -> SeleniumBrowser:
+    sign_in(
         USERNAME,
         PASSWORD,
         get_mint_driver.driver,
@@ -55,8 +52,8 @@ def do_sign_in(get_mint_driver: mintapi.Mint) -> mintapi.Mint:
     return get_mint_driver
 
 
-def test_sign_in(get_mint_driver: mintapi.Mint):
-    mintapi.sign_in(
+def test_sign_in(get_mint_driver: SeleniumBrowser):
+    sign_in(
         USERNAME,
         PASSWORD,
         get_mint_driver.driver,
@@ -69,13 +66,17 @@ def test_sign_in(get_mint_driver: mintapi.Mint):
     )
 
 
-def test_investment_endpoint(do_sign_in: mintapi.Mint):
+def test_investment_endpoint(do_sign_in: SeleniumBrowser):
     investment_data = do_sign_in.get_investment_data()[0]
     assert "metaData" not in investment_data
     assert "lastUpdatedDate" in investment_data
 
 
-def test_get_categories(do_sign_in: mintapi.Mint):
+def test_get_categories(do_sign_in: SeleniumBrowser):
     categories = do_sign_in.get_categories()
     for key in category_example[0].keys():
         assert key in categories[0].keys()
+
+
+if __name__ == "__main__":
+    pytest.main(sys.argv)
