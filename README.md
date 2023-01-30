@@ -99,17 +99,45 @@ mint = mintapi.Mint(..., driver=driver)
 ```
 
 
-### MFA Authentication Methods
+## MFA Authentication Methods
 
-As of v2.0, `mfa_method` is only required if your login flow presents you with the option to select which Multifactor Authentication Method you wish to use, typically as a result of your account configured to accept different methods.  
+You can handle MFA in one of two ways: email or TOTP
+(**T**ime-based **O**ne-**T**ime **P**assword). TOTP is strongly recommended.
+While Mint supports authentication via Voice, `mintapi` currently does not.
 
-If `mintapi` detects that your Mint account uses IMAP and your email host provides IMAP access, you can specify your IMAP login details.  This will automate the retrieval of the MFA code from your email and entering it into Mint.  If you use IMAP in conjunction with `keyring`, then you can store your IMAP password (`imap-password`) in keyring.  To do so, simply omit `imap-password` and you will initially be prompted for the password associated with your IMAP account.  Then, on subsequent uses of your IMAP account, you will not have to specify your password.
+While you may disable MFA altogether, doing so is not recommended.
+Not only will it decrease your account security,
+but Mint will sometimes **still email you a second factor code**.
+So, for the least fragility, enable MFA.
 
-If `mfa-method` is soft-token then you must also pass your `mfa-token`. The `mfa-token` can be obtained by going to [your mint.com settings](https://mint.intuit.com/settings.event?filter=all) and clicking on 'Intuit Account'. From there go to *Sign In & Security* -> *Two-step verification*. From there, enable the top option however you wish (either text or email is fine). After that, start the process to enable the *Authenticator app* option and when you get the part where you see the QR code, **copy the manual setup code** that appears next to it. Careful where you store this as it allows anyone to generate TOTP codes. This is the token that you will pass to `mfa-token` in either the python api or from the command line.
+As of v2.0, the `mfa_method` parameter is only required if your login flow presents you with the option
+to select which Multifactor Authentication Method you wish to use,
+typically as a result of your account configured to accept different methods.
+Prior to v2.0, `mfa_method` was always required.
 
-While Mint supports authentication via Voice, `mintapi` does not currently support this option.  Compatability with this method will be added in a later version.
+### Option 1: TOTP
+Set `mfa_method` to `soft-token`.
 
-### Multi-Data Support
+Set `mfa_token` as follows:
+go to [your Mint settings](https://mint.intuit.com/settings.event?filter=all),
+navigate through *Intuit Account* -> *Sign In & Security* -> *Two-step verification*.
+From there, enable eithter text or email as desired.
+After that, start the process to enable the *Authenticator app* option and when you get to the part where you see the QR code,
+**copy the manual setup code** that appears next to it. 
+**BE CAREFUL WHERE YOU STORE THIS**, as anyone with it will be able to take over your Mint account.
+This is the token you pass to `mfa_token` in either the python api or from the command line.
+
+Note that if you already have TOTP enabled on your account,
+you will first have to disable and delete the old TOTP before setting up a new one.
+
+### Option 2: Email
+In order for `mintapi` to automate the retrieval of the MFA code from your email,
+your email provider must provide IMAP access. If you use IMAP in conjunction with `keyring`,
+then you can store your IMAP password (`imap-password`) in keyring. To do so,
+simply omit `imap-password` and you will initially be prompted for the password associated with your IMAP account.
+Then, on subsequent uses of your IMAP account, you will not have to specify your password.
+
+## Multi-Data Support
 
 As of v2.0, mintapi supports returning multiple types of data in one call, such as: `mintapi --accounts --budgets --transactions`.  When exporting multiple data types, you can either send it directly to `stdout` or you can export to a file via `--filename`.  mintapi will create a file for each type of data, with a suffix based on the format.  For example, if you run `mintapi --accounts --transactions --filename=current --format=csv`, then you will receive two files: `current_account.csv` and `current_transaction.csv`.  The following table outlines the option selected and its corresponding suffix:
 
@@ -126,7 +154,7 @@ As of v2.0, mintapi supports returning multiple types of data in one call, such 
 | credit-score | credit_score |
 | credit-report| credit_report|
 
-### Financial Data Trends
+## Financial Data Trends
 
 Mint supports providing some analysis of your financial data based on different types of "trends".  Mint's requirements for accessing this data using mintapi is a bit more complex than the other endpoints.
 
@@ -144,9 +172,9 @@ Mint supports providing some analysis of your financial data based on different 
 | limit             | int                | The page size of results. |
 | offset            | int                | The starting record of your results. |
 
-#### Report Type
+### Report Type
 
-As mentioned above, the Report Type is the type of report for which to generate trend analysis.  The supplied value must be one of the following enum values:
+The Report Type is the type of report for which to generate trend analysis.  The supplied value must be one of the following enum values:
 
 | Enum Value | Description |
 | ---------- | ----------- |
@@ -167,7 +195,7 @@ As mentioned above, the Report Type is the type of report for which to generate 
 | 15         | Net Worth Over Time |
 | 16         | Net Income Over Time |
 
-### Financial Data Transactions
+## Financial Data Transactions
 
 If you want to provide a more granular filtering of your financial data transactions, you can select from a variety of search filters that are sent to Mint. 
 
@@ -186,9 +214,9 @@ If you want to provide a more granular filtering of your financial data transact
 | limit             | int                | The page size of results. |
 | offset            | int                | The starting record of your results. |
 
-### Date Filters
+## Date Filters
 
-As mentioned above, the Date Filter is the date window for which to generate your trend analysis or for which to search transactions.  The supplied value must be one of the following enum values:
+The Date Filter is the date window for which to generate your trend analysis or for which to search transactions.  The supplied value must be one of the following enum values:
 
 | Enum Value | Description |
 | ---------- | ----------- |
@@ -206,7 +234,7 @@ As mentioned above, the Date Filter is the date window for which to generate you
 
 If you select a Custom Date Filter, then `start_date` and `end_date` are required fields.  Similarly, if you wish to use `start_date` and `end_date`, Custom Date Filter must be used.
 
-### From Python
+## From Python
 
 From python, instantiate the Mint class (from the mintapi package) and you can
 make calls to retrieve account/budget information.  We recommend using the
@@ -245,9 +273,11 @@ make calls to retrieve account/budget information.  We recommend using the
     wait_for_sync=False,  # do not wait for accounts to sync
     wait_for_sync_timeout=300,  # number of seconds to wait for sync
     fail_if_stale=True, # True will raise an exception if Mint is unable to refresh your data.
-	use_chromedriver_on_path=False,  # True will use a system provided chromedriver binary that
+	  use_chromedriver_on_path=False,  # True will use a system provided chromedriver binary that
 	                                 # is on the PATH (instead of downloading the latest version)
-    driver=None        # pre-configured driver. If None, Mint will initialize the WebDriver.
+    driver=None,        # pre-configured driver. If None, Mint will initialize the WebDriver.
+    quit_driver_on_fail=True  # Quit from the browser and driver if an unexpected exception caught.
+                              # Could be useful to set it to False if the ownership of the driver should not be owned by Mint object.
   )
 
   # Get account information
@@ -396,8 +426,8 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
     ]
 ```
 
-### Special Considerations
+## Special Considerations
 
-#### Email\Account Access
+### Email / Account Access
 
 Because of the inter-connected nature of Intuit's products, when signing in to Mint for one account, you may see accounts associated with Intuit products other than Mint.  If you do have multiple Intuit accounts, you should be aware that if one email is associated with two different usernames (and multiple Intuit products, such as TurboTax or Quickbooks), you may receive a prompt for Multifactor Authentication, even with a saved session.  One possible solution is separating the two accounts to use two different emails.  For many email clients, you can route different email addresses to the same account by using a suffix.  For example, you could have email addresses "myaccount+mint@gmail.com" and "myaccount+quickbooks@gmail.com" and receive emails for both in the "myaccount@gmail.com" inbox.
