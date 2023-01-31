@@ -16,10 +16,6 @@ We recently released 2.0, which supports (and only supports) the new Mint UI:
 
 **Please note** that due to data changes on the Mint.com side as well as various new features and changes on the mintapi side, *there are several breaking changes in 2.0*. Please see [the CHANGELOG](https://github.com/mintapi/mintapi/blob/main/CHANGELOG.md#20) for details.
 
-## Community
-
-Please [join us on Discord](https://discord.gg/YjJEuJRAu9) to get help or just chat with fellow mintapi users :)
-
 ## Installation
 
 Ensure you have Python 3 and pip (`easy_install pip`) and then:
@@ -426,6 +422,8 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
     ]
 ```
 
+## Community
+Please [join us on Discord](https://discord.gg/YjJEuJRAu9) to get help or just chat with fellow mintapi users :)
 ## Special Considerations
 
 ### Email / Account Access
