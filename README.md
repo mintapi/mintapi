@@ -7,6 +7,11 @@
 
 An unofficial screen-scraping API for Mint.com.
 
+`mintapi` scrapes Mint.com by using Selenium/WebDriver to navigate a browser.
+Once logged in,
+`mintapi` allows programatic, automated access to Mint's UI.
+`mintapi` will download the latest stable release of chromedriver,
+unless --use_chromedriver_on_path is given.
 ## IMPORTANT: mintapi 2.0 vs 1.x and breaking changes
 
 We recently released 2.0, which supports (and only supports) the new Mint UI:
@@ -23,12 +28,6 @@ Ensure you have Python 3 and pip (`easy_install pip`) and then:
 ```shell
 pip install mintapi
 ```
-
-`mintapi` scrapes Mint.com by navigating a Chrome browser (or Chromium) just as a human would. Once logged in, the API allows programatic access to various Mint REST APIs. Selenium/WebDriver is used to accomplish this, and specifically, ChromeDriver under the hood. `mintapi` will download the latest stable release of chromedriver, unless --use_chromedriver_on_path is given. **NOTE: You must have [Chrome](https://www.google.com/chrome/) or [Chromium](https://www.chromium.org/getting-involved/dev-channel/) installed, on the `stable` track, and be up-to-date!** If you run into a `SessionNotCreatedException` about "ChromeDriver only supports Chrome version XX", you need to [update Chrome](https://support.google.com/chrome/answer/95414).
-
-## Usage
-
-### From the Command Line
 
 From the command line, the most automated invocation will be:
 
@@ -429,3 +428,8 @@ Please [join us on Discord](https://discord.gg/YjJEuJRAu9) to get help or just c
 ### Email / Account Access
 
 Because of the inter-connected nature of Intuit's products, when signing in to Mint for one account, you may see accounts associated with Intuit products other than Mint.  If you do have multiple Intuit accounts, you should be aware that if one email is associated with two different usernames (and multiple Intuit products, such as TurboTax or Quickbooks), you may receive a prompt for Multifactor Authentication, even with a saved session.  One possible solution is separating the two accounts to use two different emails.  For many email clients, you can route different email addresses to the same account by using a suffix.  For example, you could have email addresses "myaccount+mint@gmail.com" and "myaccount+quickbooks@gmail.com" and receive emails for both in the "myaccount@gmail.com" inbox.
+
+### Chrome version
+**NOTE: You must have [Chrome](https://www.google.com/chrome/) or [Chromium](https://www.chromium.org/getting-involved/dev-channel/) installed, on the `stable` track, and be up-to-date!**
+If you run into a `SessionNotCreatedException` about "ChromeDriver only supports Chrome version XX",
+you need to [update Chrome](https://support.google.com/chrome/answer/95414).
