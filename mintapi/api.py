@@ -51,7 +51,7 @@ class Mint(object):
 
     def __getattr__(self, attr):
         """
-        Automatically handle routing to prefer the rest client but fallback to the browser for uinimplemented
+        Automatically handle routing to prefer the rest client but fallback to the browser for unimplemented
         methods
         """
         if self.rest_client is not None and hasattr(self.rest_client, attr):
