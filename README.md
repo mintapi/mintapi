@@ -28,8 +28,32 @@ Ensure you have Python 3 and pip (`easy_install pip`) and then:
 ```shell
 pip install mintapi
 ```
+Or for the latest release:
+```shell
+pip install git+https://github.com/mintapi/mintapi
+```
+Then simply:
+```shell
+mintapi --keyring --headless you@example.com
+```
+You will be prompted for your password, which will be stored securely in your system keyring,
+and use a headless (invisible) browser to log in and grab the account data.
+If this triggers an MFA prompt,
+you'll be prompted for the one-time code on the command line.
+MFA prompts default to SMS unless you specify `--mfa-method=email`.
+`mintapi` persists the browser session in $HOME/.mintapi/session to avoid an MFA in the future,
+unless you specify `--session-path=None`.
 
-From the command line, the most automated invocation will be:
+To simplify CLI invocation,
+you can specify a configuration file with the `--config-file` argument.
+For arguments such as `--transactions`,
+you can add a line in your config file that says `transactions`.
+For other arguments that have input,
+such as `--start-date`,
+you would add a line such as `start-date=10/01/21`.
+Reading email and password from config files is not supported.
+You must pass them as arguments directly or through a keyring.
+<!-- Can we get an example of this? -->
 
     mintapi --keyring --headless you@example.com
 
