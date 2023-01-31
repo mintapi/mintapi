@@ -10,8 +10,6 @@ An unofficial screen-scraping API for Mint.com.
 `mintapi` scrapes Mint.com by using Selenium/WebDriver to navigate a browser.
 Once logged in,
 `mintapi` allows programatic, automated access to Mint's UI.
-`mintapi` will download the latest stable release of chromedriver,
-unless --use_chromedriver_on_path is given.
 ## IMPORTANT: mintapi 2.0 vs 1.x and breaking changes
 
 We recently released 2.0, which supports (and only supports) the new Mint UI:
@@ -22,9 +20,7 @@ We recently released 2.0, which supports (and only supports) the new Mint UI:
 **Please note** that due to data changes on the Mint.com side as well as various new features and changes on the mintapi side, *there are several breaking changes in 2.0*. Please see [the CHANGELOG](https://github.com/mintapi/mintapi/blob/main/CHANGELOG.md#20) for details.
 
 ## Installation
-
-Ensure you have Python 3 and pip (`easy_install pip`) and then:
-
+Install with pip from PyPi
 ```shell
 pip install mintapi
 ```
@@ -55,79 +51,8 @@ Reading email and password from config files is not supported.
 You must pass them as arguments directly or through a keyring.
 <!-- Can we get an example of this? -->
 
-    mintapi --keyring --headless you@example.com
-
-This will store your credentials securely in your system keyring, and use a
-headless (invisible) browser to log in and grab the account data. If this triggers
-an MFA prompt, you'll be prompted on the command line for your code, which by default
-goes to SMS unless you specify `--mfa-method=email`. This will also persist a browser
-session in $HOME/.mintapi/session to avoid an MFA in the future, unless you specify `--session-path=None`.
-
-If you wish to simplify the number of arguments passed in the command line, you can use a configuration file by specifying `--config-file`.  For arguments such as `--transactions`, you can add a line in your config file that says `transactions`.  For other arguments that have input, such as `--start-date`, you would add a line such as `start-date=10/01/21`.  There are two exceptions to what you can add to the config file: email and password.  Since these arguments do not include `--`, you cannot add them to the config file.
-
-### General Automation Scenarios
-Selenium defaults to whatever chrome/chromedriver it finds in your `PATH`.
-When running with cron or other long-term automation options,
-best practice is to pass the chrome and chromedriver binaries you want mintapi to use as absolute paths.
-Having separate versions that you don't update will prevent several classes of problems.
-(To use a browser other than Chrome/Chromium,
-see the [python section](#from-python) below.)
-
-#### Running Headless
-You can suppress the browser GUI by using the `--headless` option on CLI or `headless=True` in Python.
-When using mintapi without a display (e.g., in a server environment),
-this option is required.
-Additionally, you'll want to use your distribution's package manager to install chromium and chromedriver.
-Make sure your distribution is up-to-date and then install/update Chromium (debian-family example):
-`apt install chromium-browser chromium-chromedriver`.
-Then use the option `use_chromedriver_on_path` either through the CLI or the python api so that mintapi doesn't try to find a matching chromedriver.
-
-If you need to download the chromedriver manually, be sure to get the version that matches your chrome version and make the chromedriver available to your python interpreter either by putting the chromedriver in your python working directory or inside your `PATH` as described in the [python selenium documentation](https://www.selenium.dev/selenium/docs/api/py/index.html#drivers).
-#### Unix Environment
-
-If you wanted to make sure that mintapi used the chromium executable in my /usr/bin directory when executing a cron job, you could write the following cron line:
-
-```cron
-0 7 * * FRI PATH=/usr/bin:$PATH mintapi --headless john@example.com my_password
-```
-
-where prepending the /usr/bin path to path will make those binaries found first. This will only affect the cron job and will not change the environment for any other process.
-
-#### Windows Environment
-
-You can do a similar thing in windows by executing the following in Powershell.
-
-```powershell
-$ENV:PATH = "C:\Program Files\Google\Chrome;$ENV:PATH"
-mintapi --headless john@example.com my_password
-```
-
-#### Docker Image
-
-You can also use the docker image to help manage your environment so you don't have to worry about chrome or chromedriver versions. There are a few caveats:
-1. Headless mode is recommended. GUI works but introduces the need to configure an X11 server which varies with setup. Google is your friend.
-2. Almost always use the flag `--use-chromedriver-on-path` as the chrome and chromedriver built into the docker image already match and getting the latest will break the image.
-3. If you want to persist credentials or your chrome session, you'll need to do some volume mounting.
-
-To use the image:
-```
-docker run --rm --shm-size=2g ghcr.io/mintapi/mintapi mintapi john@example.com my_password --headless --use-chromedriver-on-path
-```
-
-#### AWS Lambda Environment
-
-AWS Lambda may need a [specific chrome driver with specific options](https://robertorocha.info/setting-up-a-selenium-web-scraper-on-aws-lambda-with-python/). You can initialize Mint with your own pre-configured headless serverless chrome through a constructor:
-
-
-```python
-driver = initialize_serverless_chrome_driver(...)
-mint = mintapi.Mint(..., driver=driver)
-...
-```
-
-
-## MFA Authentication Methods
-
+## Complete Setup
+### MFA Authentication Methods
 You can handle MFA in one of two ways: email or TOTP
 (**T**ime-based **O**ne-**T**ime **P**assword). TOTP is strongly recommended.
 While Mint supports authentication via Voice, `mintapi` currently does not.
@@ -139,10 +64,10 @@ So, for the least fragility, enable MFA.
 
 As of v2.0, the `mfa_method` parameter is only required if your login flow presents you with the option
 to select which Multifactor Authentication Method you wish to use,
-typically as a result of your account configured to accept different methods.
+typically as a result of your account configured to accept multiple methods.
 Prior to v2.0, `mfa_method` was always required.
 
-### Option 1: TOTP
+#### Option 1: TOTP
 Set `mfa_method` to `soft-token`.
 
 Set `mfa_token` as follows:
@@ -157,15 +82,76 @@ This is the token you pass to `mfa_token` in either the python api or from the c
 Note that if you already have TOTP enabled on your account,
 you will first have to disable and delete the old TOTP before setting up a new one.
 
-### Option 2: Email
+#### Option 2: Email
 In order for `mintapi` to automate the retrieval of the MFA code from your email,
 your email provider must provide IMAP access. If you use IMAP in conjunction with `keyring`,
 then you can store your IMAP password (`imap-password`) in keyring. To do so,
 simply omit `imap-password` and you will initially be prompted for the password associated with your IMAP account.
 Then, on subsequent uses of your IMAP account, you will not have to specify your password.
 
-## Multi-Data Support
+### Chrome
+`mintapi` automatically downloads the latest stable chromedriver,
+unless `--use_chromedriver_on_path` is given.
+Best practice is to pass dedicated chrome and chromedriver binaries to `mintapi`.
+Having separate versions that you don't update will prevent several classes of problems.
 
+Use your distribution's package manager to install chromium and chromedriver:
+```shell
+# Debian/Ubuntu
+sudo apt install chromium-browser chromium-chromedriver
+# RHL/Fedora
+sudo dnf install chromium-browser chromium-chromedriver
+# Arch/Manjaro
+sudo pacman -S chromium-browser chromium-chromedriver
+```
+You can also [manually download a chromedriver](https://sites.google.com/chromium.org/driver/downloads)
+version of your choice.
+To use your custom chromedriver in `mintapi`,
+you can either add it to your Python working directory
+or add it to your `PATH` as described in the
+[Selinum driver documentation](https://www.selenium.dev/selenium/docs/api/py/index.html#drivers).
+
+(To use a browser other than Chrome/Chromium,
+see the [python section](#from-python) below.)
+
+## Examples
+### Cron
+The following cron job runs `mintapi`,
+looking for the chromium executable in `/usr/bin`,
+every day at 07:00:
+```cron
+0 7 * * * PATH=/usr/bin:$PATH mintapi --use_chromedriver_on_path --headless john@example.com my_password
+```
+Note that the `PATH` is only affected for this job,
+and will not change the environment for any other process.
+
+[This page](https://devblogs.microsoft.com/scripting/use-powershell-to-create-scheduled-tasks/)
+has instructions for setting a scheduled task in Windows with Powershell.
+Running just once is as easy as:
+```powershell
+$ENV:PATH = "C:\Program Files\Google\Chrome;$ENV:PATH"
+mintapi --headless john@example.com my_password
+```
+### Docker Image
+You can also use the docker image to help manage your environment so you don't have to worry about chrome or chromedriver versions. There are a few caveats:
+1. Headless mode is recommended. GUI works but introduces the need to configure an X11 server which varies with setup. Google is your friend.
+2. Almost always use the flag `--use-chromedriver-on-path` as the chrome and chromedriver built into the docker image already match and getting the latest will break the image.
+3. If you want to persist credentials or your chrome session, you'll need to do some volume mounting.
+
+To use the image:
+```
+docker run --rm --shm-size=2g ghcr.io/mintapi/mintapi mintapi john@example.com my_password --headless --use-chromedriver-on-path
+```
+
+### AWS Lambda Environment
+AWS Lambda may need a [specific chrome driver with specific options](https://robertorocha.info/setting-up-a-selenium-web-scraper-on-aws-lambda-with-python/). You can initialize Mint with your own pre-configured headless serverless chrome through a constructor:
+
+```python
+driver = initialize_serverless_chrome_driver(...)
+mint = mintapi.Mint(..., driver=driver)
+...
+```
+## Multi-Data Support
 As of v2.0, mintapi supports returning multiple types of data in one call, such as: `mintapi --accounts --budgets --transactions`.  When exporting multiple data types, you can either send it directly to `stdout` or you can export to a file via `--filename`.  mintapi will create a file for each type of data, with a suffix based on the format.  For example, if you run `mintapi --accounts --transactions --filename=current --format=csv`, then you will receive two files: `current_account.csv` and `current_transaction.csv`.  The following table outlines the option selected and its corresponding suffix:
 
 | Option       | Suffix       |
