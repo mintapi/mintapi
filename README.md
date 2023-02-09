@@ -62,10 +62,11 @@ Not only will it decrease your account security,
 but Mint will sometimes **still email you a second factor code**.
 So, for the least fragility, enable MFA.
 
-As of v2.0, the `mfa_method` parameter is only required if your login flow presents you with the option
-to select which Multifactor Authentication Method you wish to use,
-typically as a result of your account configured to accept multiple methods.
-Prior to v2.0, `mfa_method` was always required.
+As of v2.0,
+the mfa_method parameter is only required when using soft-token,
+or if your login flow presents you with the option
+to select which Multifactor Authentication Method you wish to use.
+Prior to v2.0, `mfa_method` is always required.
 
 #### Option 1: TOTP
 Set `mfa_method` to `soft-token`.
