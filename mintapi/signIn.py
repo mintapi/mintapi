@@ -833,5 +833,5 @@ def handle_wait_for_sync(driver, wait_for_sync_timeout, fail_if_stale):
         logger.warning(exceptions.STALE_DATA_ERROR_MESSAGE)
         if fail_if_stale:
             raise exceptions.StaleDataException
-    except (exceptions.StaleDataException):
+    except exceptions.StaleDataException:
         sys.exit(1)
