@@ -443,8 +443,6 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
     ]
 ```
 
-## Community
-Please [join us on Discord](https://discord.gg/YjJEuJRAu9) to get help or just chat with fellow mintapi users :)
 ## Special Considerations
 
 ### Email / Account Access
