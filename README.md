@@ -51,6 +51,8 @@ Reading email and password from config files is not supported.
 You must pass them as arguments directly or through a keyring.
 <!-- Can we get an example of this? -->
 
+For help, or just to chat with fellow mintapi users, please [join us on Discord](https://discord.gg/YjJEuJRAu9)! :)
+
 ## Complete Setup
 ### MFA Authentication Methods
 You can handle MFA in one of two ways: email or TOTP
