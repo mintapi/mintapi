@@ -91,10 +91,11 @@ simply omit `imap-password` and you will initially be prompted for the password 
 Then, on subsequent uses of your IMAP account, you will not have to specify your password.
 
 ### Chrome
-`mintapi` automatically downloads the latest stable chromedriver,
-unless `--use_chromedriver_on_path` is given.
-Best practice is to pass dedicated chrome and chromedriver binaries to `mintapi`.
-Having separate versions that you don't update will prevent several classes of problems.
+`mintapi` automatically downloads the latest stable chromedriver.
+For long term, automated deployments,
+verify that the particular chrome and chromedrive binaries you have downloaded work together,
+and use the `--use_chromedriver_on_path` flag to prevent `mintapi` from auto updating the chromedriver binary
+Keep these binaries separate from your regular installation to avoid accidental breakage via auto-update.
 
 Use your distribution's package manager to install chromium and chromedriver:
 ```shell
