@@ -3,6 +3,8 @@ STALE_DATA_ERROR_MESSAGE = (
 )
 
 # define Python user-defined exceptions
+
+
 class Error(Exception):
     """Base class for other exceptions"""
 

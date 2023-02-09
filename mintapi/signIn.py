@@ -112,15 +112,18 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, delete
                 break
             rv, data = imap_client.fetch(num, "(BODY.PEEK[])")
             if rv != "OK":
-                raise RuntimeError("Unable to complete due to error message: " + rv)
+                raise RuntimeError(
+                    "Unable to complete due to error message: " + rv)
 
             msg = email.message_from_bytes(data[0][1])
 
-            x = email.header.make_header(email.header.decode_header(msg["Subject"]))
+            x = email.header.make_header(
+                email.header.decode_header(msg["Subject"]))
             subject = str(x)
             logger.debug("DEBUG: SUBJECT:", subject)
 
-            x = email.header.make_header(email.header.decode_header(msg["From"]))
+            x = email.header.make_header(
+                email.header.decode_header(msg["From"]))
             frm = str(x)
             logger.debug("DEBUG: FROM:", frm)
 
@@ -137,7 +140,8 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, delete
 
             date_tuple = email.utils.parsedate_tz(msg["Date"])
             if date_tuple:
-                local_date = datetime.fromtimestamp(email.utils.mktime_tz(date_tuple))
+                local_date = datetime.fromtimestamp(
+                    email.utils.mktime_tz(date_tuple))
             else:
                 logger.error("ERROR: FAIL0")
 
@@ -259,7 +263,8 @@ def get_stable_chrome_driver(download_directory=os.getcwd()):
             # Use the existing chrome driver, as it's already the latest
             # version or the latest version cannot be determined at the moment.
             return local_executable_path
-        logger.info("Removing old version {} of Chromedriver".format(major_version))
+        logger.info(
+            "Removing old version {} of Chromedriver".format(major_version))
         os.remove(local_executable_path)
 
     if not latest_chrome_driver_version:
@@ -270,9 +275,11 @@ def get_stable_chrome_driver(download_directory=os.getcwd()):
         )
         return None
     logger.info(
-        "Downloading version {} of Chromedriver".format(latest_chrome_driver_version)
+        "Downloading version {} of Chromedriver".format(
+            latest_chrome_driver_version)
     )
-    zip_file_url = get_chrome_driver_url(latest_chrome_driver_version, sys.platform)
+    zip_file_url = get_chrome_driver_url(
+        latest_chrome_driver_version, sys.platform)
     request = requests.get(zip_file_url)
 
     if request.status_code != 200:
@@ -312,7 +319,8 @@ def _create_web_driver_at_mint_com(
     else:
         driver = Chrome(
             options=chrome_options,
-            executable_path=get_stable_chrome_driver(chromedriver_download_path),
+            executable_path=get_stable_chrome_driver(
+                chromedriver_download_path),
         )
     return driver
 
@@ -438,7 +446,8 @@ def home_page(driver):
 def user_selection_page(driver):
     # click "Use a different user ID" if needed
     try:
-        driver.find_element(By.ID, "ius-link-use-a-different-id-known-device").click()
+        driver.find_element(
+            By.ID, "ius-link-use-a-different-id-known-device").click()
         WebDriverWait(driver, 20).until(
             expected_conditions.presence_of_element_located(
                 (
@@ -481,7 +490,8 @@ def handle_different_page_username_password(driver, email):
 
     # click on username if on the saved usernames page
     except (ElementNotInteractableException, ElementNotVisibleException):
-        username_elements = driver.find_element(By.CLASS_NAME, "ius-option-username")
+        username_elements = driver.find_element(
+            By.CLASS_NAME, "ius-option-username")
         for username_element in username_elements:
             if username_element.text == email:
                 username_element.click()
@@ -571,7 +581,8 @@ def mfa_selection_page(driver, mfa_method):
             By.ID, "ius-mfa-option-{}".format(mfa_method)
         )
         mfa_method_option.click()
-        mfa_method_submit = driver.find_element(By.ID, "ius-mfa-options-submit-btn")
+        mfa_method_submit = driver.find_element(
+            By.ID, "ius-mfa-options-submit-btn")
         mfa_method_submit.click()
     except STANDARD_MISSING_EXCEPTIONS:
         pass
@@ -629,7 +640,8 @@ def mfa_page(
     mfa_method = mfa_result[2]
     if mfa_method is None:
         # MFA is optional for devices that were registered to Mint by clicking on "Remember my device"
-        logger.info("Your Mint Account does not require Multifactor Authentication.")
+        logger.info(
+            "Your Mint Account does not require Multifactor Authentication.")
         return
 
     # mfa screen
@@ -670,7 +682,8 @@ def search_mfa_method(driver):
                 if result is True:
                     break
         except (NoSuchElementException, ElementNotInteractableException):
-            logger.info("{} MFA Method Not Found".format(constants.MFA_METHOD_LABEL))
+            logger.info("{} MFA Method Not Found".format(
+                constants.MFA_METHOD_LABEL))
     return mfa_token_input, mfa_token_button, mfa_method
 
 
@@ -693,7 +706,8 @@ def set_mfa_method(driver, mfa_method):
         mfa_method = mfa_result[constants.MFA_METHOD_LABEL]
     except (NoSuchElementException, ElementNotInteractableException) as e:
         raise MFAMethodNotAvailableError(
-            "The Multifactor Method {} supplied is not available.".format(mfa_method)
+            "The Multifactor Method {} supplied is not available.".format(
+                mfa_method)
         ) from e
     return mfa_token_input, mfa_token_button, mfa_method
 
