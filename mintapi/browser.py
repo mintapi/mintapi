@@ -110,7 +110,6 @@ class SeleniumBrowser(MintEndpoints):
         driver=None,
         beta=False,
     ):
-
         self.driver = driver or _create_web_driver_at_mint_com(
             headless, session_path, use_chromedriver_on_path, chromedriver_download_path
         )
