@@ -113,7 +113,7 @@ version of your choice.
 To use your custom chromedriver in `mintapi`,
 you can either add it to your Python working directory
 or add it to your `PATH` as described in the
-[Selinum driver documentation](https://www.selenium.dev/selenium/docs/api/py/index.html#drivers).
+[Seleninum driver documentation](https://www.selenium.dev/selenium/docs/api/py/index.html#drivers).
 
 (To use a browser other than Chrome/Chromium,
 see the [python section](#from-python) below.)
