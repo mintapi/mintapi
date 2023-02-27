@@ -2,6 +2,12 @@
     New feature work occurs in the 2.x release series and only supports the new Mint UI / endpoints.
     Please see the README for more information.
     
+2.13
+---
+- use a RESTful API architecture instead of heavily relying on Selenium (#482)
+  - you can opt-in to full use of this via `--use-rest-client` (CLI) or `use_rest_client=True` (Python)
+- improved detection of refresh status (#583)
+
 2.12
 ---
 - update selenium-requests dep to >=2.0.3 which should future-proof chrome updates
