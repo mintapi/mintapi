@@ -19,6 +19,70 @@ We recently released 2.0, which supports (and only supports) the new Mint UI:
 
 **Please note** that due to data changes on the Mint.com side as well as various new features and changes on the mintapi side, *there are several breaking changes in 2.0*. Please see [the CHANGELOG](https://github.com/mintapi/mintapi/blob/main/CHANGELOG.md#20) for details.
 
+### mintapi 2.13 breaking changes
+
+mintapi 2.13 uses a RESTful API architecture instead of heavily relying on Selenium. There are a few breaking changes:
+
+- The constructor for Mint object has moved from using email and password positional arguments to keyword arguments.
+
+mintapi 2.12 and below
+```python
+mint = mintapi.Mint(
+    'your_email@web.com',
+    'password',
+    ...
+)
+```
+
+mintapi 2.13+
+```python
+mint = mintapi.Mint(
+    email='your_email@web.com',
+    password='password',
+    ...
+    use_rest_client=True
+)
+```
+
+
+ * The mint object now has the legacy `browser` client and the new `rest_client` which has the same endpoints as prior releases.
+
+mintapi 2.12 and below
+```python
+mint = mintapi.Mint(
+    'your_email@web.com',
+    'password',
+    ...
+)
+
+mint.get_transaction_data()
+
+```
+
+mintapi 2.13+
+```python
+# For using the new REST client
+mint = mintapi.Mint(
+    ...
+    use_rest_client=True
+)
+
+mint.rest_client.get_transaction_data()
+
+# For using the legacy browser based client
+mint = mintapi.Mint(
+    ...
+    use_rest_client=False
+)
+
+mint.browser.get_transaction_data()
+
+```
+
+
+ 
+
+
 ## Installation
 Install with pip from PyPi
 ```shell
