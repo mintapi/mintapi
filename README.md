@@ -260,8 +260,8 @@ make calls to retrieve account/budget information.  We recommend using the
 ```python
   import mintapi
   mint = mintapi.Mint(
-    'your_email@web.com',  # Email used to log in to Mint
-    'password',  # Your password used to log in to mint
+    email='your_email@web.com',  # Email used to log in to Mint
+    password='password',  # Your password used to log in to mint
     # Optional parameters
     mfa_method='sms',  # See MFA Methods section
                        # Can be 'sms' (default), 'email', or 'soft-token'.
@@ -293,41 +293,39 @@ make calls to retrieve account/budget information.  We recommend using the
 	  use_chromedriver_on_path=False,  # True will use a system provided chromedriver binary that
 	                                 # is on the PATH (instead of downloading the latest version)
     driver=None,        # pre-configured driver. If None, Mint will initialize the WebDriver.
-    quit_driver_on_fail=True  # Quit from the browser and driver if an unexpected exception caught.
+    quit_driver_on_fail=True,  # Quit from the browser and driver if an unexpected exception caught.
                               # Could be useful to set it to False if the ownership of the driver should not be owned by Mint object.
+    use_rest_client=True   # True will use the rest client and rely less on selenium. False will default to the legacy browser based client.
   )
 
   # Get account information
-  mint.get_account_data()
+  mint.rest_client.get_account_data()
 
   # Get budget information
-  mint.get_budget_data()
+  mint.rest_client.get_budget_data()
 
   # Get transactions
-  mint.get_transaction_data() # as pandas dataframe
+  mint.rest_client.get_transaction_data() # as pandas dataframe
 
   # Get transactions for a specific account
-  accounts = mint.get_account_data()
+  accounts = mint.rest_client.get_account_data()
   for account in accounts:
     mint.get_transaction_data(id=account["id"])
 
   # Get net worth
-  mint.get_net_worth_data()
+  mint.rest_client.get_net_worth_data()
 
   # Get credit score
-  mint.get_credit_score_data()
+  mint.rest_client.get_credit_score_data()
 
   # Get bills
-  mint.get_bills()
+  mint.rest_client.get_bills()
 
   # Get investments (holdings and transactions)
-  mint.get_investment_data()
-
-  # Close session and exit cleanly from selenium/chromedriver
-  mint.close()
+  mint.rest_client.get_investment_data()
 
   # Initiate an account refresh
-  mint.initiate_account_refresh()
+  mint.rest_client.initiate_account_refresh()
 
   # you can also use mintapi's login in workflow with your own selenium webdriver
   # this will allow for more custom selenium driver setups
@@ -338,7 +336,7 @@ make calls to retrieve account/budget information.  We recommend using the
   mint = mintapi.Mint()
   mint.driver = Firefox()
   mint.status_message, mint.token = mintapi.sign_in(
-    email, password, mint.driver, mfa_method=None, mfa_token=None,
+    email=email, password=password, driver=mint.driver, mfa_method=None, mfa_token=None,
     mfa_input_callback=None, intuit_account=None, wait_for_sync=True,
     wait_for_sync_timeout=5 * 60,
     imap_account=None, imap_password=None,
@@ -346,7 +344,15 @@ make calls to retrieve account/budget information.  We recommend using the
   )
   # now you can do all the normal api calls
   # ex:
-  mint.get_transaction_data()
+  mint.rest_client.get_transaction_data()
+
+  # Use the legacy browser based client
+  mint = mintapi.Mint(
+    email='your_email@web.com',  # Email used to log in to Mint
+    password='password',  # Your password used to log in to mint
+    use_rest_client=False   # True will use the rest client and rely less on selenium. False will default to the legacy browser based client.
+  )
+  mint.browser.get_transaction_data()
 ```
 
 ---
