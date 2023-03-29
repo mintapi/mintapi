@@ -11,6 +11,8 @@ class Mint(object):
 
     def __init__(
         self,
+        email: str = None,
+        password: str = None,
         api_key: Optional[str] = None,
         cookies: Optional[Union[str, List[Dict]]] = None,
         use_rest_client: bool = False,
@@ -28,7 +30,9 @@ class Mint(object):
         """
         if not use_rest_client:
             # legacy behavior
-            self.browser = SeleniumBrowser(**browser_params)
+            self.browser = SeleniumBrowser(
+                email=email, password=password, **browser_params
+            )
             self.rest_client = None
 
         else:
@@ -36,7 +40,9 @@ class Mint(object):
 
             # only use browser if not sufficiently authorized already
             if not api_key or not cookies:
-                self.browser = SeleniumBrowser(**browser_params)
+                self.browser = SeleniumBrowser(
+                    email=email, password=password, **browser_params
+                )
 
                 if self.browser.driver is not None:
                     self.transfer_auth()
