@@ -2,6 +2,10 @@
     New feature work occurs in the 2.x release series and only supports the new Mint UI / endpoints.
     Please see the README for more information.
     
+2.14
+---
+- backwards compatability when using positional arguments for email and password. (#592)
+
 2.13
 ---
 - use a RESTful API architecture instead of heavily relying on Selenium (#482)
