@@ -17,7 +17,17 @@ from mintapi.rest import RESTClient
 
 class MintApiTests(unittest.TestCase):
     @patch("mintapi.api.SeleniumBrowser")
-    def test_constructor_browser(self, mock_browser_class):
+    def test_constructor_browser_with_kwargs(self, mock_browser_class):
+        """
+        if use_rest_client = False the email and password keyword arguments
+        """
+        email = "your_email@web.com"
+        password = "password"
+        Mint(email=email, password=password, use_rest_client=False)
+        mock_browser_class.assert_called_once_with(email=email, password=password)
+
+    @patch("mintapi.api.SeleniumBrowser")
+    def test_constructor_browser_with_args(self, mock_browser_class):
         """
         if use_rest_client = False the email and password positional arguments
         are passed to the browser to maintain backwards compatibility
@@ -28,15 +38,24 @@ class MintApiTests(unittest.TestCase):
         mock_browser_class.assert_called_once_with(email=email, password=password)
 
     @patch("mintapi.api.SeleniumBrowser")
-    def test_constructor_rest(self, mock_browser_class):
+    def test_constructor_rest_client_with_kwargs(self, mock_browser_class):
+        """
+        if use_rest_client = True the email and password keyword arguments are
+        """
+        email = "your_email@web.com"
+        password = "password"
+        Mint(email=email, password=password, use_rest_client=True)
+        mock_browser_class.assert_called_once_with(email=email, password=password)
+
+    @patch("mintapi.api.SeleniumBrowser")
+    def test_constructor_rest_client_with_args(self, mock_browser_class):
         """
         if use_rest_client = True the email and password positional arguments are
         passed to the browser to maintain backwards compatibility
         """
         email = "your_email@web.com"
         password = "password"
-        Mint(email=email, password=password, use_rest_client=True)
-        mock_browser_class.assert_called_once_with(email=email, password=password)
+        Mint(email, password, use_rest_client=True)
         mock_browser_class.assert_called_once_with(email=email, password=password)
 
     def test_fallback_browser_only(self):
