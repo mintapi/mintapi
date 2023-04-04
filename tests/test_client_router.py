@@ -20,6 +20,7 @@ class MintApiTests(unittest.TestCase):
     def test_constructor_browser_with_kwargs(self, mock_browser_class):
         """
         if use_rest_client = False the email and password keyword arguments
+        are passed to the browser
         """
         email = "your_email@web.com"
         password = "password"
@@ -30,7 +31,7 @@ class MintApiTests(unittest.TestCase):
     def test_constructor_browser_with_args(self, mock_browser_class):
         """
         if use_rest_client = False the email and password positional arguments
-        are passed to the browser to maintain backwards compatibility
+        are passed to the browser
         """
         email = "your_email@web.com"
         password = "password"
@@ -40,7 +41,8 @@ class MintApiTests(unittest.TestCase):
     @patch("mintapi.api.SeleniumBrowser")
     def test_constructor_rest_client_with_kwargs(self, mock_browser_class):
         """
-        if use_rest_client = True the email and password keyword arguments are
+        if use_rest_client = True the email and password keyword arguments
+        are passed to the browser
         """
         email = "your_email@web.com"
         password = "password"
@@ -50,8 +52,8 @@ class MintApiTests(unittest.TestCase):
     @patch("mintapi.api.SeleniumBrowser")
     def test_constructor_rest_client_with_args(self, mock_browser_class):
         """
-        if use_rest_client = True the email and password positional arguments are
-        passed to the browser to maintain backwards compatibility
+        if use_rest_client = True the email and password positional arguments
+        are passed to the browser
         """
         email = "your_email@web.com"
         password = "password"
