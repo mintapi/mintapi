@@ -547,7 +547,7 @@ class MintEndpoints(object, metaclass=ABCMeta):
         remove_pending: bool = True,
         limit: int = 1000,
         offset: int = 0,
-        **kwargs
+        **kwargs,
     ):
         """
         Public accessor for transaction data. Internally constructs a transaction/search api payload
@@ -638,7 +638,7 @@ class MintEndpoints(object, metaclass=ABCMeta):
         match_all_filters: bool = True,
         limit: int = 1000,
         offset: int = 0,
-        **kwargs
+        **kwargs,
     ):
         """
         Public accessor for trend data. Internally constructs a trend api payload
