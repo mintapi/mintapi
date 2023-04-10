@@ -312,8 +312,8 @@ class MintEndpoints(object, metaclass=ABCMeta):
         api_url = MINT_ROOT_URL
         api_section = "/pfm"
         uri_path = f"/v1/transactions/{transaction_id}"
-        metadata_key = ""
-        data_key = ""
+        metadata_key = None
+        data_key = None
 
         return self.get(
             api_url=api_url,
@@ -328,8 +328,8 @@ class MintEndpoints(object, metaclass=ABCMeta):
         api_url = MINT_ROOT_URL
         api_section = "/pfm"
         uri_path = f"/v1/transactions/{transaction_id}"
-        metadata_key = ""
-        data_key = ""
+        metadata_key = None
+        data_key = None
 
         return self.put(
             api_url=api_url,
