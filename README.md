@@ -347,6 +347,19 @@ make calls to retrieve account/budget information.  We recommend using the
   # now you can do all the normal api calls
   # ex:
   mint.get_transaction_data()
+  
+  # Update a transaction
+  # Note that the list of tag_ids replaces the existing tags on the transaction, rather than adding to them.
+  updated_transaction = mint.update_transaction_data(
+    transaction_id="15123456_2345678910_0",
+    description="McDonald's",
+    notes="Lunch",
+    category_id="15123456_1234",
+    tag_ids=["15123456_1234567"],
+    transaction_type="CashAndCreditTransaction",
+  )
+  
+
 ```
 
 ---
