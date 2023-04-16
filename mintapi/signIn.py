@@ -670,7 +670,9 @@ def search_mfa_method(driver):
                 if result is True:
                     break
         except (NoSuchElementException, ElementNotInteractableException):
-            logger.info("{} MFA Method Not Found".format(method[constants.MFA_METHOD_LABEL]))
+            logger.info(
+                "{} MFA Method Not Found".format(method[constants.MFA_METHOD_LABEL])
+            )
     return mfa_token_input, mfa_token_button, mfa_method
 
 
