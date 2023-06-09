@@ -55,9 +55,9 @@ For help, or just to chat with fellow mintapi users, please [join us on Discord]
 
 ## Complete Setup
 ### MFA Authentication Methods
-You can handle MFA in one of two ways: email or TOTP
+You can handle MFA in one of four ways: text, voice, email, or TOTP
 (**T**ime-based **O**ne-**T**ime **P**assword). TOTP is strongly recommended.
-While Mint supports authentication via Voice, `mintapi` currently does not.
+`mintapi` does not support automated MFA through voice or text.
 
 While you may disable MFA altogether, doing so is not recommended.
 Not only will it decrease your account security,
@@ -73,14 +73,17 @@ Prior to v2.0, `mfa_method` is always required.
 #### Option 1: TOTP
 Set `mfa_method` to `soft-token`.
 
-Set `mfa_token` as follows:
+Obtain the seed for `mfa_token` as follows:
 go to [your Mint settings](https://mint.intuit.com/settings.event?filter=all),
 navigate through *Intuit Account* -> *Sign In & Security* -> *Two-step verification*.
-From there, enable either text or email as desired.
-After that, start the process to enable the *Authenticator app* option and when you get to the part where you see the QR code,
-**copy the manual setup code** that appears next to it. 
-**BE CAREFUL WHERE YOU STORE THIS**, as anyone with it will be able to take over your Mint account.
+Token MFA is only allowed as a secondary option,
+so first enable one of the other options (text, email, voice).
+Select the *Authenticator app* option.
+When you get to the part where you see the QR code,
+copy the **manual setup code** that appears next to it.
 This is the token you pass to `mfa_token` in either the python api or from the command line.
+Complete the setup process by providing a generated code from your authenticator app when requested.
+**BE CAREFUL WHERE YOU STORE THIS**, as anyone with it will be able to take over your Mint account.
 
 Note that if you already have TOTP enabled on your account,
 you will first have to disable and delete the old TOTP before setting up a new one.
