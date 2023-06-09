@@ -76,7 +76,7 @@ Set `mfa_method` to `soft-token`.
 Set `mfa_token` as follows:
 go to [your Mint settings](https://mint.intuit.com/settings.event?filter=all),
 navigate through *Intuit Account* -> *Sign In & Security* -> *Two-step verification*.
-From there, enable eithter text or email as desired.
+From there, enable either text or email as desired.
 After that, start the process to enable the *Authenticator app* option and when you get to the part where you see the QR code,
 **copy the manual setup code** that appears next to it. 
 **BE CAREFUL WHERE YOU STORE THIS**, as anyone with it will be able to take over your Mint account.
