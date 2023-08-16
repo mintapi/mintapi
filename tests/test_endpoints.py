@@ -263,6 +263,30 @@ class EndpointRequestTests(unittest.TestCase):
         mintapi.endpoints.MintEndpoints, "__abstractmethods__", new_callable=set
     )
     @patch.object(mintapi.endpoints.MintEndpoints, "request")
+    def test_tag_endpoint(self, mock_request, _):
+        """
+        Tests params are correctly passed to the request method
+        """
+        # Future TODO: mock full api response
+        mock_request.return_value = None
+        endpoints = MintEndpoints()
+        data = endpoints._get_tag_data()
+        self.assertIsNone(data)
+
+        # assert pagination call
+        mock_request.assert_called_once_with(
+            data_key="Tag",
+            metadata_key="metaData",
+            api_section="/pfm",
+            api_url="https://mint.intuit.com",
+            method="GET",
+            uri_path="/v1/tags",
+        )
+
+    @patch.object(
+        mintapi.endpoints.MintEndpoints, "__abstractmethods__", new_callable=set
+    )
+    @patch.object(mintapi.endpoints.MintEndpoints, "request")
     def test_credit_account_endpoint(self, mock_request, _):
         """
         Tests params are correctly passed to the request method
