@@ -358,7 +358,7 @@ def sign_in(
                 "#ius-identifier, "
                 "#ius-option-username, "
                 '[data-testid="IdentifierFirstSubmitButton"], '
-                '[data-testid="AccountChoicesUseDifferentId"]'
+                '[data-testid="AccountChoicesUseDifferentId"]',
             )
         )
     )
