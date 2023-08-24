@@ -270,7 +270,7 @@ def get_stable_chrome_driver(download_directory=os.getcwd()):
         "Downloading version {} of Chromedriver".format(latest_chrome_driver_version)
     )
 
-    if sys.platform == 'darwin':
+    if sys.platform == "darwin":
         platform_arch = f"{sys.platform}-{platform.machine()}"
     else:
         platform_arch = sys.platform
