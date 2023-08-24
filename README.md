@@ -325,6 +325,12 @@ make calls to retrieve account/budget information.  We recommend using the
 
   # Get investments (holdings and transactions)
   mint.get_investment_data()
+  
+  # Get tags
+  mint.get_tag_data()
+  
+  # Get rules for assigning category and description
+  mint.get_rule_data()
 
   # Close session and exit cleanly from selenium/chromedriver
   mint.close()

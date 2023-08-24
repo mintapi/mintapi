@@ -209,6 +209,22 @@ class MintEndpoints(object, metaclass=ABCMeta):
             **kwargs,
         )
 
+    def _get_rules_data(self, **kwargs):
+        api_url = MINT_ROOT_URL
+        api_section = "/pfm"
+        uri_path = "/v1/transaction-rules"
+        metadata_key = "metaData"
+        data_key = "TransactionRules"
+
+        return self.get(
+            api_url=api_url,
+            api_section=api_section,
+            uri_path=uri_path,
+            data_key=data_key,
+            metadata_key=metadata_key,
+            **kwargs,
+        )
+
     def _get_credit_accounts(self, **kwargs):
         api_url = MINT_CREDIT_URL
         api_section = ""
@@ -430,6 +446,26 @@ class MintEndpoints(object, metaclass=ABCMeta):
         }
         params = {k: v for k, v in params.items() if v is not None}
         return self._get_tag_data(params=params, **kwargs)
+
+    def get_rule_data(self, limit: int = 1000, **kwargs):
+        """
+        _summary_
+
+        Parameters
+        ----------
+        limit : int, optional
+            _description_, by default 1000
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
+        params = {
+            "limit": limit,
+        }
+        params = {k: v for k, v in params.items() if v is not None}
+        return self._get_rules_data(params=params, **kwargs)
 
     def get_credit_accounts(self, **kwargs):
         """
