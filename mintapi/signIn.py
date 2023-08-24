@@ -12,6 +12,7 @@ import subprocess
 import sys
 import time
 import zipfile
+import json
 import itertools
 
 from selenium.common.exceptions import (
@@ -182,7 +183,7 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, delete
     return code
 
 
-CHROME_DRIVER_BASE_URL = "https://chromedriver.storage.googleapis.com/"
+CHROME_DRIVER_BASE_URL = "https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json"
 CHROME_DRIVER_DOWNLOAD_PATH = "{version}/chromedriver_{arch}.zip"
 CHROME_DRIVER_LATEST_RELEASE = "LATEST_RELEASE"
 CHROME_ZIP_TYPES = {
@@ -199,9 +200,12 @@ version_pattern = re.compile(
 
 
 def get_chrome_driver_url(version, arch):
-    return CHROME_DRIVER_BASE_URL + CHROME_DRIVER_DOWNLOAD_PATH.format(
-        version=version, arch=CHROME_ZIP_TYPES.get(arch)
-    )
+    driver_downloads = version["downloads"]["chromedriver"]
+    for download in driver_downloads:
+        if download["platform"] == arch:
+            return download["url"]
+
+    raise RuntimeError(f"Error finding latest chromedriver for {arch}")
 
 
 def get_chrome_driver_major_version_from_executable(local_executable_path):
@@ -221,16 +225,17 @@ def get_chrome_driver_major_version_from_executable(local_executable_path):
 
 def get_latest_chrome_driver_version():
     """Returns the version of the latest stable chromedriver release."""
-    latest_url = CHROME_DRIVER_BASE_URL + CHROME_DRIVER_LATEST_RELEASE
-    latest_request = requests.get(latest_url)
+    latest_request = requests.get(CHROME_DRIVER_BASE_URL)
 
     if latest_request.status_code != 200:
         raise RuntimeError(
             "Error finding the latest chromedriver at {}, status = {}".format(
-                latest_url, latest_request.status_code
+                CHROME_DRIVER_BASE_URL, latest_request.status_code
             )
         )
-    return latest_request.text
+    json_content = latest_request.content.decode("utf-8")  # Convert bytes to string
+    latest_version_dict = json.loads(json_content)
+    return latest_version_dict["channels"]["Stable"]
 
 
 def get_stable_chrome_driver(download_directory=os.getcwd()):
@@ -241,16 +246,7 @@ def get_stable_chrome_driver(download_directory=os.getcwd()):
     local_executable_path = os.path.join(download_directory, chromedriver_name)
 
     latest_chrome_driver_version = get_latest_chrome_driver_version()
-    version_match = version_pattern.match(latest_chrome_driver_version)
     latest_major_version = None
-    if not version_match:
-        logger.error(
-            "Cannot parse latest chrome driver string: {}".format(
-                latest_chrome_driver_version
-            )
-        )
-    else:
-        latest_major_version = version_match.groupdict()["major"]
     if os.path.exists(local_executable_path):
         major_version = get_chrome_driver_major_version_from_executable(
             local_executable_path
@@ -283,9 +279,26 @@ def get_stable_chrome_driver(download_directory=os.getcwd()):
         )
 
     zip_file = zipfile.ZipFile(io.BytesIO(request.content))
-    zip_file.extractall(path=download_directory)
-    os.chmod(local_executable_path, 0o755)
+    extract_files_from_zip(zip_file, download_directory)
     return local_executable_path
+
+
+def extract_files_from_zip(zip_ref, extract_path):
+    zip_file_contents = zip_ref.namelist()
+
+    # Extract each file directly to the extract_path
+    for file in zip_file_contents:
+        with zip_ref.open(file) as source_file:
+            target_path = os.path.join(extract_path, os.path.basename(file))
+            with open(target_path, "wb") as target_file:
+                target_file.write(source_file.read())
+
+            # Change permissions of extracted file
+            os.chmod(target_path, 0o755)
+
+    return [
+        os.path.join(extract_path, os.path.basename(file)) for file in zip_file_contents
+    ]
 
 
 def _create_web_driver_at_mint_com(
