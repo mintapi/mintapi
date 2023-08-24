@@ -13,6 +13,7 @@ import sys
 import time
 import zipfile
 import json
+import platform
 import itertools
 
 from selenium.common.exceptions import (
@@ -189,7 +190,8 @@ CHROME_DRIVER_LATEST_RELEASE = "LATEST_RELEASE"
 CHROME_ZIP_TYPES = {
     "linux": "linux64",
     "linux2": "linux64",
-    "darwin": "mac64",
+    "darwin-arm64": "mac-arm64",
+    "darwin": "mac-x64",
     "win32": "win32",
     "win64": "win32",
 }
@@ -200,9 +202,10 @@ version_pattern = re.compile(
 
 
 def get_chrome_driver_url(version, arch):
+    zip_type = CHROME_ZIP_TYPES[arch]
     driver_downloads = version["downloads"]["chromedriver"]
     for download in driver_downloads:
-        if download["platform"] == arch:
+        if download["platform"] == zip_type:
             return download["url"]
 
     raise RuntimeError(f"Error finding latest chromedriver for {arch}")
@@ -268,7 +271,13 @@ def get_stable_chrome_driver(download_directory=os.getcwd()):
     logger.info(
         "Downloading version {} of Chromedriver".format(latest_chrome_driver_version)
     )
-    zip_file_url = get_chrome_driver_url(latest_chrome_driver_version, sys.platform)
+
+    if sys.platform == 'darwin':
+        platform_arch = f"{sys.platform}-{platform.machine()}"
+    else:
+        platform_arch = sys.platform
+
+    zip_file_url = get_chrome_driver_url(latest_chrome_driver_version, platform_arch)
     request = requests.get(zip_file_url)
 
     if request.status_code != 200:
