@@ -26,6 +26,7 @@ from selenium.common.exceptions import (
 )
 from selenium.webdriver import ChromeOptions
 from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.ui import WebDriverWait
 from seleniumrequests import Chrome
@@ -330,10 +331,10 @@ def _create_web_driver_at_mint_com(
     if use_chromedriver_on_path:
         driver = Chrome(options=chrome_options)
     else:
-        driver = Chrome(
-            options=chrome_options,
-            executable_path=get_stable_chrome_driver(chromedriver_download_path),
+        service = ChromeService(
+            executable_path=get_stable_chrome_driver(chromedriver_download_path)
         )
+        driver = Chrome(options=chrome_options, service=service)
     return driver
 
 
