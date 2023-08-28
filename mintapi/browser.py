@@ -105,14 +105,10 @@ class SeleniumBrowser(MintEndpoints):
         wait_for_sync=True,
         wait_for_sync_timeout=5 * 60,
         fail_if_stale=False,
-        use_chromedriver_on_path=False,
-        chromedriver_download_path=os.getcwd(),
         driver=None,
         beta=False,
     ):
-        self.driver = driver or _create_web_driver_at_mint_com(
-            headless, session_path, use_chromedriver_on_path, chromedriver_download_path
-        )
+        self.driver = driver or _create_web_driver_at_mint_com(headless, session_path)
 
         try:
             self.status_message = sign_in(
