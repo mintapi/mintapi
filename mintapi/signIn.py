@@ -3,18 +3,10 @@ from mintapi import constants, exceptions
 import email
 import email.header
 import imaplib
-import io
 import logging
-import os
 import re
-import requests
-import subprocess
 import sys
 import time
-import zipfile
-import json
-import platform
-import itertools
 
 from selenium.common.exceptions import (
     ElementNotInteractableException,
@@ -26,7 +18,6 @@ from selenium.common.exceptions import (
 )
 from selenium.webdriver import ChromeOptions
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.ui import WebDriverWait
 from seleniumrequests import Chrome
@@ -185,135 +176,9 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, delete
     return code
 
 
-CHROME_DRIVER_BASE_URL = "https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json"
-CHROME_ZIP_TYPES = {
-    "linux": "linux64",
-    "linux2": "linux64",
-    "darwin-arm64": "mac-arm64",
-    "darwin": "mac-x64",
-    "win32": "win32",
-    "win64": "win32",
-}
-version_pattern = re.compile(
-    "(?P<version>(?P<major>\\d+)\\.(?P<minor>\\d+)\\."
-    "(?P<build>\\d+)\\.(?P<patch>\\d+))"
-)
-
-
-def get_chrome_driver_url(version, arch):
-    zip_type = CHROME_ZIP_TYPES[arch]
-    driver_downloads = version["downloads"]["chromedriver"]
-    for download in driver_downloads:
-        if download["platform"] == zip_type:
-            return download["url"]
-
-    raise RuntimeError(f"Error finding latest chromedriver for {arch}")
-
-
-def get_chrome_driver_major_version_from_executable(local_executable_path):
-    # Note; --version works on windows as well.
-    # check_output fails if running from a thread without a console on win10.
-    # To protect against this use explicit pipes for STDIN/STDERR.
-    # See: https://github.com/pyinstaller/pyinstaller/issues/3392
-    with open(os.devnull, "wb") as devnull:
-        version = subprocess.check_output(
-            [local_executable_path, "--version"], stderr=devnull, stdin=devnull
-        )
-        version_match = version_pattern.search(version.decode())
-        if not version_match:
-            return None
-        return version_match.groupdict()["major"]
-
-
-def get_latest_chrome_driver_version():
-    """Returns the version of the latest stable chromedriver release."""
-    latest_request = requests.get(CHROME_DRIVER_BASE_URL)
-
-    if latest_request.status_code != 200:
-        raise RuntimeError(
-            "Error finding the latest chromedriver at {}, status = {}".format(
-                CHROME_DRIVER_BASE_URL, latest_request.status_code
-            )
-        )
-    json_content = latest_request.content.decode("utf-8")  # Convert bytes to string
-    latest_version_dict = json.loads(json_content)
-    return latest_version_dict["channels"]["Stable"]
-
-
-def get_stable_chrome_driver(download_directory=os.getcwd()):
-    chromedriver_name = "chromedriver"
-    if sys.platform in ["win32", "win64"]:
-        chromedriver_name += ".exe"
-
-    local_executable_path = os.path.join(download_directory, chromedriver_name)
-
-    latest_chrome_driver_version = get_latest_chrome_driver_version()
-    latest_major_version = None
-    if os.path.exists(local_executable_path):
-        major_version = get_chrome_driver_major_version_from_executable(
-            local_executable_path
-        )
-        if major_version == latest_major_version or not latest_major_version:
-            # Use the existing chrome driver, as it's already the latest
-            # version or the latest version cannot be determined at the moment.
-            return local_executable_path
-        logger.info("Removing old version {} of Chromedriver".format(major_version))
-        os.remove(local_executable_path)
-
-    if not latest_chrome_driver_version:
-        logger.critical(
-            "No local chrome driver found and cannot parse the latest chrome "
-            "driver on the internet. Please double check your internet "
-            "connection, then ask for assistance on the github project."
-        )
-        return None
-    logger.info(
-        "Downloading version {} of Chromedriver".format(latest_chrome_driver_version)
-    )
-
-    if sys.platform == "darwin":
-        platform_arch = f"{sys.platform}-{platform.machine()}"
-    else:
-        platform_arch = sys.platform
-
-    zip_file_url = get_chrome_driver_url(latest_chrome_driver_version, platform_arch)
-    request = requests.get(zip_file_url)
-
-    if request.status_code != 200:
-        raise RuntimeError(
-            "Error finding chromedriver at {}, status = {}".format(
-                zip_file_url, request.status_code
-            )
-        )
-
-    zip_file = zipfile.ZipFile(io.BytesIO(request.content))
-    extract_files_from_zip(zip_file, download_directory)
-    return local_executable_path
-
-
-def extract_files_from_zip(zip_ref, extract_path):
-    zip_file_contents = zip_ref.namelist()
-
-    # Extract each file directly to the extract_path
-    for file in zip_file_contents:
-        with zip_ref.open(file) as source_file:
-            target_path = os.path.join(extract_path, os.path.basename(file))
-            with open(target_path, "wb") as target_file:
-                target_file.write(source_file.read())
-
-            # Change permissions of extracted file
-            os.chmod(target_path, 0o755)
-
-    return [
-        os.path.join(extract_path, os.path.basename(file)) for file in zip_file_contents
-    ]
-
-
 def _create_web_driver_at_mint_com(
     headless=False,
     session_path=None,
-    use_chromedriver_on_path=False,
-    chromedriver_download_path=os.getcwd(),
 ):
     """
     Handles starting a web driver at mint.com
@@ -328,14 +193,10 @@ def _create_web_driver_at_mint_com(
     if session_path is not None:
         chrome_options.add_argument("user-data-dir=%s" % session_path)
 
-    if use_chromedriver_on_path:
-        driver = Chrome(options=chrome_options)
-    else:
-        service = ChromeService(
-            executable_path=get_stable_chrome_driver(chromedriver_download_path)
-        )
-        driver = Chrome(options=chrome_options, service=service)
-    return driver
+    # selenium will default to use the chromedriver in your project directory.
+    # otherwise if the chromedriver binary is not present in project directory,
+    # selenium manager will download one in .cache/selenium
+    return Chrome(options=chrome_options)
 
 
 def sign_in(
