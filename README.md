@@ -55,7 +55,7 @@ For help, or just to chat with fellow mintapi users, please [join us on Discord]
 
 ## Complete Setup
 ### MFA Authentication Methods
-Mint accpets MFA in one of four ways: text, voice, email, or TOTP
+Mint accepts MFA in one of four ways: text, voice, email, or TOTP
 (**T**ime-based **O**ne-**T**ime **P**assword).
 `mintapi` supports all of these options except Voice.
 
