@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 from mintapi import constants, exceptions
 import email
@@ -18,6 +19,7 @@ from selenium.common.exceptions import (
 )
 from selenium.webdriver import ChromeOptions
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.service import Service as ChromeService
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.ui import WebDriverWait
 from seleniumrequests import Chrome
@@ -179,6 +181,8 @@ def get_email_code(imap_account, imap_password, imap_server, imap_folder, delete
 def _create_web_driver_at_mint_com(
     headless=False,
     session_path=None,
+    use_chromedriver_on_path=False,
+    chromedriver_download_path=os.getcwd(),
 ):
     """
     Handles starting a web driver at mint.com
