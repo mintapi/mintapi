@@ -388,6 +388,7 @@ Run it as a sub-process from your favorite language; `pip install mintapi` creat
                             MFA prompts. Defaults to $HOME/.mintapi/session. Set to None to use a temporary
                             profile.
       --beta                Use the beta version of Mint
+      --bills               Retrieve bills information
       --budgets             Retrieve budget information for current month
       --budget_hist         Retrieve historical budget information (past 12 months)
       --categories          Retrieve your configured Mint categories
