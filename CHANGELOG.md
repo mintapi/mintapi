@@ -2,6 +2,14 @@
     New feature work occurs in the 2.x release series and only supports the new Mint UI / endpoints.
     Please see the README for more information.
     
+2.15
+---
+- use selenium manager to automatically download the chromedriver binary (#614)
+- add new endpoint for tags (#608)
+- add new endpoint for getting rules (#609)
+- add term to recognize choose account page (#612)
+- add bills to CLI and fix calling wrong endpoint (#621)
+
 2.14
 ---
 - backwards compatability when using positional arguments for email and password. (#592)
