@@ -820,11 +820,10 @@ class MintEndpoints(object, metaclass=ABCMeta):
         """
         # Account Balance history by account
         balances = []
-
         accounts = self.get_account_data()
         for account in accounts:
             account_id = account["id"]
-            # try extracting as asset and debt
+            # Try extracting as asset and debt
             for report in (
                 ReportView.Options.ASSETS_TIME,
                 ReportView.Options.DEBTS_TIME,
@@ -836,6 +835,15 @@ class MintEndpoints(object, metaclass=ABCMeta):
                 )
                 for d in data:
                     d["account_id"] = account_id
+                    d["account_name"] = account["name"]
+                    account_name = account["name"]
+                    d["account_type"] = account["type"]
+                    isZillow = False
+                    if (("realEstateType" in account and account["realEstateType"] == "PRIMARY_RESIDENCE") 
+                        and ("realEstateValueProviderType" in account and account["realEstateValueProviderType"] == "ZILLOW")): #Correction for Balance API's inaccurate data
+                        isZillow = True
+                    d["isZillow"] = isZillow
+
                 balances.extend(data)
         return balances
 
