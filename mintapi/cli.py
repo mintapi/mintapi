@@ -339,7 +339,7 @@ def parse_arguments(args):
                 "default": False,
                 "help": "Retrieve trend data related to your financial information",
             },
-        ),              
+        ),
         (
             ("--trend-report-type",),
             {
