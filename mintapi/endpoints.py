@@ -839,8 +839,13 @@ class MintEndpoints(object, metaclass=ABCMeta):
                     account_name = account["name"]
                     d["account_type"] = account["type"]
                     isZillow = False
-                    if (("realEstateType" in account and account["realEstateType"] == "PRIMARY_RESIDENCE") 
-                        and ("realEstateValueProviderType" in account and account["realEstateValueProviderType"] == "ZILLOW")): #Correction for Balance API's inaccurate data
+                    if (
+                        "realEstateType" in account
+                        and account["realEstateType"] == "PRIMARY_RESIDENCE"
+                    ) and (
+                        "realEstateValueProviderType" in account
+                        and account["realEstateValueProviderType"] == "ZILLOW"
+                    ):  # Correction for Balance API's inaccurate data
                         isZillow = True
                     d["isZillow"] = isZillow
 

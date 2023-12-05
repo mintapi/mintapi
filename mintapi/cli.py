@@ -24,7 +24,7 @@ from mintapi.constants import (
     NET_WORTH_KEY,
     TRANSACTION_KEY,
     TRENDS_KEY,
-    ACCOUNT_BALANCE_HISTORY_KEY
+    ACCOUNT_BALANCE_HISTORY_KEY,
 )
 from mintapi.filters import DateFilter
 from mintapi.signIn import get_email_code
@@ -69,7 +69,7 @@ def parse_arguments(args):
                 "default": False,
                 "help": "Retrieve the complete balance history for all your accounts.",
             },
-        ),   
+        ),
         (
             ("--attention",),
             {
