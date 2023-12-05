@@ -24,6 +24,7 @@ from mintapi.constants import (
     NET_WORTH_KEY,
     TRANSACTION_KEY,
     TRENDS_KEY,
+    ACCOUNT_BALANCE_HISTORY_KEY,
 )
 from mintapi.filters import DateFilter
 from mintapi.signIn import get_email_code
@@ -58,6 +59,15 @@ def parse_arguments(args):
                 "dest": "accounts",
                 "default": False,
                 "help": "Retrieve account information (default if nothing else is specified)",
+            },
+        ),
+        (
+            ("--account-balance-history",),
+            {
+                "action": "store_true",
+                "dest": "account_balance_history",
+                "default": False,
+                "help": "Retrieve the complete balance history for all your accounts.",
             },
         ),
         (
@@ -538,6 +548,10 @@ def main():
             offset=0,
         )
         output_data(options, data, TRENDS_KEY, attention_msg)
+
+    if options.account_balance_history:
+        data = mint.get_account_balance_history()
+        output_data(options, data, ACCOUNT_BALANCE_HISTORY_KEY, attention_msg)
 
     if options.accounts:
         data = mint.get_account_data(limit=options.limit)

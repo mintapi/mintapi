@@ -2,6 +2,7 @@ JSON_FORMAT = "json"
 CSV_FORMAT = "csv"
 
 ACCOUNT_KEY = "Account"
+ACCOUNT_BALANCE_HISTORY_KEY = "Account_Balance_History"
 BILL_KEY = "Bill"
 BUDGET_KEY = "Budget"
 CATEGORY_KEY = "Category"
