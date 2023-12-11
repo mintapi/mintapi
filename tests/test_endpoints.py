@@ -475,6 +475,33 @@ class EndpointRequestTests(unittest.TestCase):
             uri_path="/v1/trends",
         )
 
+    @patch.object(
+        mintapi.endpoints.MintEndpoints, "__abstractmethods__", new_callable=set
+    )
+    @patch.object(mintapi.endpoints.MintEndpoints, "request")
+    def test_update_transaction_endpoint(self, mock_request, _):
+        """
+        Tests params are correctly passed to the request method
+        """
+        # Future TODO: mock full api response
+        mock_request.return_value = None
+        endpoints = MintEndpoints()
+        transaction_id = "1"
+        data = endpoints._update_transaction(
+            transaction_id="1",
+        )
+        self.assertIsNone(data)
+
+        # assert pagination call
+        mock_request.assert_called_once_with(
+            data_key=None,
+            metadata_key=None,
+            api_section="/pfm",
+            api_url="https://mint.intuit.com",
+            method="PUT",
+            uri_path=f"/v1/transactions/{transaction_id}",
+        )
+
 
 class UserMethodEndpointTests(unittest.TestCase):
     """

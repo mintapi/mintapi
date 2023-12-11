@@ -7,13 +7,13 @@ Shared Endpoint module to keep definitions independent of implementation
 import logging
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Dict
 from urllib.parse import parse_qs, urlparse
 
 import pandas as pd
 from mintapi.constants import MINT_CREDIT_URL, MINT_ROOT_URL
 from mintapi.filters import DateFilter, SearchFilterBuilder
-from mintapi.transactions import TransactionRequest
+from mintapi.transactions import TransactionRequest, TransactionUpdateRequest
 from mintapi.trends import ReportView, TrendRequest
 from requests import Response
 
@@ -35,6 +35,9 @@ class MintEndpoints(object, metaclass=ABCMeta):
 
     def post(self, **kwargs):
         return self.request(method="POST", **kwargs)
+
+    def put(self, **kwargs):
+        return self.request(method="PUT", **kwargs)
 
     def _paginate(self, data_key: str, metadata_key: str, response: Response, **kwargs):
         """
@@ -337,6 +340,38 @@ class MintEndpoints(object, metaclass=ABCMeta):
             **kwargs,
         )
 
+    def _get_transaction(self, transaction_id, **kwargs):
+        api_url = MINT_ROOT_URL
+        api_section = "/pfm"
+        uri_path = f"/v1/transactions/{transaction_id}"
+        metadata_key = None
+        data_key = None
+
+        return self.get(
+            api_url=api_url,
+            api_section=api_section,
+            uri_path=uri_path,
+            data_key=data_key,
+            metadata_key=metadata_key,
+            **kwargs,
+        )
+
+    def _update_transaction(self, transaction_id, **kwargs):
+        api_url = MINT_ROOT_URL
+        api_section = "/pfm"
+        uri_path = f"/v1/transactions/{transaction_id}"
+        metadata_key = None
+        data_key = None
+
+        return self.put(
+            api_url=api_url,
+            api_section=api_section,
+            uri_path=uri_path,
+            data_key=data_key,
+            metadata_key=metadata_key,
+            **kwargs,
+        )
+
     """
     User Methods - Add custom postprocessing logic here
     """
@@ -584,7 +619,7 @@ class MintEndpoints(object, metaclass=ABCMeta):
         remove_pending: bool = True,
         limit: int = 1000,
         offset: int = 0,
-        **kwargs
+        **kwargs,
     ):
         """
         Public accessor for transaction data. Internally constructs a transaction/search api payload
@@ -675,7 +710,7 @@ class MintEndpoints(object, metaclass=ABCMeta):
         match_all_filters: bool = True,
         limit: int = 1000,
         offset: int = 0,
-        **kwargs
+        **kwargs,
     ):
         """
         Public accessor for trend data. Internally constructs a trend api payload
@@ -730,6 +765,80 @@ class MintEndpoints(object, metaclass=ABCMeta):
         )
 
         return self._get_trend_data(json=payload.to_dict(), **kwargs)
+
+    def update_transaction_data(
+        self,
+        transaction_id: str,
+        transaction_type: TransactionUpdateRequest.TransactionType,
+        description: Optional[str] = None,
+        notes: Optional[str] = None,
+        category_id: Optional[str] = None,
+        tag_ids: List[str] = None,
+        **kwargs,
+    ) -> Dict:
+        """
+        Updates the data for a given transaction.
+
+        Parameters
+        ----------
+        transaction_id : str
+            The ID of the transaction to update.
+        transaction_type : TransactionUpdateRequest.TransactionType
+            The type of update to perform on the transaction.
+        description : str, optional
+            The updated description to assign to the transaction.
+        notes : str, optional
+            Optional notes to associate with the transaction.
+        category_id : str, optional
+            Optional category ID to assign to the transaction.
+        tag_ids : List[str], optional
+            Optional list of tag IDs to assign to the transaction. If provided, the existing tags associated with the transaction
+            will be replaced with the new tags specified in the payload. Note that if only one tag is included in the list,
+            the replacement will not be incremental, but instead will completely replace the existing tags with the new tags.
+        **kwargs
+            Additional keyword arguments to pass to the update transaction API.
+
+        Returns
+        -------
+        Dict
+            The updated transaction data.
+
+        Raises
+        ------
+        RuntimeError
+            If the update transaction API returns a non-204 status code.
+        """
+
+        # Construct the payload for the update transaction API
+        payload = TransactionUpdateRequest(
+            description=description,
+            notes=notes,
+            category_id=category_id,
+            tag_ids=tag_ids,
+            type=transaction_type,
+        )
+
+        # Call the update transaction API
+        update_response = self._update_transaction(
+            transaction_id=transaction_id,
+            json=payload.to_dict(),
+            paginate=False,
+            **kwargs,
+        )
+
+        # Raise an exception if the update transaction API returned an error
+        if update_response.status_code != 204:
+            raise RuntimeError(
+                f"Update transaction {transaction_id} failed with status code {update_response.status_code}"
+            )
+
+        # Get and return the updated transaction data
+        transaction_response: Response = self._get_transaction(
+            transaction_id=transaction_id, paginate=False
+        )
+        updated_transaction_data = transaction_response.json()
+
+        return updated_transaction_data
 
     """
     Convenience wrappers
